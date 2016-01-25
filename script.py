@@ -64,3 +64,68 @@ M.materials[mat1].Density(table=((mat1_dens, ), ))
 M.materials[mat1].Elastic(table=((mat1_E, mat1_v), ))
 M.materials[mat1].Plastic(table=((mat1_yield, 0.0), ))
 
+
+
+#====================================================================#
+#						PARTS	 									 #
+#====================================================================#
+
+#================ Input ==================#
+#Column
+part1 = "Column"
+sect1 = "HUP"
+col1_height = 200
+
+
+#Beam
+part2 = "Beam"
+sect2 = "HUP2"
+beam1_len = 200
+
+
+#================ Column ==================#
+
+#Create Section and profile
+M.BoxProfile(a=20.0, b=10.0, name='Profile-1', t1=2.0, uniformThickness=ON)
+M.BeamSection(consistentMassMatrix=False, integration=
+    DURING_ANALYSIS, material='Steel', name=sect1, poissonRatio=0.3, 
+    profile='Profile-1', temperatureVar=LINEAR)
+
+#Create part
+M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, col1_height))
+M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+del M.sketches['__profile__']
+
+#Assign section
+faces = M.parts[part1].faces
+M.parts[part1].SectionAssignment(region=(faces, ), sectionName=sect1)
+
+
+#================ Beam ==================#
+
+#Create Section and profile
+M.BoxProfile(a=20.0, b=10.0, name='Profile-2', t1=2.0, uniformThickness=ON)
+M.BeamSection(consistentMassMatrix=False, integration=
+    DURING_ANALYSIS, material='Steel', name=sect2, poissonRatio=0.3, 
+    profile='Profile-2', temperatureVar=LINEAR)
+
+#Create part
+M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(beam1_len, 0.0))
+M.Part(dimensionality=THREE_D, name=part2, type=DEFORMABLE_BODY)
+M.parts[part2].BaseWire(sketch=M.sketches['__profile__'])
+del M.sketches['__profile__']
+
+#Assign section
+faces = M.parts[part2].faces
+M.parts[part2].SectionAssignment(region=(faces, ), sectionName=sect2)
+
+
+
+#====================================================================#
+#						ASSEMBLY 									 #
+#====================================================================#
+
+
