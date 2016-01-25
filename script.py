@@ -29,8 +29,17 @@ session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORD
 
 
 #================ Input ==================#
-modelName = "basic_frame"
-M = mdb.models[modelName]		#For simplicity
+modelName = "basicFrame"
+mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
+M = mdb.models[modelName]								#For simplicity
+if len(mdb.models.keys()) > 0:							#Deletes all other models
+	a = mdb.models.items()
+	for i in range(len(a)):
+		b = a[i]
+		if b[0] != modelName:
+			del mdb.models[b[0]]
+
+
 
 
 #====================================================================#
@@ -52,6 +61,6 @@ mat1_yield = 355		#Yield stress
 #================ Steel ==================#
 M.Material(description=mat1Description, name=mat1)
 M.materials[mat1].Density(table=((mat1_dens, ), ))
-M.materials[mat1].Elastic(table=((mat_E, mat1_v), ))
+M.materials[mat1].Elastic(table=((mat1_E, mat1_v), ))
 M.materials[mat1].Plastic(table=((mat1_yield, 0.0), ))
 
