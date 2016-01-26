@@ -103,6 +103,13 @@ faces = M.parts[part1].faces
 M.parts[part1].SectionAssignment(region=(faces, ), sectionName=sect1)
 
 
+#Create set of column base
+#Will get name "part1_an-e.col-base" in assembly
+M.parts[part1].Set(name='col-base', vertices=
+    M.parts[part1].vertices.findAt(((0.0, 0.0, 0.0),)))		
+M.parts[part1].Set(name='col-top', vertices=
+    M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
+
 #================ Beam ==================#
 
 #Create Section and profile
@@ -160,7 +167,7 @@ for a in alph:
 				part=M.parts[part1])
 			M.rootAssembly.translate(instanceList=(inst, ),	#Translate instance in x,y and z
 				vector=(x_d*count , col1_height*(int(e)-1), z_d*(int(n)-1)))
-		
+
 
 #================ Beams ==================#'
 
@@ -218,9 +225,19 @@ elif riks:
 #================ Joints ==================#
 
 
-#================ Column foots =============#
-
-
+#================ Column base =============#
+count=-1
+for a in alph:
+	count = count + 1
+	for n in numb:
+		set = part1 + "_" + a + n + "-" + "1.col-base"
+		M.DisplacementBC(amplitude=UNSET, createStepName=
+			stepName, distributionType=UNIFORM, fieldName='', fixed=OFF,
+			localCsys=None, name=set, region=
+			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
+			, ur1=0.0, ur2=0.0, ur3=0.0)
+			
+		
 #================ Loads   ==================#
 
 
