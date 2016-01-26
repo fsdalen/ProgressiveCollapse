@@ -188,3 +188,39 @@ for a in range(len(alph)-0):
 			M.rootAssembly.translate(instanceList=(inst, ),
 				vector=(x_d*a , col1_height*(e+1), z_d*n))
 
+#====================================================================#
+#							STEP 									 #
+#====================================================================#
+
+#================ Input ==================#
+stepName = "Static"			#Name of step
+
+static = 1					# 1 if static
+riks = 0					# 1 if Riks static
+nlg = ON					# Nonlinear geometry (ON/OFF)
+
+#================ Create step ==================#
+if static:
+	M.StaticStep(description='description', 
+		initialInc=0.1, name=stepName, nlgeom=nlg, previous='Initial')
+elif riks:
+	M.StaticRiksStep(description='description', 
+		initialArcInc=0.01, name=stepName, nlgeom=nlg, previous='Initial')
+
+
+#====================================================================#
+#							BCs 									 #
+#====================================================================#
+
+#================ Input ==================#
+
+
+#================ Joints ==================#
+
+
+#================ Column foots =============#
+
+
+#================ Loads   ==================#
+
+
