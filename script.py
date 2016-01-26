@@ -49,21 +49,36 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 #================ Input ==================#
 
 # Material 1
-mat1 = "Steel"	#Material name
-mat1Description = 'This is the description'
-mat1_dens = 8.05e-06	#Density
+mat1 = "Steel"		#Material name
+mat1_Description = 'This is the description'
+mat1_dens = 8.05e-09	#Density
 mat1_E = 210000.0		#E-module
 mat1_v = 0.3			#Poisson
 mat1_yield = 355		#Yield stress
 
 
+# Material 1
+mat2 = "Concrete"	#Material name
+mat2_Description = 'This is the description'
+mat2_dens = 2.5e-09		#Density
+mat2_E = 35000.0		#E-module
+mat2_v = 0.3			#Poisson
+mat2_yield = 35			#Yield stress
+
+
 
 #================ Steel ==================#
-M.Material(description=mat1Description, name=mat1)
+M.Material(description=mat1_Description, name=mat1)
 M.materials[mat1].Density(table=((mat1_dens, ), ))
 M.materials[mat1].Elastic(table=((mat1_E, mat1_v), ))
 M.materials[mat1].Plastic(table=((mat1_yield, 0.0), ))
 
+
+#================ Concrete ==================#
+M.Material(description=mat2_Description, name=mat2)
+M.materials[mat2].Density(table=((mat2_dens, ), ))
+M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
+M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 
 
 #====================================================================#
@@ -82,6 +97,10 @@ part2 = "Beam"
 sect2 = "HUP2"
 beam_len = 5000
 
+#Deck
+part3 = "Deck"
+sect3 = "Slab"
+deck_t = 100	#Thickness of deck
 
 #================ Column ==================#
 
@@ -130,6 +149,27 @@ faces = M.parts[part2].faces
 M.parts[part2].SectionAssignment(region=(faces, ), sectionName=sect2)
 
 
+#================ Deck ==================#
+
+#Create Section
+M.HomogeneousShellSection(idealization=NO_IDEALIZATION, 
+    integrationRule=SIMPSON, material=mat2, name=sect3, numIntPts=5, 
+    poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
+    thickness=deck_t, thicknessField='', thicknessModulus=None, thicknessType=
+    UNIFORM, useDensity=OFF)
+
+
+#Create part
+M.ConstrainedSketch(name='__profile__', sheetSize= 10000.0)
+M.sketches['__profile__'].rectangle(point1=(0.0, 0.0), point2=(beam_len, beam_len))
+M.Part(dimensionality=THREE_D, name=part3, type=DEFORMABLE_BODY)
+M.parts[part3].BaseShell(sketch=M.sketches['__profile__'])
+del M.sketches['__profile__']
+
+#Assign section
+faces = M.parts[part3].faces
+M.parts[part3].SectionAssignment(region=(faces, ), sectionName=sect3)
+
 
 #====================================================================#
 #						ASSEMBLY 									 #
@@ -169,7 +209,7 @@ for a in alph:
 				vector=(x_d*count , col1_height*(int(e)-1), z_d*(int(n)-1)))
 
 
-#================ Beams ==================#'
+#================ Beams ==================#
 
 #Beams in x (alpha) direction
 for a in range(len(alph)-1):
@@ -194,6 +234,20 @@ for a in range(len(alph)-0):
 			#Translate instance in x,y and z
 			M.rootAssembly.translate(instanceList=(inst, ),
 				vector=(x_d*a , col1_height*(e+1), z_d*n))
+
+
+#================ Decks ==================#
+
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part3])
+			M.rootAssembly.rotate(angle=90.0, axisDirection=(
+							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
+			M.rootAssembly.translate(instanceList=(inst, ),
+							vector=(x_d*a,col1_height*(e+1),z_d*n))
+
 
 #====================================================================#
 #							STEP 									 #
