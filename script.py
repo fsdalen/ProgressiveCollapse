@@ -335,6 +335,66 @@ elif riks:
 
 #================ Joints ==================#
 
+connName = "Join"
+#Create connector
+M.ConnectorSection(name=connName, translationalType=
+    JOIN)
+
+#Create Wires and assign connectors
+
+# Here there is some truble:
+# Not sure if connectors have to be assign per node or per member pair
+# Now there is definitly not enough connectors
+
+#Alpha direction (x)
+for a in range(len(alph)-1):
+	for n in range(len(numb)-0):
+		for e in range(len(etg)):
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			col1 = part1+"_"+alph[a]+numb[n]+"-"+etg[e]
+			col2 = part1+"_"+alph[a+1]+numb[n]+"-"+etg[e]
+			coor1 = (a*x_d, (e+1)*col1_height, n*z_d)
+			coor2 = ((a+1)*x_d, (e+1)*col1_height, n*z_d)
+			M.rootAssembly.WirePolyLine(mergeType=IMPRINT, meshable=OFF, points=((
+				M.rootAssembly.instances[beam].vertices.findAt(
+				(coor1), ), 
+				M.rootAssembly.instances[col1].vertices.findAt(
+				(coor1), )), (
+				M.rootAssembly.instances[beam].vertices.findAt(
+				(coor2), ), 
+				M.rootAssembly.instances[col2].vertices.findAt(
+				(coor2), ))))
+# 			M.rootAssembly.SectionAssignment(region=Region(
+# 				edges=M.rootAssembly.edges.findAt((
+# 				coor1, ), (coor2, ) )), sectionName=connName)
+			M.rootAssembly.SectionAssignment(region=Region(
+				edges=M.rootAssembly.edges.findAt((
+				coor1, ), )), sectionName=connName)
+# 			M.rootAssembly.SectionAssignment(region=Region(
+# 				edges=M.rootAssembly.edges.findAt((
+#  				coor2, ), )), sectionName=connName)
+# 			print beam, col1, coor1
+# 			print beam, col2, coor2
+
+#Number direction (z)
+for a in range(len(alph)-0):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			col1 = part1+"_"+alph[a]+numb[n]+"-"+etg[e]
+			col2 = part1+"_"+alph[a]+numb[n+1]+"-"+etg[e]
+			coor1 = (a*x_d, (e+1)*col1_height, n*z_d)
+			coor2 = (a*x_d, (e+1)*col1_height, (n+1)*z_d)
+			M.rootAssembly.WirePolyLine(mergeType=IMPRINT, meshable=OFF, points=((
+				M.rootAssembly.instances[beam].vertices.findAt(
+				(coor1), ), 
+				M.rootAssembly.instances[col1].vertices.findAt(
+				(coor1), )), (
+				M.rootAssembly.instances[beam].vertices.findAt(
+				(coor2), ), 
+				M.rootAssembly.instances[col2].vertices.findAt(
+				(coor2), ))))
+
 
 #================ Column base =============#
 count=-1
@@ -350,5 +410,3 @@ for a in alph:
 			
 		
 #================ Loads   ==================#
-
-
