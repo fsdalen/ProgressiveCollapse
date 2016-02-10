@@ -121,7 +121,7 @@ faces = M.parts[part1].faces
 M.parts[part1].SectionAssignment(region=(faces, ), sectionName=sect1)
 
 
-#Create set of column base
+#Create sets of column base/top
 #Will get name "part1_an-e.col-base" in assembly
 M.parts[part1].Set(name='col-base', vertices=
     M.parts[part1].vertices.findAt(((0.0, 0.0, 0.0),)))		
@@ -169,6 +169,10 @@ del M.sketches['__profile__']
 faces = M.parts[part3].faces
 M.parts[part3].SectionAssignment(region=(faces, ), sectionName=sect3)
 
+#Create surface
+#Gets name Slab_A1-1.Surf
+M.parts[part3].Surface(name='Surf', side2Faces=
+    M.parts[part3].faces.findAt(((0.0, 0.0, 0.0), )))
 
 #====================================================================#
 #						ASSEMBLY 									 #
@@ -331,7 +335,7 @@ elif riks:
 #====================================================================#
 
 #================ Input ==================#
-
+LL = -10000
 
 #================ Joints ==================#
 
@@ -410,3 +414,25 @@ for a in alph:
 			
 		
 #================ Loads   ==================#
+
+#Gravity
+M.Gravity(comp2=-9800.0, createStepName=stepName, 
+    distributionType=UNIFORM, field='', name='Gravity')
+
+
+#LL
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = "Slab_" + alph[a]+numb[n]+"-"+etg[e]
+			M.SurfaceTraction(createStepName=stepName, 
+				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+				distributionType=UNIFORM, field='', follower=OFF,
+				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+				region= M.rootAssembly.instances[inst].surfaces['Surf'],
+				traction=GENERAL)
+
+
+
+
+
