@@ -57,7 +57,7 @@ mat1_v = 0.3			#Poisson
 mat1_yield = 355		#Yield stress
 
 
-# Material 1
+# Material 2
 mat2 = "Concrete"	#Material name
 mat2_Description = 'This is the description'
 mat2_dens = 2.5e-09		#Density
@@ -91,16 +91,15 @@ part1 = "Column"
 sect1 = "HUP"
 col1_height = 3000
 
-
 #Beam
 part2 = "Beam"
 sect2 = "HUP2"
 beam_len = 5000
 
-#Deck
-part3 = "Deck"
+#Slab
+part3 = "Slab"
 sect3 = "Slab"
-deck_t = 100	#Thickness of deck
+deck_t = 100	#Thickness of slabs
 
 #================ Column ==================#
 
@@ -149,7 +148,7 @@ faces = M.parts[part2].faces
 M.parts[part2].SectionAssignment(region=(faces, ), sectionName=sect2)
 
 
-#================ Deck ==================#
+#================ Slab ==================#
 
 #Create Section
 M.HomogeneousShellSection(idealization=NO_IDEALIZATION, 
@@ -192,7 +191,7 @@ M.rootAssembly.DatumCsysByDefault(CARTESIAN)  #Set coordinates to Cartesian
 #Letters go left to right (positive x)
 #Number top to bottom (positive z)
 
-alph = map(chr, range(97, 97+x))
+alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
 numb = map(str,range(1,z+1))
 etg = map(str,range(1,y+1))
 
