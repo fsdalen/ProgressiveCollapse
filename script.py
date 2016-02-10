@@ -247,6 +247,64 @@ for a in range(len(alph)-1):
 			M.rootAssembly.translate(instanceList=(inst, ),
 							vector=(x_d*a,col1_height*(e+1),z_d*n))
 
+#====================================================================#
+#							Mesh 									 #
+#====================================================================#
+
+#================ Input ==================#
+analysisType = STANDARD  #Could be STANDARD or EXPLICIT
+
+#Column
+seed1 = 500
+element1 = B31 #B31 or B32 for linear or quadratic
+
+#Beam
+seed2 = seed1
+element2 = element1 #B31 or B32 for linear or quadratic
+
+#Slab
+seed3 = seed1
+element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Explicit)
+
+
+
+#================ Column ==================#
+#Seed
+M.parts[part1].seedPart(minSizeFactor=0.1, size=seed1)
+
+#Change element type
+M.parts[part1].setElementType(elemTypes=(ElemType(
+    elemCode=element1, elemLibrary=analysisType), ), regions=(
+    M.parts[part1].edges.findAt((0.0, 0.0, 0.0), ), ))
+
+#Mesh
+M.parts[part1].generateMesh()
+
+#================ Beam ==================#
+#Seed
+M.parts[part2].seedPart(minSizeFactor=0.1, size=seed2)
+
+#Change element type
+M.parts[part2].setElementType(elemTypes=(ElemType(
+    elemCode=element2, elemLibrary=analysisType), ), regions=(
+    M.parts[part2].edges.findAt((0.0, 0.0, 0.0), ), ))
+
+#Mesh
+M.parts[part2].generateMesh()
+
+#================ Slab ==================#
+#Seed
+M.parts[part3].seedPart(minSizeFactor=0.1, size=seed3)
+
+#Change element type
+M.parts[part3].setElementType(elemTypes=(ElemType(
+    elemCode=S4R, elemLibrary=analysisType, secondOrderAccuracy=OFF, 
+    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=analysisType)), 
+    regions=(M.parts[part3].faces.findAt((0.0, 0.0, 0.0), ), ))
+
+#Mesh
+M.parts[part3].generateMesh()
+
 
 #====================================================================#
 #							STEP 									 #
