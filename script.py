@@ -89,12 +89,12 @@ M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 #Column
 part1 = "Column"
 sect1 = "HUP"
-col1_height = 3000
+col1_height = 500
 
 #Beam
 part2 = "Beam"
 sect2 = "HUP2"
-beam_len = 5000
+beam_len = 500
 
 #Slab
 part3 = "Slab"
@@ -104,7 +104,7 @@ deck_t = 100	#Thickness of slabs
 #================ Column ==================#
 
 #Create Section and profile
-M.BoxProfile(a=20.0, b=10.0, name='Profile-1', t1=2.0, uniformThickness=ON)
+M.BoxProfile(a=100.0, b=100.0, name='Profile-1', t1=8.0, uniformThickness=ON)
 M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect1, poissonRatio=0.3, 
     profile='Profile-1', temperatureVar=LINEAR)
@@ -138,7 +138,7 @@ M.parts[part1].Set(name='col-top', vertices=
 #================ Beam ==================#
 
 #Create Section and profile
-M.BoxProfile(a=20.0, b=10.0, name='Profile-2', t1=2.0, uniformThickness=ON)
+M.BoxProfile(a=50.0, b=50.0, name='Profile-2', t1=4.0, uniformThickness=ON)
 M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect2, poissonRatio=0.3, 
     profile='Profile-2', temperatureVar=LINEAR)
@@ -197,12 +197,12 @@ M.parts[part3].Surface(name='Surf', side2Faces=
 #====================================================================#
 
 #================ Input ==================#
-x = 2			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
+x = 3			#Nr of columns in x direction
+z = 3			#Nr of columns in z direction
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
-y = 1			#nr of stories
+y = 3			#nr of stories
 
 
 
@@ -258,16 +258,16 @@ for a in range(len(alph)-0):
 
 
 #================ Decks ==================#
-
-for a in range(len(alph)-1):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part3])
-			M.rootAssembly.rotate(angle=90.0, axisDirection=(
-							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
-			M.rootAssembly.translate(instanceList=(inst, ),
-							vector=(x_d*a,col1_height*(e+1),z_d*n))
+# 
+# for a in range(len(alph)-1):
+# 	for n in range(len(numb)-1):
+# 		for e in range(len(etg)):
+# 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+# 			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part3])
+# 			M.rootAssembly.rotate(angle=90.0, axisDirection=(
+# 							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
+# 			M.rootAssembly.translate(instanceList=(inst, ),
+# 							vector=(x_d*a,col1_height*(e+1),z_d*n))
 
 #====================================================================#
 #							Mesh 									 #
@@ -277,7 +277,7 @@ for a in range(len(alph)-1):
 analysisType = STANDARD  #Could be STANDARD or EXPLICIT
 
 #Column
-seed1 = 500
+seed1 = 50
 element1 = B31 #B31 or B32 for linear or quadratic
 
 #Beam
@@ -313,19 +313,19 @@ M.parts[part2].setElementType(elemTypes=(ElemType(
 
 #Mesh
 M.parts[part2].generateMesh()
-
-#================ Slab ==================#
-#Seed
-M.parts[part3].seedPart(minSizeFactor=0.1, size=seed3)
-
-#Change element type
-M.parts[part3].setElementType(elemTypes=(ElemType(
-    elemCode=S4R, elemLibrary=analysisType, secondOrderAccuracy=OFF, 
-    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=analysisType)), 
-    regions=(M.parts[part3].faces.findAt((0.0, 0.0, 0.0), ), ))
-
-#Mesh
-M.parts[part3].generateMesh()
+# 
+# #================ Slab ==================#
+# #Seed
+# M.parts[part3].seedPart(minSizeFactor=0.1, size=seed3)
+# 
+# #Change element type
+# M.parts[part3].setElementType(elemTypes=(ElemType(
+#     elemCode=S4R, elemLibrary=analysisType, secondOrderAccuracy=OFF, 
+#     hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=analysisType)), 
+#     regions=(M.parts[part3].faces.findAt((0.0, 0.0, 0.0), ), ))
+# 
+# #Mesh
+# M.parts[part3].generateMesh()
 
 
 #====================================================================#
@@ -335,8 +335,8 @@ M.parts[part3].generateMesh()
 #================ Input ==================#
 stepName = "Static"			#Name of step
 
-static = 1					# 1 if static
-riks = 0					# 1 if Riks static
+static = 0					# 1 if static
+riks = 1					# 1 if Riks static
 nlg = ON					# Nonlinear geometry (ON/OFF)
 
 #================ Create step ==================#
@@ -349,11 +349,116 @@ elif riks:
 
 
 #====================================================================#
+#							Joints 									 #
+#====================================================================#
+
+
+#================ Column to beam joints =============#
+
+beamMPC = TIE_MPC	#May be TIE/BEAM/PIN
+
+# Using MPC constraints to create pinned joints for the entire frame
+# Might be possible to use MPC constraints, Beam or Tie to to get a fixed joint
+
+
+#Column to beam in x(alpha) direction
+for a in range(len(alph)-1):
+	for n in range(len(numb)):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in negative x(alpha) direction
+for a in range(len(alph)-1, 0,-1):
+	for n in range(len(numb)):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a-1]+numb[n] + "-" + alph[a]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a-1]+numb[n] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in z(num) direction
+for a in range(len(alph)):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in negative z(num) direction
+for a in range(len(alph)):
+	for n in range(len(numb)-1,0,-1):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n-1] + "-" + alph[a]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n-1] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+
+#================ Column to column joints =============#
+colMPC = TIE_MPC
+
+for a in range(len(alph)):
+	for n in range(len(numb)):
+		for e in range(len(etg)-1):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			col2 = part1+"_"+ alph[a]+numb[n] + "-" +etg[e+1]
+			constrName = 'Const_col_col_'+ alph[a]+numb[n] + "-"+etg[e] + "-"+etg[e+1]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=colMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[col2].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+				
+
+#================ Slabs to beams =============#
+#Slabs are not joined yet
+
+
+
+
+#====================================================================#
 #							BCs 									 #
 #====================================================================#
 
 #================ Input ==================#
 
+
+#================ Loads ==================#
 
 
 #================ Column base =============#
@@ -367,11 +472,3 @@ for a in alph:
 			localCsys=None, name=set, region=
 			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
 			, ur1=0.0, ur2=0.0, ur3=0.0)
-
-#================ Loads =============#			
-
-
-
-
-
-
