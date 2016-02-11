@@ -257,17 +257,17 @@ for a in range(len(alph)-0):
 				vector=(x_d*a , col1_height*(e+1), z_d*n))
 
 
-#================ Decks ==================#
-# 
-# for a in range(len(alph)-1):
-# 	for n in range(len(numb)-1):
-# 		for e in range(len(etg)):
-# 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
-# 			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part3])
-# 			M.rootAssembly.rotate(angle=90.0, axisDirection=(
-# 							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
-# 			M.rootAssembly.translate(instanceList=(inst, ),
-# 							vector=(x_d*a,col1_height*(e+1),z_d*n))
+#================ Slabs ==================#
+
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part3])
+			M.rootAssembly.rotate(angle=90.0, axisDirection=(
+							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
+			M.rootAssembly.translate(instanceList=(inst, ),
+							vector=(x_d*a,col1_height*(e+1),z_d*n))
 
 #====================================================================#
 #							Mesh 									 #
@@ -313,19 +313,19 @@ M.parts[part2].setElementType(elemTypes=(ElemType(
 
 #Mesh
 M.parts[part2].generateMesh()
-# 
-# #================ Slab ==================#
-# #Seed
-# M.parts[part3].seedPart(minSizeFactor=0.1, size=seed3)
-# 
-# #Change element type
-# M.parts[part3].setElementType(elemTypes=(ElemType(
-#     elemCode=S4R, elemLibrary=analysisType, secondOrderAccuracy=OFF, 
-#     hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=analysisType)), 
-#     regions=(M.parts[part3].faces.findAt((0.0, 0.0, 0.0), ), ))
-# 
-# #Mesh
-# M.parts[part3].generateMesh()
+
+#================ Slab ==================#
+#Seed
+M.parts[part3].seedPart(minSizeFactor=0.1, size=seed3)
+
+#Change element type
+M.parts[part3].setElementType(elemTypes=(ElemType(
+    elemCode=S4R, elemLibrary=analysisType, secondOrderAccuracy=OFF, 
+    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=analysisType)), 
+    regions=(M.parts[part3].faces.findAt((0.0, 0.0, 0.0), ), ))
+
+#Mesh
+M.parts[part3].generateMesh()
 
 
 #====================================================================#
@@ -456,6 +456,22 @@ for a in range(len(alph)):
 #====================================================================#
 
 #================ Input ==================#
+#Gravity
+M.Gravity(comp2=-9800.0, createStepName=stepName, 
+    distributionType=UNIFORM, field='', name='Gravity')
+
+LL=-50
+#LL
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = "Slab_" + alph[a]+numb[n]+"-"+etg[e]
+			M.SurfaceTraction(createStepName=stepName, 
+				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+				distributionType=UNIFORM, field='', follower=OFF,
+				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+				region= M.rootAssembly.instances[inst].surfaces['Surf'],
+				traction=GENERAL)
 
 
 #================ Loads ==================#
