@@ -117,9 +117,16 @@ M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
 del M.sketches['__profile__']
 
 #Assign section
-faces = M.parts[part1].faces
-M.parts[part1].SectionAssignment(region=(faces, ), sectionName=sect1)
+M.parts[part1].SectionAssignment(offset=0.0, 
+    offsetField='', offsetType=MIDDLE_SURFACE, region=Region(
+    edges=M.parts[part1].edges.findAt(((0.0, 0.0, 
+    0.0), ), )), sectionName=sect1, thicknessAssignment=FROM_SECTION)
 
+
+#Assign beam orientation
+M.parts[part1].assignBeamSectionOrientation(method=
+    N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
+    edges=M.parts[part1].edges.findAt(((0.0, 0.0, 0.0), ), )))
 
 #Create sets of column base/top
 #Will get name "part1_an-e.col-base" in assembly
@@ -144,8 +151,16 @@ M.parts[part2].BaseWire(sketch=M.sketches['__profile__'])
 del M.sketches['__profile__']
 
 #Assign section
-faces = M.parts[part2].faces
-M.parts[part2].SectionAssignment(region=(faces, ), sectionName=sect2)
+M.parts[part2].SectionAssignment(offset=0.0, 
+    offsetField='', offsetType=MIDDLE_SURFACE, region=Region(
+    edges=M.parts[part2].edges.findAt(((0.0, 0.0, 
+    0.0), ), )), sectionName=sect2, thicknessAssignment=FROM_SECTION)
+
+
+#Assign beam orientation
+M.parts[part2].assignBeamSectionOrientation(method=
+    N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
+    edges=M.parts[part2].edges.findAt(((0.0, 0.0, 0.0), ), )))
 
 
 #================ Slab ==================#
@@ -166,8 +181,11 @@ M.parts[part3].BaseShell(sketch=M.sketches['__profile__'])
 del M.sketches['__profile__']
 
 #Assign section
-faces = M.parts[part3].faces
-M.parts[part3].SectionAssignment(region=(faces, ), sectionName=sect3)
+M.parts[part3].SectionAssignment(offset=0.0, 
+    offsetField='', offsetType=MIDDLE_SURFACE, region=Region(
+    faces=M.parts[part3].faces.findAt(((0.0, 
+    0.0, 0.0), ), )), sectionName='Slab', 
+    thicknessAssignment=FROM_SECTION)
 
 #Create surface
 #Gets name Slab_A1-1.Surf
@@ -179,12 +197,12 @@ M.parts[part3].Surface(name='Surf', side2Faces=
 #====================================================================#
 
 #================ Input ==================#
-x = 5			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
+x = 2			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
-y = 3			#nr of stories
+y = 1			#nr of stories
 
 
 
@@ -411,13 +429,11 @@ for a in alph:
 			localCsys=None, name=set, region=
 			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
 			, ur1=0.0, ur2=0.0, ur3=0.0)
-			
-		
-#================ Loads   ==================#
 
-#Gravity
-M.Gravity(comp2=-9800.0, createStepName=stepName, 
-    distributionType=UNIFORM, field='', name='Gravity')
+#================ Loads =============#			
+# Gravity
+# M.Gravity(comp2=-9800.0, createStepName=stepName, 
+#     distributionType=UNIFORM, field='', name='Gravity')
 
 
 #LL
