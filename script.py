@@ -37,8 +37,18 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 			del mdb.models[b[0]]
 
 
+#Delete old input files
+import os
+import glob
+inps = glob.glob('*.inp')
+for i in inps:
+	os.remove(i)
 
-
+#Delete old jobs
+jbs = mdb.jobs.keys()
+if len(jbs)> 0:
+	for i in jbs:
+		del mdb.jobs[i]
 
 #====================================================================#
 #							INPUTS									 #
@@ -85,9 +95,9 @@ deck_t = 10	#Thickness of slabs
 
 
 #================ Assembly ==================#
-x = 3			#Nr of columns in x direction
+x = 2			#Nr of columns in x direction
 z = 2			#Nr of columns in z direction
-y = 2			#nr of stories
+y = 1			#nr of stories
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
@@ -528,3 +538,5 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
 
 if runJob == 1:        
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
+
+
