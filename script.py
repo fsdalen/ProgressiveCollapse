@@ -439,75 +439,7 @@ elif riks:
 
 #================ Column to beam joints =============#
 
-beamMPC = TIE_MPC	#May be TIE/BEAM/PIN
 
-# Using MPC constraints to create pinned joints for the entire frame
-# Might be possible to use MPC constraints, Beam or Tie to to get a fixed joint
-
-
-#Column to beam in x(alpha) direction
-for a in range(len(alph)-1):
-	for n in range(len(numb)):
-		for e in range(len(etg)):
-			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
-			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
-			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
-			#MPC
-			M.MultipointConstraint(controlPoint=Region(
-				vertices=M.rootAssembly.instances[col].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
-				csys=None, mpcType=beamMPC, \
-				name=constrName, \
-				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
-
-#Column to beam in negative x(alpha) direction
-for a in range(len(alph)-1, 0,-1):
-	for n in range(len(numb)):
-		for e in range(len(etg)):
-			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
-			beam = part2+"_"+ alph[a-1]+numb[n] + "-" + alph[a]+numb[n] + "-"+etg[e]
-			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a-1]+numb[n] + "-"+etg[e]
-			#MPC
-			M.MultipointConstraint(controlPoint=Region(
-				vertices=M.rootAssembly.instances[col].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
-				csys=None, mpcType=beamMPC, \
-				name=constrName, \
-				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
-
-#Column to beam in z(num) direction
-for a in range(len(alph)):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
-			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			#MPC
-			M.MultipointConstraint(controlPoint=Region(
-				vertices=M.rootAssembly.instances[col].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
-				csys=None, mpcType=beamMPC, \
-				name=constrName, \
-				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
-
-#Column to beam in negative z(num) direction
-for a in range(len(alph)):
-	for n in range(len(numb)-1,0,-1):
-		for e in range(len(etg)):
-			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
-			beam = part2+"_"+ alph[a]+numb[n-1] + "-" + alph[a]+numb[n] + "-"+etg[e]
-			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n-1] + "-"+etg[e]
-			#MPC
-			M.MultipointConstraint(controlPoint=Region(
-				vertices=M.rootAssembly.instances[col].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
-				csys=None, mpcType=beamMPC, \
-				name=constrName, \
-				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
 
 
 #================ Column to column joints =============#
