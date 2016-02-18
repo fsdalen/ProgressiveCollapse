@@ -173,10 +173,10 @@ M.parts[part1].assignBeamSectionOrientation(method=
 
 # Create sets of column base/top
 # Will get name "part1_an-e.col-base" in assembly
-# M.parts[part1].Set(name='col-base', vertices=
-#     M.parts[part1].vertices.findAt(((0.0, 0.0, 0.0),)))		
-# M.parts[part1].Set(name='col-top', vertices=
-#     M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
+M.parts[part1].Set(name='col-base', vertices=
+    M.parts[part1].vertices.findAt(((0.0, 0.0, 0.0),)))		
+M.parts[part1].Set(name='col-top', vertices=
+    M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
 
 
 #================ Beam ==================#
@@ -354,159 +354,6 @@ M.parts[part3].generateMesh()
 
 
 
-#====================================================================#
-#				MERGE INSTANCES TO SINGLE PART						 #
-#====================================================================#
-
-#================ Merge ==================#
-
-# Now merging geometry, also possible to merge mesh but then I loose geometric features
-# This makes it difficult to create sets because they then have to be set by node number
-instList = columnList + beamList + slabList
-inst = []
-for i in instList:
-	inst.append(M.rootAssembly.instances[i])
-	print i
-instTup = tuple(inst)
-
-M.rootAssembly.regenerate()
-M.rootAssembly.InstanceFromBooleanMerge(domain=GEOMETRY, 
-    instances=instTup, keepIntersections=ON, name='Part-1',
-    originalInstances=SUPPRESS)
-
-
-#========= Create stringer for beams ===========#
-
-#Beams in x (alpha) direction
-for a in range(len(alph)-1):
-	for n in range(len(numb)-0):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]		
-			M.parts['Part-1'].Stringer(edges=
-				M.parts['Part-1'].edges.findAt(
-				((a*x_d+1, (e+1)*col1_height, n*z_d), 
-				)), name=inst)
-
-#Beams in z (numb) direction
-for a in range(len(alph)-0):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			M.parts['Part-1'].Stringer(edges=
-				M.parts['Part-1'].edges.findAt(
-				((a*x_d, (e+1)*col1_height, n*z_d+1), 
-				)), name=inst)
-
-
-#=========== Create sets ===============#
-#Columns
-for a in range(len(alph)):
-	for n in range(len(numb)):
-		for e in range(len(etg)):
-			inst = part1+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			M.parts['Part-1'].Set(edges=
-				M.parts['Part-1'].edges.findAt(
-				((a*x_d, e*col1_height+1, n*z_d), )), name=inst)
-
-#ColumnBase
-for a in range(len(alph)):
-	for n in range(len(numb)):
-		for e in range(len(etg)):
-			inst = part1+'_base'+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			M.parts['Part-1'].Set(name=inst, vertices=
-				M.parts['Part-1'].vertices.findAt((
-				(a*x_d, e*col1_height, n*z_d), )))
-
-#Beam stringers in x (alpha) direction
-for a in range(len(alph)-1):
-	for n in range(len(numb)-0):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
-			M.parts['Part-1'].Set(name=inst, stringerEdges=(
-				(inst, M.parts['Part-1'].edges.findAt(((
-				a*x_d+1, (e+1)*col1_height, n*z_d), ))), ))
-
-#Beams stringer in z (numb) direction
-for a in range(len(alph)-0):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			M.parts['Part-1'].Set(name=inst, stringerEdges=(
-				(inst, M.parts['Part-1'].edges.findAt(((
-				a*x_d, (e+1)*col1_height, n*z_d+1), ))), ))
-
-#Slabs
-for a in range(len(alph)-1):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			M.parts['Part-1'].Set(faces=
-				M.parts['Part-1'].faces.findAt(
-				((a*x_d+1, (e+1)*col1_height, n*z_d+1), )), name=inst)
-
-
-#=========== Assign Sections ===============#
-
-#Columns
-for inst in columnList:
-	M.parts['Part-1'].SectionAssignment(offset=0.0, 
-		offsetField='', offsetType=MIDDLE_SURFACE, region=
-		M.parts['Part-1'].sets[inst], sectionName=
-		sect1, thicknessAssignment=FROM_SECTION)
-
-#Beams
-for inst in beamList:
-	M.parts['Part-1'].SectionAssignment(offset=0.0, 
-		offsetField='', offsetType=MIDDLE_SURFACE, region=
-		M.parts['Part-1'].sets[inst], sectionName=
-		sect2, thicknessAssignment=FROM_SECTION)
-
-# Slabs
-for a in range(len(alph)-1):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			M.parts['Part-1'].SectionAssignment(offset=0.0, 
-				offsetField='', offsetType=MIDDLE_SURFACE, region=
-				M.parts['Part-1'].sets[inst], sectionName=
-				sect3, thicknessAssignment=FROM_SECTION)
-
-
-#=========== Assign Beam Orientations ===============#
-#Columns
-for inst in columnList:
-	M.parts['Part-1'].assignBeamSectionOrientation(method=
-		N1_COSINES, n1=(0.0, 0.0, -1.0), region=
-		M.parts['Part-1'].sets[inst])
-
-
-#Beams in x (alpha) direction
-for a in range(len(alph)-1):
-	for n in range(len(numb)-0):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
-			M.parts['Part-1'].assignBeamSectionOrientation(method=
-				N1_COSINES, n1=(0.0, 0.0, 1.0), region=
-				M.parts['Part-1'].sets[inst])
-
-#Beams in z (numb) direction
-for a in range(len(alph)-0):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			M.parts['Part-1'].assignBeamSectionOrientation(method=
-				N1_COSINES, n1=(1.0, 0.0, 0.0), region=
-				M.parts['Part-1'].sets[inst])
-
-
-#================ Mesh ==================#
-#Not implemented choosing element type, using default
-M.parts['Part-1'].seedPart(deviationFactor=0.1, 
-    minSizeFactor=0.1, size=seed1)
-M.parts['Part-1'].generateMesh()
-
-
-
 
 #====================================================================#
 #							STEP 									 #
@@ -527,7 +374,101 @@ elif riks:
 #							Joints 									 #
 #====================================================================#
 
-#No joints with only one part
+#================ Column to beam joints =============#
+
+beamMPC = TIE_MPC	#May be TIE/BEAM/PIN
+
+# Using MPC constraints to create pinned joints for the entire frame
+# Might be possible to use MPC constraints, Beam or Tie to to get a fixed joint
+
+
+#Column to beam in x(alpha) direction
+for a in range(len(alph)-1):
+	for n in range(len(numb)):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in negative x(alpha) direction
+for a in range(len(alph)-1, 0,-1):
+	for n in range(len(numb)):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a-1]+numb[n] + "-" + alph[a]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a-1]+numb[n] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in z(num) direction
+for a in range(len(alph)):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in negative z(num) direction
+for a in range(len(alph)):
+	for n in range(len(numb)-1,0,-1):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n-1] + "-" + alph[a]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n-1] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+
+#================ Column to column joints =============#
+colMPC = TIE_MPC
+
+for a in range(len(alph)):
+	for n in range(len(numb)):
+		for e in range(len(etg)-1):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			col2 = part1+"_"+ alph[a]+numb[n] + "-" +etg[e+1]
+			constrName = 'Const_col_col_'+ alph[a]+numb[n] + "-"+etg[e] + "-"+etg[e+1]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=colMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[col2].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+				
+
+#================ Slabs to beams =============#
+#Slabs are not joined yet
+
 
 
 
@@ -544,29 +485,29 @@ elif riks:
 
  
 #LL
-M.SurfaceTraction(createStepName='Static', 
-    directionVector=(
-    M.rootAssembly.instances['Part-1-1'].vertices.findAt(
-    (0.0, 0.0, 0.0), ), 
-    M.rootAssembly.instances['Part-1-1'].vertices.findAt(
-    (0.0, col1_height, 0.0), )), distributionType=UNIFORM, field='', follower=OFF, 
-    localCsys=None, magnitude=LL, name='LL', region=
-    M.rootAssembly.instances['Part-1-1'].surfaces['Surf']
-    , resultant=ON, traction=GENERAL)
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = "Slab_" + alph[a]+numb[n]+"-"+etg[e]
+			M.SurfaceTraction(createStepName=stepName, 
+				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+				distributionType=UNIFORM, field='', follower=OFF,
+				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+				region= M.rootAssembly.instances[inst].surfaces['Surf'],
+				traction=GENERAL)
 
 
 
 #================ Column base =============#
 
-for a in range(len(alph)):
-	for n in range(len(numb)):
-			inst = part1+'_base'+"_"+ alph[a]+numb[n] + "-"+etg[0]
-			M.DisplacementBC(amplitude=UNSET, createStepName=
-				'Initial', distributionType=UNIFORM, fieldName='', localCsys=None,
-				name=inst, region=
-				M.rootAssembly.instances['Part-1-1'].sets[inst]
-				, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
-
+for a in alph:
+	for n in numb:
+		set = part1 + "_" + a + n + "-" + "1.col-base"
+		M.DisplacementBC(amplitude=UNSET, createStepName=
+			stepName, distributionType=UNIFORM, fieldName='', fixed=OFF,
+			localCsys=None, name=set, region=
+			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
+			, ur1=0.0, ur2=0.0, ur3=0.0)
 
 
 
