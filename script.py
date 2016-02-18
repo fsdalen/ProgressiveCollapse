@@ -37,12 +37,24 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 			del mdb.models[b[0]]
 
 
-#Delete old input files
+#================ Close and delete stuff ==================#
+# This is in order to avoid corrupted files because when running in Parallels
+
+#Close and delete odb files
 import os
 import glob
-inps = glob.glob('*.inp')
-for i in inps:
+fls = glob.glob('*.odb')
+for i in fls:
+	session.odbs[i].close()
 	os.remove(i)
+
+
+
+#Delete old input
+inpt = glob.glob('*.inp')
+for i in inpt:
+	os.remove(i)
+
 
 #Delete old jobs
 jbs = mdb.jobs.keys()
@@ -477,8 +489,63 @@ for a in range(len(alph)):
 				
 
 #================ Slabs to beams =============#
-#Slabs are not joined yet
 
+#Create beam surfaces in x (alpha) direction
+for a in range(len(alph)-1):
+	for n in range(len(numb)-0):
+		for e in range(len(etg)):
+			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]		
+			M.rootAssembly.Surface(circumEdges=
+				M.rootAssembly.instances[inst].edges.findAt(
+				((x_d*a+1 , col1_height*(e+1), z_d*n), ), ), name=inst+'_surf')
+
+#Create beam surfaces in z (numb) direction
+for a in range(len(alph)-0):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			M.rootAssembly.Surface(circumEdges=
+				M.rootAssembly.instances[inst].edges.findAt(
+				((x_d*a , col1_height*(e+1), z_d*n+1), ), ), name=inst+'_surf')
+
+#Create slab edge surfaces
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+			M.rootAssembly.Surface(name=inst+'_edges', side1Edges=
+				M.rootAssembly.instances[inst].edges.findAt(
+				((x_d*a+1, col1_height*(e+1), z_d*n), ),
+				((x_d*a+1, col1_height*(e+1), z_d*n+x_d), ),
+				((x_d*a, col1_height*(e+1), z_d*n+1), ),
+				((x_d*a+x_d, col1_height*(e+1), z_d*n+1), ), ))
+
+#Join beam surfaces to match slabs
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+			beam1 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			beam2 = part2+"_"+ alph[a]+numb[n+1] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+			beam3 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			beam4 = part2+"_"+ alph[a+1]+numb[n] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+			M.rootAssembly.SurfaceByBoolean(name=inst+'_beamEdges', 
+				surfaces=(
+				M.rootAssembly.surfaces[beam1+'_surf'], 
+				M.rootAssembly.surfaces[beam2+'_surf'],
+				M.rootAssembly.surfaces[beam3+'_surf'],
+				M.rootAssembly.surfaces[beam4+'_surf']))
+
+#Tie slabs to beams (beams as master)
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+			M.Tie(adjust=ON, master=
+				M.rootAssembly.surfaces[inst+'_beamEdges'],
+				name=inst, positionToleranceMethod=COMPUTED, slave=
+				M.rootAssembly.surfaces[inst+'_edges']
+				, thickness=OFF, tieRotations=OFF)
 
 
 
