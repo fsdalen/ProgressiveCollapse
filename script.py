@@ -181,7 +181,9 @@ M.parts[part1].assignBeamSectionOrientation(method=
 
 #================ Beam ==================#
 #Create Section and profile
-M.BoxProfile(a=10.0, b=10.0, name='Profile-2', t1=1.0, uniformThickness=ON)
+M.IProfile(b1=50.0, b2=50.0, h=100.0, l=50.0, name=
+    'Profile-2', t1=5.0, t2=5.0, t3=5.0)	#Now IPE profile, see ABAQUS for geometry definitions
+
 M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect2, poissonRatio=0.3, 
     profile='Profile-2', temperatureVar=LINEAR)
@@ -477,11 +479,25 @@ for inst in columnList:
 		N1_COSINES, n1=(0.0, 0.0, -1.0), region=
 		M.parts['Part-1'].sets[inst])
 
-#Beams
-for inst in beamList:
-	M.parts['Part-1'].assignBeamSectionOrientation(method=
-		N1_COSINES, n1=(0.0, 1.0, 0.0), region=
-		M.parts['Part-1'].sets[inst])
+
+#Beams in x (alpha) direction
+for a in range(len(alph)-1):
+	for n in range(len(numb)-0):
+		for e in range(len(etg)):
+			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			M.parts['Part-1'].assignBeamSectionOrientation(method=
+				N1_COSINES, n1=(0.0, 0.0, 1.0), region=
+				M.parts['Part-1'].sets[inst])
+
+#Beams in z (numb) direction
+for a in range(len(alph)-0):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			M.parts['Part-1'].assignBeamSectionOrientation(method=
+				N1_COSINES, n1=(1.0, 0.0, 0.0), region=
+				M.parts['Part-1'].sets[inst])
+
 
 #================ Mesh ==================#
 #Not implemented choosing element type, using default
