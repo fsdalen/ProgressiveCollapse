@@ -115,8 +115,8 @@ deck_t = 100.0	#Thickness of slabs
 
 
 #================ Assembly ==================#
-x = 2			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
+x = 3			#Nr of columns in x direction
+z = 1			#Nr of columns in z direction
 y = 1			#nr of stories
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
@@ -437,8 +437,171 @@ elif riks:
 #							Joints 									 #
 #====================================================================#
 
+
 #================ Column to beam joints =============#
 
+beamMPC = TIE_MPC	#May be TIE/BEAM/PIN
+
+# Using MPC constraints to create pinned joints for the entire frame
+# Might be possible to use MPC constraints, Beam or Tie to to get a fixed joint
+
+
+#Column to beam in x(alpha) direction
+for a in range(len(alph)-1):
+	for n in range(len(numb)):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in negative x(alpha) direction
+for a in range(len(alph)-1, 0,-1):
+	for n in range(len(numb)):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a-1]+numb[n] + "-" + alph[a]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a-1]+numb[n] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in z(num) direction
+for a in range(len(alph)):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+#Column to beam in negative z(num) direction
+for a in range(len(alph)):
+	for n in range(len(numb)-1,0,-1):
+		for e in range(len(etg)):
+			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			beam = part2+"_"+ alph[a]+numb[n-1] + "-" + alph[a]+numb[n] + "-"+etg[e]
+			constrName = 'Const_col_beam_'+ alph[a]+numb[n] + "-" + alph[a]+numb[n-1] + "-"+etg[e]
+			#MPC
+			M.MultipointConstraint(controlPoint=Region(
+				vertices=M.rootAssembly.instances[col].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )),\
+				csys=None, mpcType=beamMPC, \
+				name=constrName, \
+				surface=Region(vertices=M.rootAssembly.instances[beam].vertices.findAt(
+				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
+
+
+
+#================ Column to beam connectors =============#
+
+
+# 
+# #Create wires
+# M.rootAssembly.WirePolyLine(mergeType=IMPRINT, meshable=
+#     OFF, points=((
+#     M.rootAssembly.instances['Column_A2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), ), 
+#     M.rootAssembly.instances['Beam_A1-A2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), )), (
+#     M.rootAssembly.instances['Column_A2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), ), 
+#     M.rootAssembly.instances['Beam_A2-B2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), ))))
+#  
+# #Create set
+# M.rootAssembly.Set(edges=
+#     M.rootAssembly.edges.findAt((
+#     (0.0, 500.0, 500.0), )), name='Wire-1-Set-1')
+# 
+# #Assign connector section
+# M.rootAssembly.SectionAssignment(region=
+#     M.rootAssembly.sets['Wire-1-Set-1'], sectionName=
+#     'ConnSect-1')
+
+ 
+# 
+# #Create wires
+# M.rootAssembly.WirePolyLine(mergeType=IMPRINT, meshable=
+#     OFF, points=((
+#     M.rootAssembly.instances['Column_A2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), ), 
+#     M.rootAssembly.instances['Beam_A1-A2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), )), ))
+# 
+# M.rootAssembly.WirePolyLine(mergeType=IMPRINT, meshable=
+#     OFF, points=((
+#     M.rootAssembly.instances['Column_A2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), ), 
+#     M.rootAssembly.instances['Beam_A2-B2-1'].vertices.findAt(
+#     (0.0, 500.0, 500.0), )), ))
+
+#Assign connector section
+# M.rootAssembly.SectionAssignment(region=Region(
+#     edges=M.rootAssembly.edges.findAt(((2.5e-05, 500.0, 
+#     500.0), ), ((2.5e-05, 500.0, 500.0), ), )), sectionName='ConnSect-1')
+
+
+
+#================ Column to beam joints =============#
+
+#Create connector
+M.ConnectorSection(name='ConnSect-1', rotationalType=
+    ROTATION, translationalType=JOIN)
+M.sections['ConnSect-1'].setValues(behaviorOptions=(
+    ConnectorElasticity(behavior=RIGID, table=(), independentComponents=(), 
+    components=(4, 5, 6)), ))
+
+
+#Delete center constraints
+M.constraints.delete(('Const_col_beam_B1-A1-1', 
+    'Const_col_beam_B1-C1-1'))
+
+M.rootAssembly.WirePolyLine(mergeType=IMPRINT, meshable=
+    OFF, points=((
+    M.rootAssembly.instances['Beam_A1-B1-1'].vertices.findAt(
+    (500.0, 500.0, 0.0), ), 
+    M.rootAssembly.instances['Column_B1-1'].vertices.findAt(
+    (500.0, 500.0, 0.0), )), (
+    M.rootAssembly.instances['Column_B1-1'].vertices.findAt(
+    (500.0, 500.0, 0.0), ), 
+    M.rootAssembly.instances['Beam_B1-C1-1'].vertices.findAt(
+    (500.0, 500.0, 0.0), ))))
+M.rootAssembly.Set(edges=
+    M.rootAssembly.edges.findAt(((500.0, 500.0, 
+    0.0), ), ((500.0, 500.0, 0.0), ), ), name='Wire-1-Set-1')
+M.rootAssembly.SectionAssignment(region=
+    M.rootAssembly.sets['Wire-1-Set-1'], sectionName=
+    'ConnSect-1')
+
+
+
+#Line load for 2D testing
+M.LineLoad(comp2=-1.0, createStepName='Static', name=
+    'Load-1', region=Region(
+    edges=M.rootAssembly.instances['Beam_A1-B1-1'].edges.findAt(
+    ((125.0, 500.0, 0.0), ), )+\
+    M.rootAssembly.instances['Beam_B1-C1-1'].edges.findAt(
+    ((625.0, 500.0, 0.0), ), )))
 
 
 
@@ -462,65 +625,65 @@ for a in range(len(alph)):
 				
 
 #================ Slabs to beams =============#
-
-#Create beam surfaces in x (alpha) direction
-for a in range(len(alph)-1):
-	for n in range(len(numb)-0):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]		
-			M.rootAssembly.Surface(circumEdges=
-				M.rootAssembly.instances[inst].edges.findAt(
-				((x_d*a+1 , col1_height*(e+1), z_d*n), ), ), name=inst+'_surf')
-
-#Create beam surfaces in z (numb) direction
-for a in range(len(alph)-0):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			M.rootAssembly.Surface(circumEdges=
-				M.rootAssembly.instances[inst].edges.findAt(
-				((x_d*a , col1_height*(e+1), z_d*n+1), ), ), name=inst+'_surf')
-
-#Create slab edge surfaces
-for a in range(len(alph)-1):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			M.rootAssembly.Surface(name=inst+'_edges', side1Edges=
-				M.rootAssembly.instances[inst].edges.findAt(
-				((x_d*a+1, col1_height*(e+1), z_d*n), ),
-				((x_d*a+1, col1_height*(e+1), z_d*n+x_d), ),
-				((x_d*a, col1_height*(e+1), z_d*n+1), ),
-				((x_d*a+x_d, col1_height*(e+1), z_d*n+1), ), ))
-
-#Join beam surfaces to match slabs
-for a in range(len(alph)-1):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			beam1 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
-			beam2 = part2+"_"+ alph[a]+numb[n+1] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
-			beam3 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			beam4 = part2+"_"+ alph[a+1]+numb[n] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
-			M.rootAssembly.SurfaceByBoolean(name=inst+'_beamEdges', 
-				surfaces=(
-				M.rootAssembly.surfaces[beam1+'_surf'], 
-				M.rootAssembly.surfaces[beam2+'_surf'],
-				M.rootAssembly.surfaces[beam3+'_surf'],
-				M.rootAssembly.surfaces[beam4+'_surf']))
-
-#Tie slabs to beams (beams as master)
-for a in range(len(alph)-1):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
-			M.Tie(adjust=ON, master=
-				M.rootAssembly.surfaces[inst+'_beamEdges'],
-				name=inst, positionToleranceMethod=COMPUTED, slave=
-				M.rootAssembly.surfaces[inst+'_edges']
-				, thickness=OFF, tieRotations=OFF)
-
-
+# 
+# #Create beam surfaces in x (alpha) direction
+# for a in range(len(alph)-1):
+# 	for n in range(len(numb)-0):
+# 		for e in range(len(etg)):
+# 			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]		
+# 			M.rootAssembly.Surface(circumEdges=
+# 				M.rootAssembly.instances[inst].edges.findAt(
+# 				((x_d*a+1 , col1_height*(e+1), z_d*n), ), ), name=inst+'_surf')
+# 
+# #Create beam surfaces in z (numb) direction
+# for a in range(len(alph)-0):
+# 	for n in range(len(numb)-1):
+# 		for e in range(len(etg)):
+# 			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+# 			M.rootAssembly.Surface(circumEdges=
+# 				M.rootAssembly.instances[inst].edges.findAt(
+# 				((x_d*a , col1_height*(e+1), z_d*n+1), ), ), name=inst+'_surf')
+# 
+# #Create slab edge surfaces
+# for a in range(len(alph)-1):
+# 	for n in range(len(numb)-1):
+# 		for e in range(len(etg)):
+# 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+# 			M.rootAssembly.Surface(name=inst+'_edges', side1Edges=
+# 				M.rootAssembly.instances[inst].edges.findAt(
+# 				((x_d*a+1, col1_height*(e+1), z_d*n), ),
+# 				((x_d*a+1, col1_height*(e+1), z_d*n+x_d), ),
+# 				((x_d*a, col1_height*(e+1), z_d*n+1), ),
+# 				((x_d*a+x_d, col1_height*(e+1), z_d*n+1), ), ))
+# 
+# #Join beam surfaces to match slabs
+# for a in range(len(alph)-1):
+# 	for n in range(len(numb)-1):
+# 		for e in range(len(etg)):
+# 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+# 			beam1 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+# 			beam2 = part2+"_"+ alph[a]+numb[n+1] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+# 			beam3 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+# 			beam4 = part2+"_"+ alph[a+1]+numb[n] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+# 			M.rootAssembly.SurfaceByBoolean(name=inst+'_beamEdges', 
+# 				surfaces=(
+# 				M.rootAssembly.surfaces[beam1+'_surf'], 
+# 				M.rootAssembly.surfaces[beam2+'_surf'],
+# 				M.rootAssembly.surfaces[beam3+'_surf'],
+# 				M.rootAssembly.surfaces[beam4+'_surf']))
+# 
+# #Tie slabs to beams (beams as master)
+# for a in range(len(alph)-1):
+# 	for n in range(len(numb)-1):
+# 		for e in range(len(etg)):
+# 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+# 			M.Tie(adjust=ON, master=
+# 				M.rootAssembly.surfaces[inst+'_beamEdges'],
+# 				name=inst, positionToleranceMethod=COMPUTED, slave=
+# 				M.rootAssembly.surfaces[inst+'_edges']
+# 				, thickness=OFF, tieRotations=OFF)
+# 
+# 
 
 
 #====================================================================#
@@ -580,9 +743,6 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
 
 if runJob == 1:        
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
-
-
-
 
 
 
