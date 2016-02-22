@@ -19,13 +19,13 @@ M = mdb.models['DynamicAPM']
 M.setValues(restartJob='staticJob', restartStep='Static')
 
 #Create Implicit Dynamic Step
-M.ImplicitDynamicsStep(name='Dynamic', nlgeom=ON, previous='Static')
+M.ImplicitDynamicsStep(name='Dynamic', nlgeom=nlg, previous='Static')
 
 #Delete column
 del M.rootAssembly.features['Column_A2-1']
 
 #1/10 of natural period
-period = 1/freq
+period = 1.0/freq
 
 #Create amplitude
 M.SmoothStepAmplitude(data=((0.0, 1.0), (period, 0.0)), 

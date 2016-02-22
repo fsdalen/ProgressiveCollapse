@@ -66,7 +66,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 #							INPUTS									 #
 #====================================================================#
 
-runJob = 0		     	#If 1: run job
+runJob = 1		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 2				#Number of CPU's
 
@@ -135,7 +135,7 @@ stepName = "Static"			#Name of step
 
 static = 1					# 1 if static
 riks = 0					# 1 if Riks static
-nlg = ON					# Nonlinear geometry (ON/OFF)
+nlg = OFF					# Nonlinear geometry (ON/OFF)
 
 
 #================ Loads ==================#
@@ -587,6 +587,35 @@ for a in alph:
 
 
 
+
+
+#====================================================================#
+#							APM 									 #
+#====================================================================#
+M.rootAssembly.regenerate()
+
+#================ History output ==================#
+#Delete default history output
+del M.historyOutputRequests['H-Output-1']
+
+#Create set of element
+M.rootAssembly.Set(elements=
+    M.rootAssembly.instances['Column_A2-1'].elements[9:10]
+    , name='element')
+
+#Nodal forces in beam section orientation for selected element
+M.HistoryOutputRequest(createStepName='Static', name=
+    'Element', rebar=EXCLUDE, region=
+    M.rootAssembly.sets['element'], sectionPoints=DEFAULT, 
+    variables=('NFORCSO', ))
+
+#Write restart file (.res)
+M.steps[stepName].Restart(frequency=1, numberIntervals=0, 
+    overlay=ON, timeMarks=OFF)
+
+
+
+
 #====================================================================#
 #							JOB 									 #
 #====================================================================#
@@ -607,21 +636,3 @@ if runJob == 1:
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 
 
-#====================================================================#
-#							APM 									 #
-#====================================================================#
-
-#================ History output ==================#
-#Delete default history output
-del M.historyOutputRequests['H-Output-1']
-
-#Create set of element
-M.rootAssembly.Set(elements=
-    M.rootAssembly.instances['Column_A2-1'].elements[9:10]
-    , name='element')
-
-#Nodal forces in beam section orientation for selected element
-M.HistoryOutputRequest(createStepName='Static', name=
-    'Element', rebar=EXCLUDE, region=
-    M.rootAssembly.sets['element'], sectionPoints=DEFAULT, 
-    variables=('NFORCSO', ))
