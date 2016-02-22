@@ -26,7 +26,7 @@ import odbAccess        		# To make ODB-commands available to the script
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
-modelName = "basicFrame"
+modelName = "Static"
 mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
 M = mdb.models[modelName]								#For simplicity
 if len(mdb.models.keys()) > 0:							#Deletes all other models
@@ -39,28 +39,28 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 
 #================ Close and delete stuff ==================#
 # This is in order to avoid corrupted files because when running in Parallels
-
-#Close and delete odb files
-import os
-import glob
-fls = glob.glob('*.odb')
-for i in fls:
-	session.odbs[i].close()
-	os.remove(i)
-
-
-
-#Delete old input
-inpt = glob.glob('*.inp')
-for i in inpt:
-	os.remove(i)
-
-
-#Delete old jobs
-jbs = mdb.jobs.keys()
-if len(jbs)> 0:
-	for i in jbs:
-		del mdb.jobs[i]
+# 
+# #Close and delete odb files
+# import os
+# import glob
+# fls = glob.glob('*.odb')
+# for i in fls:
+# 	session.odbs[i].close()
+# 	os.remove(i)
+# 
+# 
+# 
+# #Delete old input
+# inpt = glob.glob('*.inp')
+# for i in inpt:
+# 	os.remove(i)
+# 
+# 
+# #Delete old jobs
+# jbs = mdb.jobs.keys()
+# if len(jbs)> 0:
+# 	for i in jbs:
+# 		del mdb.jobs[i]
 
 #====================================================================#
 #							INPUTS									 #
@@ -86,7 +86,7 @@ mat2_Description = 'This is the description'
 mat2_dens = 2.5e-09		#Density
 mat2_E = 35000.0		#E-module
 mat2_v = 0.3			#Poisson
-mat2_yield = 35			#Yield stress
+mat2_yield = 100			#Yield stress
 
 
 #================ Parts ==================#
@@ -103,7 +103,7 @@ beam_len = 500
 #Slab
 part3 = "Slab"
 sect3 = "Slab"
-deck_t = 10	#Thickness of slabs
+deck_t = 100	#Thickness of slabs
 
 
 #================ Assembly ==================#
@@ -133,13 +133,13 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 #================ Step ==================#
 stepName = "Static"			#Name of step
 
-static = 0					# 1 if static
-riks = 1					# 1 if Riks static
+static = 1					# 1 if static
+riks = 0					# 1 if Riks static
 nlg = ON					# Nonlinear geometry (ON/OFF)
 
 
 #================ Loads ==================#
-LL=-1
+LL=-1e-5		#N/mm^2
 
 
 
@@ -391,7 +391,6 @@ elif riks:
 
 
 
-
 #====================================================================#
 #							Joints 									 #
 #====================================================================#
@@ -581,7 +580,7 @@ for a in alph:
 	for n in numb:
 		set = part1 + "_" + a + n + "-" + "1.col-base"
 		M.DisplacementBC(amplitude=UNSET, createStepName=
-			stepName, distributionType=UNIFORM, fieldName='', fixed=OFF,
+			'Initial', distributionType=UNIFORM, fieldName='', fixed=OFF,
 			localCsys=None, name=set, region=
 			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
 			, ur1=0.0, ur2=0.0, ur3=0.0)
@@ -596,10 +595,11 @@ M.rootAssembly.regenerate()
 if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
+jobName = 'staticJob'
 mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
     explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
     memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
-    multiprocessingMode=DEFAULT, name='Job-1', nodalOutputPrecision=SINGLE, 
+    multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
     numCpus=cpus, numDomains=2, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
     '', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
@@ -607,3 +607,21 @@ if runJob == 1:
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 
 
+#====================================================================#
+#							APM 									 #
+#====================================================================#
+
+#================ History output ==================#
+#Delete default history output
+del M.historyOutputRequests['H-Output-1']
+
+#Create set of element
+M.rootAssembly.Set(elements=
+    M.rootAssembly.instances['Column_A2-1'].elements[9:10]
+    , name='element')
+
+#Nodal forces in beam section orientation for selected element
+M.HistoryOutputRequest(createStepName='Static', name=
+    'Element', rebar=EXCLUDE, region=
+    M.rootAssembly.sets['element'], sectionPoints=DEFAULT, 
+    variables=('NFORCSO', ))
