@@ -581,7 +581,7 @@ for a in alph:
 	for n in numb:
 		set = part1 + "_" + a + n + "-" + "1.col-base"
 		M.DisplacementBC(amplitude=UNSET, createStepName=
-			stepName, distributionType=UNIFORM, fieldName='', fixed=OFF,
+			Initial, distributionType=UNIFORM, fieldName='', fixed=OFF,
 			localCsys=None, name=set, region=
 			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
 			, ur1=0.0, ur2=0.0, ur3=0.0)
