@@ -133,13 +133,13 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 #================ Step ==================#
 stepName = "Static"			#Name of step
 
-static = 0					# 1 if static
-riks = 1					# 1 if Riks static
-nlg = ON					# Nonlinear geometry (ON/OFF)
+static = 1					# 1 if static
+riks = 0					# 1 if Riks static
+nlg = OFF					# Nonlinear geometry (ON/OFF)
 
 
 #================ Loads ==================#
-LL=-1
+LL=-1e-6
 
 
 
@@ -581,7 +581,7 @@ for a in alph:
 	for n in numb:
 		set = part1 + "_" + a + n + "-" + "1.col-base"
 		M.DisplacementBC(amplitude=UNSET, createStepName=
-			Initial, distributionType=UNIFORM, fieldName='', fixed=OFF,
+			'Initial', distributionType=UNIFORM, fieldName='', fixed=OFF,
 			localCsys=None, name=set, region=
 			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
 			, ur1=0.0, ur2=0.0, ur3=0.0)
