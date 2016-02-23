@@ -26,7 +26,7 @@ import odbAccess        		# To make ODB-commands available to the script
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
-modelName = "Static"
+modelName = "APM"
 mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
 M = mdb.models[modelName]								#For simplicity
 if len(mdb.models.keys()) > 0:							#Deletes all other models
@@ -66,9 +66,10 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 #							INPUTS									 #
 #====================================================================#
 
-runJob = 1		     	#If 1: run job
+runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 2				#Number of CPU's
+apm = 1
 
 
 #================ Materials ==================#
@@ -107,9 +108,9 @@ deck_t = 100	#Thickness of slabs
 
 
 #================ Assembly ==================#
-x = 2			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
-y = 1			#nr of stories
+x = 3			#Nr of columns in x direction
+z = 4			#Nr of columns in z direction
+y = 2			#nr of stories
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
@@ -588,30 +589,36 @@ for a in alph:
 
 
 
-
 #====================================================================#
 #							APM 									 #
 #====================================================================#
-M.rootAssembly.regenerate()
 
-#================ History output ==================#
-#Delete default history output
-del M.historyOutputRequests['H-Output-1']
+if apm == 1:
+	M.rootAssembly.regenerate()
 
-#Create set of element
-M.rootAssembly.Set(elements=
-    M.rootAssembly.instances['Column_A2-1'].elements[9:10]
-    , name='element')
+	# Create step for element removal
+	stepTime = 1e-9
+	oldStep = 'Static'
+	stepName = 'elmRem'
+	M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
+		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
+		timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
 
-#Nodal forces in beam section orientation for selected element
-M.HistoryOutputRequest(createStepName='Static', name=
-    'Element', rebar=EXCLUDE, region=
-    M.rootAssembly.sets['element'], sectionPoints=DEFAULT, 
-    variables=('NFORCSO', ))
+	#Create set of element(s) to be removed
+	M.rootAssembly.Set(elements=
+		M.rootAssembly.instances['Column_A2-1'].elements[8:9]
+		, name='element')
 
-#Write restart file (.res)
-M.steps[stepName].Restart(frequency=1, numberIntervals=0, 
-    overlay=ON, timeMarks=OFF)
+	#Remove element(s)
+	M.ModelChange(activeInStep=False, createStepName=stepName, 
+		includeStrain=False, name='elmRemoval', region=
+		M.rootAssembly.sets['element'], regionType=ELEMENTS)
+
+	#Create dynamic APM step
+	oldStep = stepName
+	stepName = 'dynamic'
+	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
+		stepName, previous=oldStep, timePeriod=5.0, nlgeom=nlg)
 
 
 
@@ -624,7 +631,7 @@ M.rootAssembly.regenerate()
 if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
-jobName = 'staticJob'
+jobName = 'APM'
 mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
     explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
     memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
