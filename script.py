@@ -101,7 +101,7 @@ mat2_yield = 355.0			#Yield stress
 part1 = "Column"
 sect1 = "HUP"
 col1_height = 2000.0
-imp = 5				#Initial imperfection ("triangle" shape)
+imp = 0				#Initial imperfection ("triangle" shape)
 
 #Beam
 part2 = "Beam"
@@ -149,7 +149,7 @@ nlg = ON					# Nonlinear geometry (ON/OFF)
 inInc = 1e-5				# Initial increment
 
 #================ Loads ==================#
-LL_kN_m = -1e-3	    #kN/m^2
+LL_kN_m = -2e3	    #kN/m^2
 
 LL=LL_kN_m * 1e-3   #N/mm^2
 
@@ -191,13 +191,22 @@ M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect1, poissonRatio=0.3, 
     profile='Profile-1', temperatureVar=LINEAR)
 
-#Create part
-M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
-M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(imp, col1_height/2.0))
-M.sketches['__profile__'].Line(point1=(imp, col1_height/2.0), point2=(0.0, col1_height))
-M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
-M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+if imp >0:
+	#Create part
+	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(imp, col1_height/2.0))
+	M.sketches['__profile__'].Line(point1=(imp, col1_height/2.0), point2=(0.0, col1_height))
+	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+
+else:
+	#Create part
+	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, col1_height))
+	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
 del M.sketches['__profile__']
+
 
 #Assign section
 M.parts[part1].SectionAssignment(offset=0.0, 
@@ -205,7 +214,7 @@ M.parts[part1].SectionAssignment(offset=0.0,
     edges=M.parts[part1].edges.findAt(((0.0, 0.0, 
     0.0), ), )), sectionName=sect1, thicknessAssignment=FROM_SECTION)
 
-if imp >0:
+if imp >0.0:
 	M.parts[part1].SectionAssignment(offset=0.0, 
 		offsetField='', offsetType=MIDDLE_SURFACE, region=Region(
 		edges=M.parts[part1].edges.findAt(((0.0, col1_height, 
