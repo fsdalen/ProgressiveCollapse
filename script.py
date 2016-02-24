@@ -101,7 +101,9 @@ mat2_yield = 355.0			#Yield stress
 part1 = "Column"
 sect1 = "HUP"
 col1_height = 2000.0
-imp = 5				#Initial imperfection ("triangle" shape)
+
+#Imperfection does not work for 1 part, beam orientation assignment not implemented
+imp = 0				#Initial imperfection ("triangle" shape)
 
 #Beam
 part2 = "Beam"
@@ -143,15 +145,15 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 stepName = "Static"			#Name of step
 
 
-static = 1					# 1 if static
-riks =   0					# 1 if Riks static
-nlg = OFF					# Nonlinear geometry (ON/OFF)
+static = 0					# 1 if static
+riks =   1					# 1 if Riks static
+nlg = ON					# Nonlinear geometry (ON/OFF)
 inInc = 1e-5				# Initial increment
 
 #================ Loads ==================#
-LL_kN_m = -1e-3	    #kN/m^2
+LL_kN_m = -1.0e3	    #kN/m^2
 
-LL=LL_kN_m * 1e-3   #N/mm^2
+LL=LL_kN_m * 1.0e-3   #N/mm^2
 
 
 
@@ -192,11 +194,19 @@ M.BeamSection(consistentMassMatrix=False, integration=
     profile='Profile-1', temperatureVar=LINEAR)
 
 #Create part
-M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
-M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(imp, col1_height/2.0))
-M.sketches['__profile__'].Line(point1=(imp, col1_height/2.0), point2=(0.0, col1_height))
-M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
-M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+
+if imp > 0:
+	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(imp, col1_height/2.0))
+	M.sketches['__profile__'].Line(point1=(imp, col1_height/2.0), point2=(0.0, col1_height))
+	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+else:
+	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, col1_height))
+	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+
 del M.sketches['__profile__']
 
 #Assign section
@@ -410,8 +420,8 @@ instList = columnList + beamList + slabList
 inst = []
 for i in instList:
 	inst.append(M.rootAssembly.instances[i])
-	print i
-instTup = tuple(inst)
+	#print i
+	instTup = tuple(inst)
 
 M.rootAssembly.regenerate()
 M.rootAssembly.InstanceFromBooleanMerge(domain=GEOMETRY, 
