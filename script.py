@@ -39,37 +39,46 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 
 #================ Close and delete stuff ==================#
 # This is in order to avoid corrupted files because when running in Parallels
-# 
-# #Close and delete odb files
-# import os
-# import glob
-# fls = glob.glob('*.odb')
-# for i in fls:
-# 	session.odbs[i].close()
-# 	os.remove(i)
-# 
-# 
-# 
-# #Delete old input
-# inpt = glob.glob('*.inp')
-# for i in inpt:
-# 	os.remove(i)
-# 
-# 
-# #Delete old jobs
-# jbs = mdb.jobs.keys()
-# if len(jbs)> 0:
-# 	for i in jbs:
-# 		del mdb.jobs[i]
+#Close and delete odb files
+import os
+import glob
+fls = glob.glob('*.odb')
+for i in fls:
+	if len(session.odbs.keys())>0:
+		session.odbs[i].close()
+	os.remove(i)
 
+
+#Delete old input
+inpt = glob.glob('*.inp')
+for i in inpt:
+	os.remove(i)
+
+
+#Delete old jobs
+jbs = mdb.jobs.keys()
+if len(jbs)> 0:
+	for i in jbs:
+		del mdb.jobs[i]
+
+
+
+
+
+#====================================================================#
 #====================================================================#
 #							INPUTS									 #
 #====================================================================#
+#====================================================================#
 
-runJob = 0		     	#If 1: run job
+
+runJob = 1		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 2				#Number of CPU's
 apm = 1
+
+jobName = 'APM'
+
 
 
 #================ Materials ==================#
@@ -79,7 +88,7 @@ mat1_Description = 'This is the description'
 mat1_dens = 8.05e-09	#Density
 mat1_E = 210000.0		#E-module
 mat1_v = 0.3			#Poisson
-mat1_yield = 355		#Yield stress
+mat1_yield = 355.0		#Yield stress
 
 # Material 2
 mat2 = "Concrete"	#Material name
@@ -87,24 +96,26 @@ mat2_Description = 'This is the description'
 mat2_dens = 2.5e-09		#Density
 mat2_E = 35000.0		#E-module
 mat2_v = 0.3			#Poisson
-mat2_yield = 100			#Yield stress
+mat2_yield = 355.0			#Yield stress
+
 
 
 #================ Parts ==================#
 #Column
 part1 = "Column"
 sect1 = "HUP"
-col1_height = 500
+col1_height = 2000.0
+imp = 0				#Initial imperfection ("triangle" shape)
 
 #Beam
 part2 = "Beam"
 sect2 = "HUP2"
-beam_len = 500
+beam_len = 1000.0
 
 #Slab
 part3 = "Slab"
 sect3 = "Slab"
-deck_t = 100	#Thickness of slabs
+deck_t = 100.0	#Thickness of slabs
 
 
 #================ Assembly ==================#
@@ -114,12 +125,13 @@ y = 2			#nr of stories
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
+dep = ON		#Dependent (ON) or independent (OFF) instances
 
 #================ Mesh ==================#
 analysisType = STANDARD  #Could be STANDARD or EXPLICIT
 
 #Column
-seed1 = 50
+seed1 = 50.0
 element1 = B31 #B31 or B32 for linear or quadratic
 
 #Beam
@@ -134,13 +146,16 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 #================ Step ==================#
 stepName = "Static"			#Name of step
 
-static = 1					# 1 if static
-riks = 0					# 1 if Riks static
-nlg = OFF					# Nonlinear geometry (ON/OFF)
-
+static = 0					# 1 if static
+riks =   1					# 1 if Riks static
+nlg = ON					# Nonlinear geometry (ON/OFF)
+inInc = 1e-5				# Initial increment
 
 #================ Loads ==================#
-LL=-1e-5		#N/mm^2
+LL_kN_m = -2e3	    #kN/m^2
+
+LL=LL_kN_m * 1e-3   #N/mm^2
+
 
 
 
@@ -154,6 +169,11 @@ M.Material(description=mat1_Description, name=mat1)
 M.materials[mat1].Density(table=((mat1_dens, ), ))
 M.materials[mat1].Elastic(table=((mat1_E, mat1_v), ))
 M.materials[mat1].Plastic(table=((mat1_yield, 0.0), ))
+
+#Hardning (random linear interpolatin)
+M.materials[mat1].plastic.setValues(table=((355.0, 
+    0.0), (2000.0, 20.0)))
+
 
 #================ Concrete ==================#
 M.Material(description=mat2_Description, name=mat2)
@@ -175,12 +195,22 @@ M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect1, poissonRatio=0.3, 
     profile='Profile-1', temperatureVar=LINEAR)
 
-#Create part
-M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
-M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, col1_height))
-M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
-M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+if imp >0:
+	#Create part
+	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(imp, col1_height/2.0))
+	M.sketches['__profile__'].Line(point1=(imp, col1_height/2.0), point2=(0.0, col1_height))
+	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+
+else:
+	#Create part
+	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, col1_height))
+	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
 del M.sketches['__profile__']
+
 
 #Assign section
 M.parts[part1].SectionAssignment(offset=0.0, 
@@ -188,10 +218,23 @@ M.parts[part1].SectionAssignment(offset=0.0,
     edges=M.parts[part1].edges.findAt(((0.0, 0.0, 
     0.0), ), )), sectionName=sect1, thicknessAssignment=FROM_SECTION)
 
+if imp >0.0:
+	M.parts[part1].SectionAssignment(offset=0.0, 
+		offsetField='', offsetType=MIDDLE_SURFACE, region=Region(
+		edges=M.parts[part1].edges.findAt(((0.0, col1_height, 
+		0.0), ), )), sectionName=sect1, thicknessAssignment=FROM_SECTION)
+
+
 #Assign beam orientation
 M.parts[part1].assignBeamSectionOrientation(method=
     N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
     edges=M.parts[part1].edges.findAt(((0.0, 0.0, 0.0), ), )))
+
+if imp >0:
+	M.parts[part1].assignBeamSectionOrientation(method=
+		N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
+		edges=M.parts[part1].edges.findAt(((0.0, col1_height, 0.0), ), )))
+
 
 
 # Create sets of column base/top
@@ -284,7 +327,7 @@ for a in alph:
 		for e in etg:
 			inst = part1 + "_" + a + n + "-" + e
 			columnList.append(inst)
-			M.rootAssembly.Instance(dependent=ON,		#import and name instance
+			M.rootAssembly.Instance(dependent=dep,		#import and name instance
 				name= inst,
 				part=M.parts[part1])
 			M.rootAssembly.translate(instanceList=(inst, ),	#Translate instance in x,y and z
@@ -298,7 +341,7 @@ for a in range(len(alph)-1):
 			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]		
 			beamList.append(inst)
 			#import and name instance
-			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part2])
+			M.rootAssembly.Instance(dependent=dep,name=inst, part=M.parts[part2])
 			M.rootAssembly.translate(instanceList=(inst, ),
 				vector=(x_d*a , col1_height*(e+1), z_d*n))
 
@@ -309,7 +352,7 @@ for a in range(len(alph)-0):
 			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
 			beamList.append(inst)
 			#import and name instance
-			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part2])
+			M.rootAssembly.Instance(dependent=dep,name=inst, part=M.parts[part2])
 			#Rotate instance
 			M.rootAssembly.rotate(angle=-90.0, axisDirection=(
 				0.0,1.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
@@ -324,7 +367,7 @@ for a in range(len(alph)-1):
 		for e in range(len(etg)):
 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
 			slabList.append(inst)
-			M.rootAssembly.Instance(dependent=ON,name=inst, part=M.parts[part3])
+			M.rootAssembly.Instance(dependent=dep,name=inst, part=M.parts[part3])
 			M.rootAssembly.rotate(angle=90.0, axisDirection=(
 							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
 			M.rootAssembly.translate(instanceList=(inst, ),
@@ -343,8 +386,8 @@ M.parts[part1].seedPart(minSizeFactor=0.1, size=seed1)
 
 #Change element type
 M.parts[part1].setElementType(elemTypes=(ElemType(
-    elemCode=element1, elemLibrary=analysisType), ), regions=(
-    M.parts[part1].edges.findAt((0.0, 0.0, 0.0), ), ))
+	elemCode=element1, elemLibrary=analysisType), ), regions=(
+	M.parts[part1].edges.findAt((0.0, 0.0, 0.0), ), ))
 
 #Mesh
 M.parts[part1].generateMesh()
@@ -355,8 +398,8 @@ M.parts[part2].seedPart(minSizeFactor=0.1, size=seed2)
 
 #Change element type
 M.parts[part2].setElementType(elemTypes=(ElemType(
-    elemCode=element2, elemLibrary=analysisType), ), regions=(
-    M.parts[part2].edges.findAt((0.0, 0.0, 0.0), ), ))
+	elemCode=element2, elemLibrary=analysisType), ), regions=(
+	M.parts[part2].edges.findAt((0.0, 0.0, 0.0), ), ))
 
 #Mesh
 M.parts[part2].generateMesh()
@@ -367,9 +410,9 @@ M.parts[part3].seedPart(minSizeFactor=0.1, size=seed3)
 
 #Change element type
 M.parts[part3].setElementType(elemTypes=(ElemType(
-    elemCode=S4R, elemLibrary=analysisType, secondOrderAccuracy=OFF, 
-    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=analysisType)), 
-    regions=(M.parts[part3].faces.findAt((0.0, 0.0, 0.0), ), ))
+	elemCode=S4R, elemLibrary=analysisType, secondOrderAccuracy=OFF, 
+	hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=analysisType)), 
+	regions=(M.parts[part3].faces.findAt((0.0, 0.0, 0.0), ), ))
 
 #Mesh
 M.parts[part3].generateMesh()
@@ -383,12 +426,13 @@ M.parts[part3].generateMesh()
 #====================================================================#
 
 #================ Create step ==================#
+oldStep = 'Initial'
 if static:
 	M.StaticStep(description='description', 
-		initialInc=0.1, name=stepName, nlgeom=nlg, previous='Initial')
+		initialInc=inInc, name=stepName, nlgeom=nlg, previous=oldStep)
 elif riks:
 	M.StaticRiksStep(description='description', 
-		initialArcInc=0.01, name=stepName, nlgeom=nlg, previous='Initial')
+		initialArcInc=inInc, name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0)
 
 
 
@@ -589,6 +633,7 @@ for a in alph:
 
 
 
+
 #====================================================================#
 #							APM 									 #
 #====================================================================#
@@ -641,5 +686,9 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
 
 if runJob == 1:        
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
+
+
+
+
 
 
