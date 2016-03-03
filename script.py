@@ -72,7 +72,7 @@ if len(jbs)> 0:
 #====================================================================#
 
 
-runJob = 1		     	#If 1: run job
+runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 2				#Number of CPU's
 jobName = 'basicFrame'
@@ -82,7 +82,7 @@ jobName = 'basicFrame'
 # Material 1
 mat1 = "Steel"		#Material name
 mat1_Description = 'This is the description'
-mat1_dens = 8.05e-09	#Density
+mat1_dens = 8.0e-09		#Density
 mat1_E = 210000.0		#E-module
 mat1_v = 0.3			#Poisson
 mat1_yield = 355.0		#Yield stress
@@ -149,7 +149,7 @@ nlg = ON					# Nonlinear geometry (ON/OFF)
 inInc = 1e-5				# Initial increment
 
 #================ Loads ==================#
-LL_kN_m = -2e3	    #kN/m^2
+LL_kN_m = -2.0	    #kN/m^2
 
 LL=LL_kN_m * 1e-3   #N/mm^2
 
@@ -198,14 +198,14 @@ if imp >0:
 	M.sketches['__profile__'].Line(point1=(imp, col1_height/2.0), point2=(0.0, col1_height))
 	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
 	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
-
+	del M.sketches['__profile__']
 else:
 	#Create part
 	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
 	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, col1_height))
 	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
 	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
-del M.sketches['__profile__']
+	del M.sketches['__profile__']
 
 
 #Assign section
@@ -597,12 +597,12 @@ for a in range(len(alph)-1):
 
 #================ Loads ==================#
 
-#Gravity
-# M.Gravity(comp2=-9800.0, createStepName=stepName, 
-#     distributionType=UNIFORM, field='', name='Gravity')
+# Gravity
+M.Gravity(comp2=-9800.0, createStepName=stepName, 
+    distributionType=UNIFORM, field='', name='Gravity')
 
  
-#LL
+# LL
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
