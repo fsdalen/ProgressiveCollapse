@@ -100,13 +100,13 @@ mat2_yield = 355.0			#Yield stress
 #Column
 part1 = "Column"
 sect1 = "HUP"
-col1_height = 2000.0
+col1_height = 4000.0
 imp = 0				#Initial imperfection ("triangle" shape)
 
 #Beam
 part2 = "Beam"
 sect2 = "HUP2"
-beam_len = 1000.0
+beam_len = 8000.0
 
 #Slab
 part3 = "Slab"
@@ -115,9 +115,9 @@ deck_t = 100.0	#Thickness of slabs
 
 
 #================ Assembly ==================#
-x = 2			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
-y = 1			#nr of stories
+x = 4			#Nr of columns in x direction
+z = 4			#Nr of columns in z direction
+y = 10			#nr of stories
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
@@ -127,7 +127,7 @@ dep = ON		#Dependent (ON) or independent (OFF) instances
 analysisType = STANDARD  #Could be STANDARD or EXPLICIT
 
 #Column
-seed1 = 50.0
+seed1 = 800.0
 element1 = B31 #B31 or B32 for linear or quadratic
 
 #Beam
@@ -186,7 +186,8 @@ M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 
 #================ Column ==================#
 #Create Section and profile
-M.BoxProfile(a=100.0, b=100.0, name='Profile-1', t1=10.0, uniformThickness=ON)
+#RHS 300x300
+M.BoxProfile(a=300.0, b=300.0, name='Profile-1', t1=10.0, uniformThickness=ON)
 M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect1, poissonRatio=0.3, 
     profile='Profile-1', temperatureVar=LINEAR)
@@ -243,8 +244,9 @@ M.parts[part1].Set(name='col-top', vertices=
 
 #================ Beam ==================#
 #Create Section and profile
-M.IProfile(b1=50.0, b2=50.0, h=100.0, l=50.0, name=
-    'Profile-2', t1=5.0, t2=5.0, t3=5.0)	#Now IPE profile, see ABAQUS for geometry definitions
+#HEB 550
+M.IProfile(b1=300.0, b2=300.0, h=550.0, l=275.0, name=
+    'Profile-2', t1=29.0, t2=29.0, t3=15.0)	#Now IPE profile, see ABAQUS for geometry definitions
 
 M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect2, poissonRatio=0.3, 
