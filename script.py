@@ -26,6 +26,13 @@ import odbAccess        		# To make ODB-commands available to the script
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
+# Type "wipe" to clear console in abaqus
+class Wipe(object):
+    def __repr__(self):
+        return '\n'*20
+
+wipe = Wipe()
+
 modelName = "basicFrame"
 mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
 M = mdb.models[modelName]								#For simplicity
@@ -39,6 +46,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 
 #================ Close and delete stuff ==================#
 # This is in order to avoid corrupted files because when running in Parallels
+
 if 0:
 	#Close and delete odb files
 	import os
@@ -48,14 +56,10 @@ if 0:
 		if len(session.odbs.keys())>0:
 			session.odbs[i].close()
 		os.remove(i)
-
-
 	#Delete old input
 	inpt = glob.glob('*.inp')
 	for i in inpt:
 		os.remove(i)
-
-
 	#Delete old jobs
 	jbs = mdb.jobs.keys()
 	if len(jbs)> 0:
@@ -158,14 +162,14 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 stepName = "Static"			#Name of step
 
 
-static = 0					# 1 if static
-riks =   1					# 1 if Riks static
-nlg = ON					# Nonlinear geometry (ON/OFF)
+static = 1					# 1 if static
+riks =   0					# 1 if Riks static
+nlg = OFF					# Nonlinear geometry (ON/OFF)
 inInc = 1e-5				# Initial increment
 minInc = 1e-9
 
 #================ Loads ==================#
-LL_kN_m = -2.0e1	    #kN/m^2
+LL_kN_m = -2.0	    #kN/m^2
 
 LL=LL_kN_m * 1.0e-3   #N/mm^2
 
