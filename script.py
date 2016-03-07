@@ -26,7 +26,16 @@ import odbAccess        		# To make ODB-commands available to the script
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
+
+# Type "wipe" to clear console in abaqus
+class Wipe(object):
+    def __repr__(self):
+        return '\n'*20
+
+wipe = Wipe()
+
 modelName = "APM"
+
 mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
 M = mdb.models[modelName]								#For simplicity
 if len(mdb.models.keys()) > 0:							#Deletes all other models
@@ -39,27 +48,24 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 
 #================ Close and delete stuff ==================#
 # This is in order to avoid corrupted files because when running in Parallels
-#Close and delete odb files
-import os
-import glob
-fls = glob.glob('*.odb')
-for i in fls:
-	if len(session.odbs.keys())>0:
-		session.odbs[i].close()
-	os.remove(i)
-
-
-#Delete old input
-inpt = glob.glob('*.inp')
-for i in inpt:
-	os.remove(i)
-
-
-#Delete old jobs
-jbs = mdb.jobs.keys()
-if len(jbs)> 0:
-	for i in jbs:
-		del mdb.jobs[i]
+if 0:
+	#Close and delete odb files
+	import os
+	import glob
+	fls = glob.glob('*.odb')
+	for i in fls:
+		if len(session.odbs.keys())>0:
+			session.odbs[i].close()
+		os.remove(i)
+	#Delete old input
+	inpt = glob.glob('*.inp')
+	for i in inpt:
+		os.remove(i)
+	#Delete old jobs
+	jbs = mdb.jobs.keys()
+	if len(jbs)> 0:
+		for i in jbs:
+			del mdb.jobs[i]
 
 
 
@@ -72,20 +78,19 @@ if len(jbs)> 0:
 #====================================================================#
 
 
-runJob = 1		     	#If 1: run job
+runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
-cpus = 2				#Number of CPU's
+cpus = 8				#Number of CPU's
 apm = 1
 
 jobName = 'APM'
-
 
 
 #================ Materials ==================#
 # Material 1
 mat1 = "Steel"		#Material name
 mat1_Description = 'This is the description'
-mat1_dens = 8.05e-09	#Density
+mat1_dens = 8.0e-09		#Density
 mat1_E = 210000.0		#E-module
 mat1_v = 0.3			#Poisson
 mat1_yield = 355.0		#Yield stress
@@ -98,30 +103,46 @@ mat2_E = 35000.0		#E-module
 mat2_v = 0.3			#Poisson
 mat2_yield = 355.0			#Yield stress
 
+# Material 3
+mat3 = "Rebar Steel"		#Material name
+mat3_Description = 'This is the description'
+mat3_dens = 8.0e-09		#Density
+mat3_E = 210000.0		#E-module
+mat3_v = 0.3			#Poisson
+mat3_yield = 355.0		#Yield stress
+
 
 
 #================ Parts ==================#
 #Column
 part1 = "Column"
 sect1 = "HUP"
-col1_height = 2000.0
+col1_height = 4000.0
 imp = 0				#Initial imperfection ("triangle" shape)
 
 #Beam
 part2 = "Beam"
-sect2 = "HUP2"
-beam_len = 1000.0
+sect2 = "HEB"
+beam_len = 8000.0
 
 #Slab
 part3 = "Slab"
 sect3 = "Slab"
-deck_t = 100.0	#Thickness of slabs
+deck_t = 200.0	#Thickness of slabs
+
+#Rebars in Slab
+rebarDim = 20.0			#mm^2 diameter
+rebarArea = 3.1415*(rebarDim/2.0)**2		#mm^2
+rebarSpacing = 120.0		#mm
+rebarPosition = -80.0		#mm distance from center of section
 
 
 #================ Assembly ==================#
+#4x4  x10(5)
 x = 3			#Nr of columns in x direction
 z = 4			#Nr of columns in z direction
 y = 2			#nr of stories
+
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
@@ -131,7 +152,7 @@ dep = ON		#Dependent (ON) or independent (OFF) instances
 analysisType = STANDARD  #Could be STANDARD or EXPLICIT
 
 #Column
-seed1 = 50.0
+seed1 = 800.0
 element1 = B31 #B31 or B32 for linear or quadratic
 
 #Beam
@@ -146,15 +167,18 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 #================ Step ==================#
 stepName = "Static"			#Name of step
 
-static = 0					# 1 if static
-riks =   1					# 1 if Riks static
-nlg = ON					# Nonlinear geometry (ON/OFF)
+
+static = 1					# 1 if static
+riks =   0					# 1 if Riks static
+nlg = OFF					# Nonlinear geometry (ON/OFF)
+
 inInc = 1e-5				# Initial increment
+minInc = 1e-9
 
 #================ Loads ==================#
-LL_kN_m = -2e3	    #kN/m^2
+LL_kN_m = -2.0	    #kN/m^2
 
-LL=LL_kN_m * 1e-3   #N/mm^2
+LL=LL_kN_m * 1.0e-3   #N/mm^2
 
 
 
@@ -182,6 +206,16 @@ M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
 M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 
 
+#================ Rebar Steel ==================#
+M.Material(description=mat3_Description, name=mat3)
+M.materials[mat3].Density(table=((mat3_dens, ), ))
+M.materials[mat3].Elastic(table=((mat3_E, mat3_v), ))
+M.materials[mat3].Plastic(table=((mat3_yield, 0.0), ))
+
+#Hardning (random linear interpolatin)
+M.materials[mat3].plastic.setValues(table=((355.0, 
+    0.0), (2000.0, 20.0)))
+
 
 
 #====================================================================#
@@ -190,7 +224,8 @@ M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 
 #================ Column ==================#
 #Create Section and profile
-M.BoxProfile(a=100.0, b=100.0, name='Profile-1', t1=10.0, uniformThickness=ON)
+#RHS 300x300
+M.BoxProfile(a=300.0, b=300.0, name='Profile-1', t1=10.0, uniformThickness=ON)
 M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect1, poissonRatio=0.3, 
     profile='Profile-1', temperatureVar=LINEAR)
@@ -202,14 +237,14 @@ if imp >0:
 	M.sketches['__profile__'].Line(point1=(imp, col1_height/2.0), point2=(0.0, col1_height))
 	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
 	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
-
+	del M.sketches['__profile__']
 else:
 	#Create part
 	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
 	M.sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, col1_height))
 	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
 	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
-del M.sketches['__profile__']
+	del M.sketches['__profile__']
 
 
 #Assign section
@@ -247,8 +282,9 @@ M.parts[part1].Set(name='col-top', vertices=
 
 #================ Beam ==================#
 #Create Section and profile
-M.IProfile(b1=50.0, b2=50.0, h=100.0, l=50.0, name=
-    'Profile-2', t1=5.0, t2=5.0, t3=5.0)	#Now IPE profile, see ABAQUS for geometry definitions
+#HEB 550
+M.IProfile(b1=300.0, b2=300.0, h=550.0, l=275.0, name=
+    'Profile-2', t1=29.0, t2=29.0, t3=15.0)	#Now IPE profile, see ABAQUS for geometry definitions
 
 M.BeamSection(consistentMassMatrix=False, integration=
     DURING_ANALYSIS, material='Steel', name=sect2, poissonRatio=0.3, 
@@ -280,7 +316,13 @@ M.HomogeneousShellSection(idealization=NO_IDEALIZATION,
     poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
     thickness=deck_t, thicknessField='', thicknessModulus=None, thicknessType=
     UNIFORM, useDensity=OFF)
-
+	
+#Add rebars to section
+M.sections[sect3].RebarLayers(layerTable=(
+    LayerProperties(barArea=rebarArea, orientationAngle=0.0, barSpacing=rebarSpacing, 
+    layerPosition=rebarPosition, layerName='Layer 1', material=mat3), ), 
+    rebarSpacing=CONSTANT)	
+	
 #Create part
 M.ConstrainedSketch(name='__profile__', sheetSize= 10000.0)
 M.sketches['__profile__'].rectangle(point1=(0.0, 0.0), point2=(beam_len, beam_len))
@@ -295,6 +337,15 @@ M.parts[part3].SectionAssignment(offset=0.0,
     0.0, 0.0), ), )), sectionName='Slab', 
     thicknessAssignment=FROM_SECTION)
 
+	
+#Assign Rebar Orientation
+M.parts[part3].assignRebarOrientation(
+    additionalRotationType=ROTATION_NONE, axis=AXIS_1, fieldName='', localCsys=
+    None, orientationType=GLOBAL, region=Region(
+    faces=M.parts[part3].faces.findAt(((0.1, 
+    0.1, 0.0), (0.0, 0.0, 1.0)), )))
+
+	
 #Create surface
 #Gets name Slab_A1-1.Surf
 M.parts[part3].Surface(name='Surf', side2Faces=
@@ -346,19 +397,20 @@ for a in range(len(alph)-1):
 				vector=(x_d*a , col1_height*(e+1), z_d*n))
 
 #Beams in z (numb) direction
-for a in range(len(alph)-0):
+#a=0
+for a in [0,x-1]:
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
 			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
 			beamList.append(inst)
-			#import and name instance
+			# import and name instance
 			M.rootAssembly.Instance(dependent=dep,name=inst, part=M.parts[part2])
-			#Rotate instance
+			# Rotate instance
 			M.rootAssembly.rotate(angle=-90.0, axisDirection=(
 				0.0,1.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
-			#Translate instance in x,y and z
+			# Translate instance in x,y and z
 			M.rootAssembly.translate(instanceList=(inst, ),
-				vector=(x_d*a , col1_height*(e+1), z_d*n))
+				vector=(x_d*a , col1_height*(e+1), z_d*n))	
 
 
 #================ Slabs ==================#
@@ -368,11 +420,10 @@ for a in range(len(alph)-1):
 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
 			slabList.append(inst)
 			M.rootAssembly.Instance(dependent=dep,name=inst, part=M.parts[part3])
-			M.rootAssembly.rotate(angle=90.0, axisDirection=(
+			M.rootAssembly.rotate(angle=-90.0, axisDirection=(
 							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
 			M.rootAssembly.translate(instanceList=(inst, ),
-							vector=(x_d*a,col1_height*(e+1),z_d*n))
-
+							vector=(x_d*a,col1_height*(e+1),z_d*(n+1)))
 
 
 
@@ -431,8 +482,8 @@ if static:
 	M.StaticStep(description='description', 
 		initialInc=inInc, name=stepName, nlgeom=nlg, previous=oldStep)
 elif riks:
-	M.StaticRiksStep(description='description', 
-		initialArcInc=inInc, name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0)
+	M.StaticRiksStep(description='description', initialArcInc=inInc,
+		name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0, minArcInc=minInc)
 
 
 
@@ -481,7 +532,7 @@ for a in range(len(alph)-1, 0,-1):
 				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
 
 #Column to beam in z(num) direction
-for a in range(len(alph)):
+for a in [0,x-1]:
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
 			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
@@ -497,7 +548,7 @@ for a in range(len(alph)):
 				((a*x_d, (e+1)*col1_height, n*z_d), ), )), userMode=DOF_MODE_MPC, userType=0)
 
 #Column to beam in negative z(num) direction
-for a in range(len(alph)):
+for a in [0,x-1]:
 	for n in range(len(numb)-1,0,-1):
 		for e in range(len(etg)):
 			col = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
@@ -544,7 +595,7 @@ for a in range(len(alph)-1):
 				((x_d*a+1 , col1_height*(e+1), z_d*n), ), ), name=inst+'_surf')
 
 #Create beam surfaces in z (numb) direction
-for a in range(len(alph)-0):
+for a in [0, x-1]:
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
 			inst = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
@@ -561,9 +612,35 @@ for a in range(len(alph)-1):
 				M.rootAssembly.instances[inst].edges.findAt(
 				((x_d*a+1, col1_height*(e+1), z_d*n), ),
 				((x_d*a+1, col1_height*(e+1), z_d*n+x_d), ),
-				((x_d*a, col1_height*(e+1), z_d*n+1), ),
-				((x_d*a+x_d, col1_height*(e+1), z_d*n+1), ), ))
+				#((x_d*a, col1_height*(e+1), z_d*n+1), ),
+				#((x_d*a+x_d, col1_height*(e+1), z_d*n+1), ), 
+				))
 
+# a=0
+# for n in range(len(numb)-1):
+	# for e in range(len(etg)):
+		# inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+		# M.rootAssembly.Surface(name=inst+'_edges', side1Edges=
+			# M.rootAssembly.instances[inst].edges.findAt(
+			# ((x_d*a+1, col1_height*(e+1), z_d*n), ),
+			# ((x_d*a+1, col1_height*(e+1), z_d*n+x_d), ),
+			# ((x_d*a, col1_height*(e+1), z_d*n+1), ),
+			# #((x_d*a+x_d, col1_height*(e+1), z_d*n+1), ),
+			# ))
+
+# a=x-2
+# for n in range(len(numb)-1):
+	# for e in range(len(etg)):
+		# inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+		# M.rootAssembly.Surface(name=inst+'_edges', side1Edges=
+			# M.rootAssembly.instances[inst].edges.findAt(
+			# ((x_d*a+1, col1_height*(e+1), z_d*n), ),
+			# ((x_d*a+1, col1_height*(e+1), z_d*n+x_d), ),
+			# #((x_d*a, col1_height*(e+1), z_d*n+1), ),
+			# ((x_d*a+x_d, col1_height*(e+1), z_d*n+1), ),
+			# ))
+				
+				
 #Join beam surfaces to match slabs
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
@@ -571,14 +648,42 @@ for a in range(len(alph)-1):
 			inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
 			beam1 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
 			beam2 = part2+"_"+ alph[a]+numb[n+1] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
-			beam3 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
-			beam4 = part2+"_"+ alph[a+1]+numb[n] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+			#beam3 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+			#beam4 = part2+"_"+ alph[a+1]+numb[n] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
 			M.rootAssembly.SurfaceByBoolean(name=inst+'_beamEdges', 
 				surfaces=(
 				M.rootAssembly.surfaces[beam1+'_surf'], 
 				M.rootAssembly.surfaces[beam2+'_surf'],
-				M.rootAssembly.surfaces[beam3+'_surf'],
-				M.rootAssembly.surfaces[beam4+'_surf']))
+				#M.rootAssembly.surfaces[beam3+'_surf'],
+				#M.rootAssembly.surfaces[beam4+'_surf']
+				))
+
+# a=0
+# for n in range(len(numb)-1):
+	# for e in range(len(etg)):
+		# inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+		# beam1 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+		# beam2 = part2+"_"+ alph[a]+numb[n+1] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+		# beam3 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a]+numb[n+1] + "-"+etg[e]
+		# M.rootAssembly.SurfaceByBoolean(name=inst+'_beamEdges', 
+			# surfaces=(
+			# M.rootAssembly.surfaces[beam1+'_surf'], 
+			# M.rootAssembly.surfaces[beam2+'_surf'],
+			# M.rootAssembly.surfaces[beam3+'_surf'],))
+
+# a=x-2
+# for n in range(len(numb)-1):
+	# for e in range(len(etg)):
+		# inst = part3+"_"+ alph[a]+numb[n] + "-"+etg[e]
+		# beam1 = part2+"_"+ alph[a]+numb[n] + "-" + alph[a+1]+numb[n] + "-"+etg[e]
+		# beam2 = part2+"_"+ alph[a]+numb[n+1] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+		# beam4 = part2+"_"+ alph[a+1]+numb[n] + "-" + alph[a+1]+numb[n+1] + "-"+etg[e]
+		# M.rootAssembly.SurfaceByBoolean(name=inst+'_beamEdges', 
+			# surfaces=(
+			# M.rootAssembly.surfaces[beam1+'_surf'], 
+			# M.rootAssembly.surfaces[beam2+'_surf'],
+			# M.rootAssembly.surfaces[beam4+'_surf'],))
+
 
 #Tie slabs to beams (beams as master)
 for a in range(len(alph)-1):
@@ -600,12 +705,12 @@ for a in range(len(alph)-1):
 
 #================ Loads ==================#
 
-#Gravity
-# M.Gravity(comp2=-9800.0, createStepName=stepName, 
-#     distributionType=UNIFORM, field='', name='Gravity')
+# Gravity
+M.Gravity(comp2=-9800.0, createStepName=stepName, 
+    distributionType=UNIFORM, field='', name='Gravity')
 
  
-#LL
+# LL
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
@@ -640,7 +745,6 @@ for a in alph:
 
 if apm == 1:
 	M.rootAssembly.regenerate()
-
 	# Create step for element removal
 	stepTime = 1e-9
 	oldStep = 'Static'
@@ -648,17 +752,14 @@ if apm == 1:
 	M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
 		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
 		timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
-
 	#Create set of element(s) to be removed
 	M.rootAssembly.Set(elements=
 		M.rootAssembly.instances['Column_A2-1'].elements[8:9]
 		, name='element')
-
 	#Remove element(s)
 	M.ModelChange(activeInStep=False, createStepName=stepName, 
 		includeStrain=False, name='elmRemoval', region=
 		M.rootAssembly.sets['element'], regionType=ELEMENTS)
-
 	#Create dynamic APM step
 	oldStep = stepName
 	stepName = 'dynamic'
@@ -681,7 +782,7 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
     explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
     memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
     multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
-    numCpus=cpus, numDomains=2, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
+    numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
     '', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
 if runJob == 1:        
