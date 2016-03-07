@@ -1,7 +1,37 @@
 from odbAccess import *
 from sys import exit
+import os
 
 
+
+############################################################
+############################################################
+###############	  	Open ODB				################
+############################################################
+############################################################
+
+def open_odb(odbPath):
+	""" Enter odbPath (with or without extension) and get upgraded (if necesarly)
+	odb = openOdb(odbPath)
+    """
+	#Allow both .odb and without extention
+	base, ext = os.path.splitext(odbPath)
+	odbPath = base + '.odb'
+	new_odbPath = None
+	#Check if odb needs upgrade
+	if isUpgradeRequiredForOdb(upgradeRequiredOdbPath=odbPath):
+		print('odb %s needs upgrading' % (odbPath,))
+		path,file_name = os.path.split(odbPath)
+		file_name = base + "_upgraded.odb"
+		new_odbPath = os.path.join(path,file_name)
+		upgradeOdb(existingOdbPath=odbPath, upgradedOdbPath=new_odbPath)
+		odbPath = new_odbPath
+
+	odb = openOdb(path=odbPath, readOnly=True)
+	return odb
+
+	
+	
 ############################################################
 ############################################################
 ###############	  	Get max value			################
@@ -15,8 +45,7 @@ def getMaxVal(odbName,elsetName, result):
     """
     elset = elemset = None
     region = "over the entire model"
-    """ Open the output database """
-    odb = openOdb(odbName)
+    open_odb(odbName)
     assembly = odb.rootAssembly
 
     """ Check to see if the element set exists
