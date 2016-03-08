@@ -27,13 +27,6 @@ import odbAccess        		# To make ODB-commands available to the script
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
 
-# Type "wipe" to clear console in abaqus
-# class Wipe(object):
-    # def __repr__(self):
-        # return '\n'*20
-
-# wipe = Wipe()
-
 modelName = "APM"
 
 mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
