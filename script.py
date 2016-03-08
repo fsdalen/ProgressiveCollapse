@@ -71,10 +71,10 @@ if 0:
 #====================================================================#
 
 
-runJob = 0		     	#If 1: run job
+runJob = 1		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
-apm = 1
+apm = 0
 
 jobName = 'APM'
 
@@ -753,7 +753,7 @@ if apm == 1:
 	M.rootAssembly.regenerate()
 	# Create step for element removal
 	stepTime = 1e-9
-	oldStep = 'Static'
+	oldStep = stepName
 	stepName = 'elmRem'
 	M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
 		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
@@ -799,4 +799,45 @@ if runJob == 1:
 
 
 
+
+#====================================================================#
+#							Implicit APM							 #
+#====================================================================#
+
+#if multipleAPM:
+
+import odbFunc
+odbName = jobName
+odb = odbFunc.open_odb(odbName)
+elsetName = None
+var = 'S'
+var_invariant = 'mises'
+limit = 40.0
+
+
+maxVal, object = odbFunc.getMaxVal(odbName,elsetName, var, stepName, var_invariant)
+
+if maxVal >= limit:
+	stepName = 'STATIC'
+	M.rootAssembly.regenerate()
+	# Create step for element removal
+	stepTime = 1e-9
+	oldStep = stepName
+	stepName = 'elmRem'
+	M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
+		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
+		timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
+	#Create set of element(s) or geometry to be removed
+	rmvSet = object.instance.name+'.set'
+	#Remove element(s)
+	M.ModelChange(activeInStep=False, createStepName=stepName, 
+		includeStrain=False, name='elmRemoval', region=
+		M.rootAssembly.sets[rmvSet], regionType=ELEMENTS)
+	#Create dynamic APM step
+	oldStep = stepName
+	stepName = 'dynamic'
+	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
+		stepName, previous=oldStep, timePeriod=5.0, nlgeom=nlg)
+
+	
 
