@@ -28,11 +28,11 @@ session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORD
 
 
 # Type "wipe" to clear console in abaqus
-class Wipe(object):
-    def __repr__(self):
-        return '\n'*20
+# class Wipe(object):
+    # def __repr__(self):
+        # return '\n'*20
 
-wipe = Wipe()
+# wipe = Wipe()
 
 modelName = "APM"
 
@@ -115,18 +115,18 @@ mat3_yield = 355.0		#Yield stress
 
 #================ Parts ==================#
 #Column
-part1 = "Column"
+part1 = "COLUMN"
 sect1 = "HUP"
 col1_height = 4000.0
 imp = 0				#Initial imperfection ("triangle" shape)
 
 #Beam
-part2 = "Beam"
+part2 = "BEAM"
 sect2 = "HEB"
 beam_len = 8000.0
 
 #Slab
-part3 = "Slab"
+part3 = "SLAB"
 sect3 = "Slab"
 deck_t = 200.0	#Thickness of slabs
 
@@ -165,7 +165,7 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 
 
 #================ Step ==================#
-stepName = "Static"			#Name of step
+stepName = "STATIC"			#Name of step
 
 
 static = 1					# 1 if static
@@ -282,7 +282,7 @@ M.parts[part1].Set(name='col-top', vertices=
 #Create set of part
 M.parts[part1].Set(edges=
     M.parts[part1].edges.findAt(((0.0, 1.0, 0.0), )), 
-    name=part1)
+    name='set')
 
 #================ Beam ==================#
 #Create Section and profile
@@ -315,7 +315,7 @@ M.parts[part2].assignBeamSectionOrientation(method=
 #Create set of part
 M.parts[part2].Set(edges=
     M.parts[part2].edges.findAt(((1.0, 0.0, 0.0), )), 
-    name=part2)
+    name='set')
 	
 #================ Slab ==================#
 #Create Section
@@ -362,7 +362,9 @@ M.parts[part3].Surface(name='Surf', side2Faces=
 #Create set of part
 M.parts[part3].Set(faces=
     M.parts[part3].faces.findAt(((1.0, 1.0, 0.0), )), 
-    name=part3)
+    name='set')
+
+
 
 
 #====================================================================#
@@ -725,7 +727,7 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
-			inst = "Slab_" + alph[a]+numb[n]+"-"+etg[e]
+			inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
 			M.SurfaceTraction(createStepName=stepName, 
 				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
 				distributionType=UNIFORM, field='', follower=OFF,
