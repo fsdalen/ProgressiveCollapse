@@ -279,6 +279,10 @@ M.parts[part1].Set(name='col-base', vertices=
 M.parts[part1].Set(name='col-top', vertices=
     M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
 
+#Create set of part
+M.parts[part1].Set(edges=
+    M.parts[part1].edges.findAt(((0.0, 1.0, 0.0), )), 
+    name=part1)
 
 #================ Beam ==================#
 #Create Section and profile
@@ -308,7 +312,11 @@ M.parts[part2].assignBeamSectionOrientation(method=
     N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
     edges=M.parts[part2].edges.findAt(((0.0, 0.0, 0.0), ), )))
 
-
+#Create set of part
+M.parts[part2].Set(edges=
+    M.parts[part2].edges.findAt(((1.0, 0.0, 0.0), )), 
+    name=part2)
+	
 #================ Slab ==================#
 #Create Section
 M.HomogeneousShellSection(idealization=NO_IDEALIZATION, 
@@ -351,7 +359,10 @@ M.parts[part3].assignRebarOrientation(
 M.parts[part3].Surface(name='Surf', side2Faces=
     M.parts[part3].faces.findAt(((0.0, 0.0, 0.0), )))
 
-
+#Create set of part
+M.parts[part3].Set(faces=
+    M.parts[part3].faces.findAt(((1.0, 1.0, 0.0), )), 
+    name=part3)
 
 
 #====================================================================#
@@ -787,6 +798,7 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
 
 if runJob == 1:        
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
+	mdb.jobs[jobName].waitForCompletion()
 
 
 
