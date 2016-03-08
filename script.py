@@ -27,11 +27,11 @@ import odbAccess        		# To make ODB-commands available to the script
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
 # Type "wipe" to clear console in abaqus
-class Wipe(object):
-    def __repr__(self):
-        return '\n'*20
+# class Wipe(object):
+    # def __repr__(self):
+        # return '\n'*20
 
-wipe = Wipe()
+# wipe = Wipe()
 
 modelName = "basicFrame"
 mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
@@ -110,18 +110,18 @@ mat3_yield = 355.0		#Yield stress
 
 #================ Parts ==================#
 #Column
-part1 = "Column"
+part1 = "COLUMN"
 sect1 = "HUP"
 col1_height = 4000.0
 imp = 0				#Initial imperfection ("triangle" shape)
 
 #Beam
-part2 = "Beam"
+part2 = "BEAM"
 sect2 = "HEB"
 beam_len = 8000.0
 
 #Slab
-part3 = "Slab"
+part3 = "SLAB"
 sect3 = "Slab"
 deck_t = 200.0	#Thickness of slabs
 
@@ -159,7 +159,7 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 
 
 #================ Step ==================#
-stepName = "Static"			#Name of step
+stepName = "STATIC"			#Name of step
 
 
 static = 1					# 1 if static
@@ -271,6 +271,10 @@ M.parts[part1].Set(name='col-base', vertices=
 M.parts[part1].Set(name='col-top', vertices=
     M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
 
+#Create set of part
+M.parts[part1].Set(edges=
+    M.parts[part1].edges.findAt(((0.0, 1.0, 0.0), )), 
+    name='set')
 
 #================ Beam ==================#
 #Create Section and profile
@@ -300,7 +304,11 @@ M.parts[part2].assignBeamSectionOrientation(method=
     N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
     edges=M.parts[part2].edges.findAt(((0.0, 0.0, 0.0), ), )))
 
-
+#Create set of part
+M.parts[part2].Set(edges=
+    M.parts[part2].edges.findAt(((1.0, 0.0, 0.0), )), 
+    name='set')
+	
 #================ Slab ==================#
 #Create Section
 M.HomogeneousShellSection(idealization=NO_IDEALIZATION, 
@@ -343,7 +351,10 @@ M.parts[part3].assignRebarOrientation(
 M.parts[part3].Surface(name='Surf', side2Faces=
     M.parts[part3].faces.findAt(((0.0, 0.0, 0.0), )))
 
-
+#Create set of part
+M.parts[part3].Set(faces=
+    M.parts[part3].faces.findAt(((1.0, 1.0, 0.0), )), 
+    name='set')
 
 
 #====================================================================#
@@ -707,7 +718,7 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
-			inst = "Slab_" + alph[a]+numb[n]+"-"+etg[e]
+			inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
 			M.SurfaceTraction(createStepName=stepName, 
 				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
 				distributionType=UNIFORM, field='', follower=OFF,
@@ -749,6 +760,7 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
 
 if runJob == 1:        
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
+	mdb.jobs[jobName].waitForCompletion()
 
 
 
