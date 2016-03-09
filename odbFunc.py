@@ -37,8 +37,8 @@ def open_odb(odbPath):
 ############################################################
 ############################################################
 
-def getMaxVal(odbName,elsetName, var, stepName, var_invariant):
-	""" Returns value and object with max of a variable.
+def getMaxVal(odbName,elsetName, var, stepName, var_invariant, limit):
+	""" Returns list with value and object for all elements over limit
 	"""
 	elset = elemset = None
 	region = "over the entire model"
@@ -57,17 +57,10 @@ def getMaxVal(odbName,elsetName, var, stepName, var_invariant):
 				% (elsetName, odbName)
 			odb.close()
 			exit(0)
-
-	#Initialize maximum values
-	maxVal = -0.1
-	maxElem = 0
-	maxStep = "_None_"
-	maxFrame = -1
+	#Find values over limit
 	var = 'S'
-	isVarPresent = 0
 	step = odb.steps[stepName]
-	maxVal = -1.0e20
-	_max=None
+	result = []
 	for frame in step.frames:
 		allFields = frame.fieldOutputs
 		if (allFields.has_key(var)):
@@ -82,13 +75,9 @@ def getMaxVal(odbName,elsetName, var, stepName, var_invariant):
 						raise ValueError('Field value does not have invariant %s' % (var_invariant,))
 				else:
 					val = varValue.data
-				if ( val > maxVal):
-					_max = varValue
-					maxVal = val
-					#maxElem = varValue.elementLabel
-					#maxInst = varValue.instance.name
-					#maxFrame = frame.incrementNumber
+				if ( val >= limit):
+					result.append([val,varValue])
 		else:
 			raise ValueError('Field output does not have field %s' % (results_field,))
-	return (maxVal, _max)
+	return (result)
 
