@@ -21,7 +21,7 @@ from connectorBehavior import *
 from abaqus import *			#These statements make the basic Abaqus objects accessible to the script... 
 from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
 import odbAccess        		# To make ODB-commands available to the script
-
+import odbFunc					#Self made module
 
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
@@ -794,4 +794,63 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
 if runJob == 1:        
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 	mdb.jobs[jobName].waitForCompletion()
+
+
+#====================================================================#
+#						Implicit PC analysis						 #
+#====================================================================#
+
+
+
+odbName = jobName
+odb = odbFunc.open_odb(odbName)
+elsetName = None
+var = 'S'
+var_invariant = 'mises'
+limit = 40.0
+
+#Get all elements over limit as a list with [value, object]
+elmOverLim = odbFunc.getMaxVal(odbName,elsetName, var, stepName, var_invariant, limit)
+
+instOverLim = []
+
+#Create list of all instance names
+for i in range(len(elmOverLim)):
+	instOverLim.append(elmOverLim[i][1].instance.name)
+
+#Create list with unique names
+inst = []
+for i in instOverLim:
+    if i not in inst:
+        inst.append(i)
+
+M.rootAssembly.regenerate()
+# Create step for element removal
+stepTime = 1e-9
+oldStep = stepName
+stepName = 'elmRem'
+M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
+	stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
+	timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
+
+#Merge set of instances to be deleted
+setList=[]
+for i in inst:
+	setList.append(M.rootAssembly.allInstances[i].sets['set'])
+
+setList = tuple(setList)
+M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
+
+#Remove instances
+M.ModelChange(activeInStep=False, createStepName=stepName, 
+	includeStrain=False, name='INST_REMOVAL', region=
+	M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
+
+#Create dynamic APM step
+oldStep = stepName
+stepName = 'Implicit'
+M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
+	stepName, previous=oldStep, timePeriod=5.0, nlgeom=nlg)
+
+	
 
