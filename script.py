@@ -27,7 +27,7 @@ import odbFunc					#Self made module
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
 
-modelName = "APM"
+modelName = "staticMod"
 
 mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
 M = mdb.models[modelName]								#For simplicity
@@ -41,7 +41,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 
 #================ Close and delete stuff ==================#
 # This is in order to avoid corrupted files because when running in Parallels
-if 0:
+if 1:
 	#Close and delete odb files
 	import os
 	import glob
@@ -71,15 +71,15 @@ if 0:
 #====================================================================#
 
 
-runJob = 0		     	#If 1: run job
+runJob = 1		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 
 #APM
-apm = 1
+apm = 0
 column = 'COLUMN_A2-1'
 
-jobName = 'APM'
+jobName = 'staticJob'
 
 
 #================ Materials ==================#
@@ -135,9 +135,9 @@ rebarPosition = -80.0		#mm distance from center of section
 
 #================ Assembly ==================#
 #4x4  x10(5)
-x = 3			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 2			#nr of stories
+x = 2			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
+y = 1			#nr of stories
 
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
@@ -161,7 +161,7 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 
 
 #================ Step ==================#
-stepName = "STATIC"			#Name of step
+stepName = "StaticStep"			#Name of step
 
 
 static = 1					# 1 if static
@@ -172,7 +172,7 @@ inInc = 1e-5				# Initial increment
 minInc = 1e-9
 
 #================ Loads ==================#
-LL_kN_m = -2.0	    #kN/m^2
+LL_kN_m = -2.0	    #kN/m^2  2.0
 
 LL=LL_kN_m * 1.0e-3   #N/mm^2
 
@@ -494,7 +494,8 @@ elif riks:
 	M.StaticRiksStep(description='description', initialArcInc=inInc,
 		name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0, minArcInc=minInc)
 
-
+#Add restart data from step
+M.steps[stepName].Restart(frequency=1, overlay=OFF)
 
 #====================================================================#
 #							Joints 									 #
@@ -757,7 +758,7 @@ if apm == 1:
 	# Create step for element removal
 	stepTime = 1e-9
 	oldStep = stepName
-	stepName = 'elmRem'
+	stepName = 'elmRemStep'
 	M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
 		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
 		timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
@@ -768,7 +769,7 @@ if apm == 1:
 		M.rootAssembly.sets[rmvSet], regionType=GEOMETRY)
 	#Create dynamic APM step
 	oldStep = stepName
-	stepName = 'dynamic'
+	stepName = 'apmStep'
 	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
 		stepName, previous=oldStep, timePeriod=5.0, nlgeom=nlg)
 
@@ -783,7 +784,7 @@ M.rootAssembly.regenerate()
 if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
-jobName = 'APM'
+
 mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
     explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
     memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
@@ -802,16 +803,38 @@ if runJob == 1:
 
 
 
-odbName = jobName
-odb = odbFunc.open_odb(odbName)
+
+#================ Input =============#
 elsetName = None
 var = 'S'
 var_invariant = 'mises'
 limit = 40.0
 
-#Get all elements over limit as a list with [value, object]
-elmOverLim = odbFunc.getMaxVal(odbName,elsetName, var, stepName, var_invariant, limit)
+#===== Create new names and old name variables ======#
+oldJob=jobName
+jobName = 'implicitJob'
+odbName = oldJob
 
+oldModel = modelName
+modelName = 'implicitMod'
+
+oldStep = stepName
+oldStep2 = stepName
+
+odb = odbFunc.open_odb(odbName)
+
+#Copy new model to restart
+mdb.Model(name=modelName, objectToCopy=mdb.models[oldModel])	
+M = mdb.models[modelName]
+M.setValues(restartJob=oldJob, restartStep=oldStep)
+
+
+
+#================ Delete instances =============#
+#Get all elements over limit as a list with [value, object]
+print '\n' + "Getting data from ODB..."
+elmOverLim = odbFunc.getMaxVal(odbName,elsetName, var, oldStep, var_invariant, limit)
+print "Done"
 instOverLim = []
 
 #Create list of all instance names
@@ -821,21 +844,26 @@ for i in range(len(elmOverLim)):
 #Create list with unique names
 inst = []
 for i in instOverLim:
-    if i not in inst:
-        inst.append(i)
+	if i not in inst:
+		inst.append(i)
 
-M.rootAssembly.regenerate()
+#Remove slabs so they are not deleted
+instFiltered=[]
+for i in inst[:]:git
+	if not i.startswith('SLAB'):
+		instFiltered.append(i)
+
 # Create step for element removal
 stepTime = 1e-9
-oldStep = stepName
-stepName = 'elmRem'
+stepName = 'elmRemStep1'
+M.rootAssembly.regenerate()
 M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
 	stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
 	timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
 
 #Merge set of instances to be deleted
 setList=[]
-for i in inst:
+for i in instFiltered:
 	setList.append(M.rootAssembly.allInstances[i].sets['set'])
 
 setList = tuple(setList)
@@ -846,11 +874,23 @@ M.ModelChange(activeInStep=False, createStepName=stepName,
 	includeStrain=False, name='INST_REMOVAL', region=
 	M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
 
+	
+#================ Create new step and job =============#
 #Create dynamic APM step
 oldStep = stepName
-stepName = 'Implicit'
+stepName = 'implicitStep'
 M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-	stepName, previous=oldStep, timePeriod=5.0, nlgeom=nlg)
+	stepName, previous=oldStep2, timePeriod=5.0, nlgeom=nlg)
 
-	
+#Add restart data from step
+M.steps[stepName].Restart(frequency=1, overlay=ON)
+
+
+#Create new restart job
+mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+    explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+    memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
+    multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
+    numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
+    '', type=RESTART, userSubroutine='', waitHours=0, waitMinutes=0)
 
