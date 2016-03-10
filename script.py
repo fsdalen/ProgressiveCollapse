@@ -1,36 +1,51 @@
 #====================================================================#
 #====================================================================#
-#							INPUTS									 #
+#						INPUTS										 #
 #====================================================================#
 #====================================================================#
 
-modelName = "staticMod"
 
-runJob = 1		     	#If 1: run job
+runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 
-#APM
-apm = 0
-column = 'COLUMN_A2-1'
-
+modelName = "staticMod"
 jobName = 'staticJob'
+stepName = "staticStep"	
 
 #4x4  x10(5)
 x = 4			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 10			#nr of stories
+z = 3			#Nr of columns in z direction
+y = 2			#nr of stories
 
 #================ Step ==================#
-stepName = "staticStep"			#Name of step
-
-
 static = 1					# 1 if general, static
 riks =   0					# 1 if Riks static
 nlg = OFF					# Nonlinear geometry (ON/OFF)
 
 inInc = 1e-5				# Initial increment
 minIncr = 1e-9
+
+#================ APM ==================#
+#Single APM
+APM = 0
+column = 'COLUMN_A2-1'
+rmvStepTime = 1e-9		#Also used in MuliAPM
+dynStepTime = 5.0
+
+#MultiAPM
+multiAPM = 1
+runAPMjob = 0
+
+#Data extraction
+elsetName = None
+var = 'S'
+var_invariant = 'mises'
+limit = 85.0
+
+
+
+
 
 
 #================ Materials ==================#
@@ -163,10 +178,11 @@ if 1:
 	import os
 	import glob
 	fls = glob.glob('*.odb')
-	for i in fls:
-		if len(session.odbs.keys())>0:
-			session.odbs[i].close()
-		os.remove(i)
+	if not multiAPM:
+		for i in fls:
+			if len(session.odbs.keys())>0:
+				session.odbs[i].close()
+			os.remove(i)
 	#Delete old input files
 	inpt = glob.glob('*.inp')
 	for i in inpt:
@@ -498,8 +514,6 @@ elif riks:
 	M.StaticRiksStep(description='description', initialArcInc=inInc,
 		name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0, minArcInc=minIncr)
 
-#Add restart data from step
-M.steps[stepName].Restart(frequency=1, overlay=OFF)
 
 
 #====================================================================#
@@ -765,12 +779,11 @@ for a in alph:
 if apm == 1:
 	M.rootAssembly.regenerate()
 	# Create step for element removal
-	stepTime = 1e-9
 	oldStep = stepName
 	stepName = 'elmRemStep'
-	M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
+	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
 		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
-		timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
+		timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
 	rmvSet = column+'.set'
 	#Remove element(s)
 	M.ModelChange(activeInStep=False, createStepName=stepName, 
@@ -780,7 +793,7 @@ if apm == 1:
 	oldStep = stepName
 	stepName = 'apmStep'
 	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-		stepName, previous=oldStep, timePeriod=5.0, nlgeom=nlg)
+		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
 
 
 
@@ -793,6 +806,8 @@ M.rootAssembly.regenerate()
 if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
+if APM:
+	jobName = 'APM'
 
 mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
     explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
@@ -807,101 +822,107 @@ if runJob == 1:
 	mdb.jobs[jobName].waitForCompletion()
 
 
+
 #====================================================================#
-#						Implicit PC analysis						 #
+#							IMPLICIT APM 							 #
 #====================================================================#
 
 
 
 
-#================ Input =============#
-elsetName = None
-var = 'S'
-var_invariant = 'mises'
-limit = 40.0
 
-#===== Create new names and old name variables ======#
-oldJob=jobName
-jobName = 'implicitJob'
-odbName = oldJob
-
-oldModel = modelName
-modelName = 'implicitMod'
-
-oldStep = stepName
-oldStep2 = stepName
-
-odb = odbFunc.open_odb(odbName)
-
-#Copy new model to restart
-mdb.Model(name=modelName, objectToCopy=mdb.models[oldModel])	
-M = mdb.models[modelName]
-M.setValues(restartJob=oldJob, restartStep=oldStep)
-
-
-
-#================ Delete instances =============#
-#Get all elements over limit as a list with [value, object]
-print '\n' + "Getting data from ODB..."
-elmOverLim = odbFunc.getMaxVal(odbName,elsetName, var, oldStep, var_invariant, limit)
-print "Done"
-instOverLim = []
-
-#Create list of all instance names
-for i in range(len(elmOverLim)):
-	instOverLim.append(elmOverLim[i][1].instance.name)
-
-#Create list with unique names
-inst = []
-for i in instOverLim:
-	if i not in inst:
-		inst.append(i)
-
-#Remove slabs so they are not deleted
-instFiltered=[]
-for i in inst[:]:git
-	if not i.startswith('SLAB'):
-		instFiltered.append(i)
-
-# Create step for element removal
-stepTime = 1e-9
-stepName = 'elmRemStep1'
-M.rootAssembly.regenerate()
-M.ImplicitDynamicsStep(initialInc=stepTime, maxNumInc=1, name=
-	stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
-	timeIncrementationMethod=FIXED, timePeriod=stepTime, nlgeom=nlg)
-
-#Merge set of instances to be deleted
-setList=[]
-for i in instFiltered:
-	setList.append(M.rootAssembly.allInstances[i].sets['set'])
-
-setList = tuple(setList)
-M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
-
-#Remove instances
-M.ModelChange(activeInStep=False, createStepName=stepName, 
-	includeStrain=False, name='INST_REMOVAL', region=
-	M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
-
+if multiAPM:
 	
-#================ Create new step and job =============#
-#Create dynamic APM step
-oldStep = stepName
-stepName = 'implicitStep'
-M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-	stepName, previous=oldStep2, timePeriod=5.0, nlgeom=nlg)
+	#================ Preliminaries =============#
+	print '###########    RUNNING implicitAPM     ###########'
+	
+	#Old names
+	oldJob=jobName
+	odbName = oldJob
+	oldModel = modelName
+	oldStep = stepName
+	
+	#New names
+	jobName = 'multiApmJob'
+	modelName = 'multiApmMod'
+	
+	#Open ODB
+	odb = odbFunc.open_odb(odbName)
+	
+	#Copy new model
+	mdb.Model(name=modelName, objectToCopy=mdb.models[oldModel])	
+	M = mdb.models[modelName]
+	
+	
+	#================ Delete instances =============#
+	#Get all elements over limit as a list with [value, object]
+	print '\n' + "Getting data from ODB..."
+	elmOverLim = odbFunc.getMaxVal(odbName,elsetName, var, oldStep, var_invariant, limit)
+	print "    done"
+	instOverLim = []
+	
+	#Create list of all instance names
+	for i in range(len(elmOverLim)):
+		instOverLim.append(elmOverLim[i][1].instance.name)
+	
+	#Create list with unique names
+	inst = []
+	for i in instOverLim:
+		if i not in inst:
+			inst.append(i)
+	
+	#Remove slabs so they are not deleted
+	instFiltered=[]
+	for i in inst[:]:
+		if not i.startswith('SLAB'):
+			instFiltered.append(i)
+	
+	# Create step for element removal
+	stepName = 'elmRmvStep1'
+	M.rootAssembly.regenerate()
+	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
+		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
+		timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
+	
+	#Merge set of instances to be deleted
+	setList=[]
+	for i in instFiltered:
+		setList.append(M.rootAssembly.allInstances[i].sets['set'])
+	
+	setList = tuple(setList)
+	M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
+	
+	#Remove instances
+	M.ModelChange(activeInStep=False, createStepName=stepName, 
+		includeStrain=False, name='INST_REMOVAL', region=
+		M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
+	
+	
+	#================ Create new step and job =============#
+	#Create dynamic APM step
+	oldStep = stepName
+	stepName = 'implicitStep'
+	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
+		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
+	
+	
+	#Create new job
+	mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+		explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+		memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
+		multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
+		numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
+		'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
+	
+	#Run job
+	if runAPMjob:
+		print 'Running %s...' %jobName
+		mdb.jobs[jobName].submit()	#Run job
+		mdb.jobs[jobName].waitForCompletion()
 
-#Add restart data from step
-M.steps[stepName].Restart(frequency=1, overlay=ON)
 
-
-#Create new restart job
-mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
-    explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
-    memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
-    multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
-    numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
-    '', type=RESTART, userSubroutine='', waitHours=0, waitMinutes=0)
 
 print '###########    END OF SCRIPT    ###########'
+
+
+	
