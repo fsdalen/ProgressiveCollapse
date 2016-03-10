@@ -1,3 +1,5 @@
+from abaqus import *
+from abaqusConstants import *
 #====================================================================#
 #====================================================================#
 #							INPUTS									 #
@@ -6,15 +8,15 @@
 
 modelName = "staticMod"
 
-runJob = 0		     	#If 1: run job
+runJob = 1		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 jobName = 'staticJob'
 
 #4x4  x10(5)
-x = 4			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 10			#nr of stories
+x = 2			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
+y = 1			#nr of stories
 
 #================ Step ==================#
 stepName = "staticStep"			#Name of step
@@ -132,6 +134,11 @@ from connectorBehavior import *
 from abaqus import *			#These statements make the basic Abaqus objects accessible to the script... 
 from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
 import odbAccess        		# To make ODB-commands available to the script
+
+#Print status to console during analysis
+import simpleMonitor
+simpleMonitor.printStatus(ON)
+
 
 
 #This makes mouse clicks into physical coordinates
@@ -774,3 +781,4 @@ if runJob == 1:
 
 
 print '###########    END OF SCRIPT    ###########'
+
