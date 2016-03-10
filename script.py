@@ -8,7 +8,7 @@ from abaqusConstants import *
 
 modelName = "staticMod"
 
-runJob = 1		     	#If 1: run job
+runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 jobName = 'staticJob'
@@ -158,7 +158,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 #================ Close and delete old jobs and ODBs ==================#
 # This is in order to avoid corrupted files because when running in Parallels
 
-if 1:
+if 0:
 	#Close and delete odb files
 	import os
 	import glob
@@ -760,6 +760,21 @@ for a in alph:
 #====================================================================#
 M.rootAssembly.regenerate()
 
+def dispJob():
+	fullJobName = jobName+'.odb'
+	fls = glob.glob('*.odb')
+	for i in fls:
+		if i == fullJobName:
+			dispObj = session.openOdb(name=fullJobName)
+			session.viewports['Viewport: 1'].setValues(displayedObject=dispObj)
+			session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+				CONTOURS_ON_DEF, ))
+			session.viewports['Viewport: 1'].odbDisplay.commonOptions.setValues(
+				uniformScaleFactor=10)
+		else:
+			print 'Error opening ODB, jobName does not exist'
+	return
+	
 if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
@@ -774,6 +789,7 @@ if runJob == 1:
 	print 'Running %s...' %jobName
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 	mdb.jobs[jobName].waitForCompletion()
+	dispJob()
 
 
 
