@@ -1,79 +1,30 @@
 #====================================================================#
-#						PRELIMINARIES								 #
-#====================================================================#
-
-
-from part import *
-from material import *
-from section import *
-from optimization import *
-from assembly import *
-from step import *
-from interaction import *
-from load import *
-from mesh import *
-from job import *
-from sketch import *
-from visualization import *
-from connectorBehavior import *
-
-
-from abaqus import *			#These statements make the basic Abaqus objects accessible to the script... 
-from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
-import odbAccess        		# To make ODB-commands available to the script
-
-
-#This makes mouse clicks into physical coordinates
-session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
-
-
-modelName = "basicFrame"
-mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
-M = mdb.models[modelName]								#For simplicity
-if len(mdb.models.keys()) > 0:							#Deletes all other models
-	a = mdb.models.items()
-	for i in range(len(a)):
-		b = a[i]
-		if b[0] != modelName:
-			del mdb.models[b[0]]
-
-
-#================ Close and delete stuff ==================#
-# This is in order to avoid corrupted files because when running in Parallels
-
-if 0:
-	#Close and delete odb files
-	import os
-	import glob
-	fls = glob.glob('*.odb')
-	for i in fls:
-		if len(session.odbs.keys())>0:
-			session.odbs[i].close()
-		os.remove(i)
-	#Delete old input
-	inpt = glob.glob('*.inp')
-	for i in inpt:
-		os.remove(i)
-	#Delete old jobs
-	jbs = mdb.jobs.keys()
-	if len(jbs)> 0:
-		for i in jbs:
-			del mdb.jobs[i]
-
-
-
-
-#====================================================================#
 #====================================================================#
 #							INPUTS									 #
 #====================================================================#
 #====================================================================#
 
+modelName = "staticMod"
 
 runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
-jobName = 'job1'
+jobName = 'staticJob'
+
+#4x4  x10(5)
+x = 4			#Nr of columns in x direction
+z = 4			#Nr of columns in z direction
+y = 10			#nr of stories
+
+#================ Step ==================#
+stepName = "staticStep"			#Name of step
+
+
+static = 1					# 1 if static
+riks =   0					# 1 if Riks static
+nlg = OFF					# Nonlinear geometry (ON/OFF)
+inInc = 1e-5				# Initial increment
+minIncr = 1e-9
 
 
 #================ Materials ==================#
@@ -127,10 +78,6 @@ rebarPosition = -80.0		#mm distance from center of section
 
 
 #================ Assembly ==================#
-#4x4  x10(5)
-x = 4			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 10			#nr of stories
 x_d = beam_len		#Size of bays in x direction
 z_d = beam_len		#Size of bays in z direction
 
@@ -152,20 +99,77 @@ seed3 = seed1
 element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Explicit)
 
 
-#================ Step ==================#
-stepName = "STATIC"			#Name of step
-
-
-static = 1					# 1 if static
-riks =   0					# 1 if Riks static
-nlg = OFF					# Nonlinear geometry (ON/OFF)
-inInc = 1e-5				# Initial increment
-minInc = 1e-9
 
 #================ Loads ==================#
 LL_kN_m = -2.0	    #kN/m^2
 
 LL=LL_kN_m * 1.0e-3   #N/mm^2
+
+
+
+
+#====================================================================#
+#						PRELIMINARIES								 #
+#====================================================================#
+print '\n'*4
+print '###########    NEW SCRIPT    ###########'
+
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+
+
+from abaqus import *			#These statements make the basic Abaqus objects accessible to the script... 
+from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
+import odbAccess        		# To make ODB-commands available to the script
+
+
+#This makes mouse clicks into physical coordinates
+session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
+
+
+mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
+M = mdb.models[modelName]								#For simplicity
+if len(mdb.models.keys()) > 0:							#Deletes all other models
+	a = mdb.models.items()
+	for i in range(len(a)):
+		b = a[i]
+		if b[0] != modelName:
+			del mdb.models[b[0]]
+
+
+#================ Close and delete old jobs and ODBs ==================#
+# This is in order to avoid corrupted files because when running in Parallels
+
+if 1:
+	#Close and delete odb files
+	import os
+	import glob
+	fls = glob.glob('*.odb')
+	for i in fls:
+		if len(session.odbs.keys())>0:
+			session.odbs[i].close()
+		os.remove(i)
+	#Delete old input files
+	inpt = glob.glob('*.inp')
+	for i in inpt:
+		os.remove(i)
+	#Delete old jobs
+	jbs = mdb.jobs.keys()
+	if len(jbs)> 0:
+		for i in jbs:
+			del mdb.jobs[i]
+	print 'Old jobs and ODBs have been closed.'
 
 
 
@@ -201,6 +205,7 @@ M.materials[mat3].Plastic(table=((mat3_yield, 0.0), ))
 #Hardning (random linear interpolatin)
 M.materials[mat3].plastic.setValues(table=((355.0, 
     0.0), (2000.0, 20.0)))
+
 
 
 
@@ -351,10 +356,13 @@ M.parts[part3].Set(faces=
     name='set')
 
 
+
+
 #====================================================================#
 #						ASSEMBLY 									 #
 #====================================================================#
 
+print 'Assembling instances...'
 M.rootAssembly.DatumCsysByDefault(CARTESIAN)  #Set coordinates to Cartesian
 #Letters go left to right (positive x)
 #Number top to bottom (positive z)
@@ -418,9 +426,11 @@ for a in range(len(alph)-1):
 			slabList.append(inst)
 			M.rootAssembly.Instance(dependent=dep,name=inst, part=M.parts[part3])
 			M.rootAssembly.rotate(angle=-90.0, axisDirection=(
-							1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
+				1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0), instanceList=(inst, ))
 			M.rootAssembly.translate(instanceList=(inst, ),
-							vector=(x_d*a,col1_height*(e+1),z_d*(n+1)))
+				vector=(x_d*a,col1_height*(e+1),z_d*(n+1)))
+
+print '    done'
 
 
 
@@ -468,7 +478,6 @@ M.parts[part3].generateMesh()
 
 
 
-
 #====================================================================#
 #							STEP 									 #
 #====================================================================#
@@ -477,17 +486,17 @@ M.parts[part3].generateMesh()
 oldStep = 'Initial'
 if static:
 	M.StaticStep(description='description', 
-		initialInc=inInc, name=stepName, nlgeom=nlg, previous=oldStep)
+		initialInc=inInc, minInc=minIncr, name=stepName, nlgeom=nlg, previous=oldStep)
 elif riks:
 	M.StaticRiksStep(description='description', initialArcInc=inInc,
-		name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0, minArcInc=minInc)
-
-
+		name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0, minArcInc=minIncr)
 
 
 #====================================================================#
 #							Joints 									 #
 #====================================================================#
+print 'Adding constraints...'
+
 
 #================ Column to beam joints =============#
 
@@ -694,6 +703,8 @@ for a in range(len(alph)-1):
 				M.rootAssembly.surfaces[inst+'_edges']
 				, thickness=OFF, tieRotations=OFF)
 
+print '    done'
+
 
 
 
@@ -752,7 +763,8 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
     numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
     '', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
-if runJob == 1:        
+if runJob == 1:    
+	print 'Running %s...' %jobName
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 	mdb.jobs[jobName].waitForCompletion()
 
@@ -761,3 +773,4 @@ if runJob == 1:
 
 
 
+print '###########    END OF SCRIPT    ###########'
