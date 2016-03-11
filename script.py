@@ -1,3 +1,5 @@
+from abaqus import *
+from abaqusConstants import *
 #====================================================================#
 #====================================================================#
 #						INPUTS										 #
@@ -15,8 +17,9 @@ stepName = "staticStep"
 
 #4x4  x10(5)
 x = 4			#Nr of columns in x direction
-z = 3			#Nr of columns in z direction
-y = 2			#nr of stories
+z = 4			#Nr of columns in z direction
+y = 10			#nr of stories
+
 
 #================ Step ==================#
 static = 1					# 1 if general, static
@@ -28,13 +31,13 @@ minIncr = 1e-9
 
 #================ APM ==================#
 #Single APM
-APM = 0
+APM = 1
 column = 'COLUMN_A2-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
 
 #MultiAPM
-multiAPM = 1
+multiAPM = 0
 runAPMjob = 0
 
 #Data extraction
@@ -155,6 +158,11 @@ from abaqus import *			#These statements make the basic Abaqus objects accessibl
 from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
 import odbAccess        		# To make ODB-commands available to the script
 
+#Print status to console during analysis
+import simpleMonitor
+simpleMonitor.printStatus(ON)
+
+
 
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
@@ -210,7 +218,8 @@ M.materials[mat1].Plastic(table=((mat1_yield, 0.0), ))
 #Hardning (random linear interpolatin)
 M.materials[mat1].plastic.setValues(table=((355.0, 
     0.0), (2000.0, 20.0)))
-
+#Damping (almost random mass proportional damping)
+M.materials[mat1].Damping(beta=0.0031)
 
 #================ Concrete ==================#
 M.Material(description=mat2_Description, name=mat2)
@@ -218,6 +227,8 @@ M.materials[mat2].Density(table=((mat2_dens, ), ))
 M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
 M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 
+#Damping (almost random mass proportional damping)
+M.materials[mat2].Damping(beta=0.0031)
 
 #================ Rebar Steel ==================#
 M.Material(description=mat3_Description, name=mat3)
@@ -229,6 +240,8 @@ M.materials[mat3].Plastic(table=((mat3_yield, 0.0), ))
 M.materials[mat3].plastic.setValues(table=((355.0, 
     0.0), (2000.0, 20.0)))
 
+#Damping (almost random mass proportional damping)
+M.materials[mat3].Damping(beta=0.0031)
 
 
 
@@ -776,7 +789,7 @@ for a in alph:
 #							APM 									 #
 #====================================================================#
 
-if apm == 1:
+if APM:
 	M.rootAssembly.regenerate()
 	# Create step for element removal
 	oldStep = stepName
@@ -803,6 +816,21 @@ if apm == 1:
 #====================================================================#
 M.rootAssembly.regenerate()
 
+def dispJob():
+	fullJobName = jobName+'.odb'
+	fls = glob.glob('*.odb')
+	for i in fls:
+		if i == fullJobName:
+			dispObj = session.openOdb(name=fullJobName)
+			session.viewports['Viewport: 1'].setValues(displayedObject=dispObj)
+			session.viewports['Viewport: 1'].odbDisplay.display.setValues(plotState=(
+				CONTOURS_ON_DEF, ))
+			session.viewports['Viewport: 1'].odbDisplay.commonOptions.setValues(
+				uniformScaleFactor=10)
+		else:
+			print 'Error opening ODB, jobName does not exist'
+	return
+	
 if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
@@ -820,6 +848,8 @@ if runJob == 1:
 	print 'Running %s...' %jobName
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 	mdb.jobs[jobName].waitForCompletion()
+	dispJob()
+
 
 
 
@@ -924,5 +954,3 @@ if multiAPM:
 
 print '###########    END OF SCRIPT    ###########'
 
-
-	
