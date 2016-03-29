@@ -12,6 +12,7 @@ runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 jobName = 'staticJob'
+snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
 
 #4x4  x10(5)
 x = 2			#Nr of columns in x direction
@@ -133,7 +134,8 @@ import odbAccess        		# To make ODB-commands available to the script
 
 #Print status to console during analysis
 import simpleMonitor
-simpleMonitor.printStatus(ON)
+if not snurre:
+	simpleMonitor.printStatus(ON)
 
 
 
@@ -772,6 +774,8 @@ for a in alph:
 M.rootAssembly.regenerate()
 
 def dispJob():
+	if snurre:
+		return
 	fullJobName = jobName+'.odb'
 	fls = glob.glob('*.odb')
 	for i in fls:
