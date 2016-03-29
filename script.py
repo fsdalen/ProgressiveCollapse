@@ -7,7 +7,7 @@ from abaqusConstants import *
 #====================================================================#
 
 
-runJob = 0		     	#If 1: run job
+runJob = 1		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 
@@ -16,9 +16,9 @@ jobName = 'staticJob'
 stepName = "staticStep"	
 
 #4x4  x10(5)
-x = 4			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 10			#nr of stories
+x = 2			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
+y = 1			#nr of stories
 
 
 #================ Step ==================#
@@ -31,20 +31,20 @@ minIncr = 1e-9
 
 #================ APM ==================#
 #Single APM
-APM = 1
+APM = 0
 column = 'COLUMN_A2-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
 
 #MultiAPM
-multiAPM = 0
-runAPMjob = 0
+multiAPM = 1
+runAPMjob = 1
 
 #Data extraction
 elsetName = None
 var = 'S'
 var_invariant = 'mises'
-limit = 85.0
+limit = 40
 
 
 
@@ -157,6 +157,8 @@ from connectorBehavior import *
 from abaqus import *			#These statements make the basic Abaqus objects accessible to the script... 
 from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
 import odbAccess        		# To make ODB-commands available to the script
+
+import odbFunc
 
 #Print status to console during analysis
 import simpleMonitor
@@ -920,7 +922,11 @@ if multiAPM:
 		setList.append(M.rootAssembly.allInstances[i].sets['set'])
 	
 	setList = tuple(setList)
-	M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
+	if setList:
+		M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
+	else:
+		print 'No instances exceed criteria'
+		
 	
 	#Remove instances
 	M.ModelChange(activeInStep=False, createStepName=stepName, 
@@ -949,7 +955,7 @@ if multiAPM:
 		print 'Running %s...' %jobName
 		mdb.jobs[jobName].submit()	#Run job
 		mdb.jobs[jobName].waitForCompletion()
-
+		dispJob()
 
 
 print '###########    END OF SCRIPT    ###########'
