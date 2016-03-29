@@ -285,7 +285,8 @@ M.parts[part1].Set(name='col-top', vertices=
 #Create set of part
 M.parts[part1].Set(edges=
     M.parts[part1].edges.findAt(((0.0, 1.0, 0.0), )), 
-    name='set')
+    name=part1)
+
 
 #================ Beam ==================#
 #Create Section and profile
@@ -318,7 +319,8 @@ M.parts[part2].assignBeamSectionOrientation(method=
 #Create set of part
 M.parts[part2].Set(edges=
     M.parts[part2].edges.findAt(((1.0, 0.0, 0.0), )), 
-    name='set')
+    name=part2)
+
 	
 #================ Slab ==================#
 #Create Section
@@ -365,8 +367,7 @@ M.parts[part3].Surface(name='Surf', side2Faces=
 #Create set of part
 M.parts[part3].Set(faces=
     M.parts[part3].faces.findAt(((1.0, 1.0, 0.0), )), 
-    name='set')
-
+    name=part3)
 
 
 
@@ -795,7 +796,6 @@ if runJob == 1:
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 	mdb.jobs[jobName].waitForCompletion()
 	dispJob()
-
 
 
 
