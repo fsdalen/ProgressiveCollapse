@@ -53,12 +53,8 @@ limit = 40
 
 #================ Materials ==================#
 # Material 1
-mat1 = "Steel"		#Material name
-mat1_Description = 'This is the description'
-mat1_dens = 8.0e-09		#Density
-mat1_E = 210000.0		#E-module
-mat1_v = 0.3			#Poisson
-mat1_yield = 355.0		#Yield stress
+matFile = 'mat_1.inp'
+mat1 = "DOMEX_S355"		#Material name
 
 # Material 2
 mat2 = "Concrete"	#Material name
@@ -169,8 +165,8 @@ simpleMonitor.printStatus(ON)
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
-
-mdb.Model(modelType=STANDARD_EXPLICIT, name=modelName) 	#Create a new model 
+mdb.ModelFromInputFile(name=modelName, 
+    inputFileName=matFile)
 M = mdb.models[modelName]								#For simplicity
 if len(mdb.models.keys()) > 0:							#Deletes all other models
 	a = mdb.models.items()
@@ -196,7 +192,8 @@ if 1:
 	#Delete old input files
 	inpt = glob.glob('*.inp')
 	for i in inpt:
-		os.remove(i)
+		if not i == matFile:
+			os.remove(i)
 	#Delete old jobs
 	jbs = mdb.jobs.keys()
 	if len(jbs)> 0:
@@ -211,17 +208,25 @@ if 1:
 #						MATERIALS 									 #
 #====================================================================#
 
-#================ Steel ==================#
-M.Material(description=mat1_Description, name=mat1)
-M.materials[mat1].Density(table=((mat1_dens, ), ))
-M.materials[mat1].Elastic(table=((mat1_E, mat1_v), ))
-M.materials[mat1].Plastic(table=((mat1_yield, 0.0), ))
 
-#Hardning (random linear interpolatin)
-M.materials[mat1].plastic.setValues(table=((355.0, 
-    0.0), (2000.0, 20.0)))
-#Damping (almost random mass proportional damping)
-M.materials[mat1].Damping(beta=0.0031)
+
+# #================ Steel ==================#
+# mat1_Description = 'This is the description'
+# mat1_dens = 8.0e-09		#Density
+# mat1_E = 210000.0		#E-module
+# mat1_v = 0.3			#Poisson
+# mat1_yield = 355.0		#Yield stress
+# 
+# M.Material(description=mat1_Description, name=mat1)
+# M.materials[mat1].Density(table=((mat1_dens, ), ))
+# M.materials[mat1].Elastic(table=((mat1_E, mat1_v), ))
+# M.materials[mat1].Plastic(table=((mat1_yield, 0.0), ))
+
+# #Hardning (random linear interpolatin)
+# M.materials[mat1].plastic.setValues(table=((355.0, 
+    # 0.0), (2000.0, 20.0)))
+# #Damping (almost random mass proportional damping)
+# M.materials[mat1].Damping(beta=0.0031)
 
 #================ Concrete ==================#
 M.Material(description=mat2_Description, name=mat2)
@@ -256,7 +261,7 @@ M.materials[mat3].Damping(beta=0.0031)
 #RHS 300x300
 M.BoxProfile(a=300.0, b=300.0, name='Profile-1', t1=10.0, uniformThickness=ON)
 M.BeamSection(consistentMassMatrix=False, integration=
-    DURING_ANALYSIS, material='Steel', name=sect1, poissonRatio=0.3, 
+    DURING_ANALYSIS, material=mat1, name=sect1, poissonRatio=0.3, 
     profile='Profile-1', temperatureVar=LINEAR)
 
 if imp >0:
@@ -311,7 +316,7 @@ M.parts[part1].Set(name='col-top', vertices=
 #Create set of part
 M.parts[part1].Set(edges=
     M.parts[part1].edges.findAt(((0.0, 1.0, 0.0), )), 
-    name='set')
+    name=part1)
 
 #================ Beam ==================#
 #Create Section and profile
@@ -320,7 +325,7 @@ M.IProfile(b1=300.0, b2=300.0, h=550.0, l=275.0, name=
     'Profile-2', t1=29.0, t2=29.0, t3=15.0)	#Now IPE profile, see ABAQUS for geometry definitions
 
 M.BeamSection(consistentMassMatrix=False, integration=
-    DURING_ANALYSIS, material='Steel', name=sect2, poissonRatio=0.3, 
+    DURING_ANALYSIS, material=mat1, name=sect2, poissonRatio=0.3, 
     profile='Profile-2', temperatureVar=LINEAR)
 
 #Create part
@@ -344,7 +349,8 @@ M.parts[part2].assignBeamSectionOrientation(method=
 #Create set of part
 M.parts[part2].Set(edges=
     M.parts[part2].edges.findAt(((1.0, 0.0, 0.0), )), 
-    name='set')
+    name=part2)
+
 	
 #================ Slab ==================#
 #Create Section
@@ -391,7 +397,7 @@ M.parts[part3].Surface(name='Surf', side2Faces=
 #Create set of part
 M.parts[part3].Set(faces=
     M.parts[part3].faces.findAt(((1.0, 1.0, 0.0), )), 
-    name='set')
+    name=part3)
 
 
 

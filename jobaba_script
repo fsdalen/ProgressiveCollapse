@@ -12,6 +12,6 @@ export WDIR=/state/partition1/$LOGNAME
 mkdir $WDIR
 export MPI_IC_ORDER="TCP"
 
-/share/apps/abaqus/Commands/abq6141 cae nogui=script 
+/share/apps/abaqus/Commands/abq1644 cae nogui=script 
 
 rm -rf $WDIR
