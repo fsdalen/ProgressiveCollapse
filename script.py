@@ -7,7 +7,7 @@ from abaqusConstants import *
 #====================================================================#
 
 
-runJob = 1		     	#If 1: run job
+runJob = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 
@@ -16,9 +16,9 @@ jobName = 'staticJob'
 stepName = "staticStep"	
 
 #4x4  x10(5)
-x = 2			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
-y = 1			#nr of stories
+x = 4			#Nr of columns in x direction
+z = 4			#Nr of columns in z direction
+y = 10			#nr of stories
 
 
 #================ Step ==================#
@@ -38,13 +38,13 @@ dynStepTime = 5.0
 
 #MultiAPM
 multiAPM = 1
-runAPMjob = 1
+runAPMjob = 0
 
 #Data extraction
 elsetName = None
-var = 'S'
-var_invariant = 'mises'
-limit = 40
+var = 'PEEQ' #'S'
+var_invariant = None #'mises'
+limit = 0.001
 
 
 
@@ -316,7 +316,7 @@ M.parts[part1].Set(name='col-top', vertices=
 #Create set of part
 M.parts[part1].Set(edges=
     M.parts[part1].edges.findAt(((0.0, 1.0, 0.0), )), 
-    name=part1)
+    name='set')
 
 #================ Beam ==================#
 #Create Section and profile
@@ -349,7 +349,7 @@ M.parts[part2].assignBeamSectionOrientation(method=
 #Create set of part
 M.parts[part2].Set(edges=
     M.parts[part2].edges.findAt(((1.0, 0.0, 0.0), )), 
-    name=part2)
+    name='set')
 
 	
 #================ Slab ==================#
@@ -397,7 +397,7 @@ M.parts[part3].Surface(name='Surf', side2Faces=
 #Create set of part
 M.parts[part3].Set(faces=
     M.parts[part3].faces.findAt(((1.0, 1.0, 0.0), )), 
-    name=part3)
+    name='set')
 
 
 
