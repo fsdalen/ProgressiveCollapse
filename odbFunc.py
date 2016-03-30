@@ -58,7 +58,6 @@ def getMaxVal(odbName,elsetName, var, stepName, var_invariant, limit):
 			odb.close()
 			exit(0)
 	#Find values over limit
-	var = 'S'
 	step = odb.steps[stepName]
 	result = []
 	for frame in step.frames:
