@@ -16,9 +16,9 @@ jobName = 'staticJob'
 stepName = "staticStep"	
 
 #4x4  x10(5)
-x = 4			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 10			#nr of stories
+x = 3			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
+y = 2			#nr of stories
 
 
 #================ Step ==================#
@@ -37,7 +37,7 @@ rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
 
 #MultiAPM
-multiAPM = 1
+multiAPM = 0
 runAPMjob = 0
 
 #Data extraction
@@ -866,9 +866,6 @@ if runJob == 1:
 #====================================================================#
 
 
-
-
-
 if multiAPM:
 	
 	#================ Preliminaries =============#
@@ -963,6 +960,45 @@ if multiAPM:
 		mdb.jobs[jobName].waitForCompletion()
 		dispJob()
 
+
+
+
+#====================================================================#
+#							POST PROCESSING							 #
+#====================================================================#
+
+print 'Post processing...'
+
+#================ Input =============#
+#Plots
+plotVonMises = 1
+plotPEEQ = 1
+defScale = 100
+printFormat = TIFF #TIFF, PS, EPS, PNG, SVG
+
+
+#================ Print plots =============#
+#Open odb and viewport with countour plot
+odb = odbFunc.open_odb(jobName)
+V=session.viewports['Viewport: 1']
+V.setValues(displayedObject=odb)
+V.odbDisplay.display.setValues(plotState=(
+    CONTOURS_ON_DEF, ))
+V.odbDisplay.commonOptions.setValues(
+			deformationScaling=UNIFORM, uniformScaleFactor=defScale)
+
+#Print plots at the last frame in each step
+for steps in odb.steps.keys():
+	V.odbDisplay.setFrame(step=steps, frame=-1)
+	if plotVonMises:
+		V.odbDisplay.setPrimaryVariable(
+			variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
+			'Mises'), )
+		session.printToFile(fileName='plot_'+steps+'VonMises', format=TIFF, canvasObjects=(V, ))
+	if plotPEEQ:
+		V.odbDisplay.setPrimaryVariable(
+			variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
+		session.printToFile(fileName='plot_'+steps+'PEEQ', format=TIFF, canvasObjects=(V, ))
 
 print '###########    END OF SCRIPT    ###########'
 
