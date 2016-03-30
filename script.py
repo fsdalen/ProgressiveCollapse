@@ -7,8 +7,8 @@ from abaqusConstants import *
 #====================================================================#
 
 
-runJob = 0		     	#If 1: run job
-saveModel = 0			#If 1: Save model
+runJob = 1		     	#If 1: run job
+saveModel = 1			#If 1: Save model
 cpus = 8				#Number of CPU's
 
 modelName = "staticMod"
@@ -16,8 +16,8 @@ jobName = 'staticJob'
 stepName = "staticStep"	
 
 #4x4  x10(5)
-x = 3			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
+x = 4			#Nr of columns in x direction
+z = 3			#Nr of columns in z direction
 y = 2			#nr of stories
 
 
@@ -31,8 +31,8 @@ minIncr = 1e-9
 
 #================ APM ==================#
 #Single APM
-APM = 0
-column = 'COLUMN_A2-1'
+APM = 1
+column = 'COLUMN_C3-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
 
@@ -104,6 +104,7 @@ z_d = beam_len		#Size of bays in z direction
 
 dep = ON		#Dependent (ON) or independent (OFF) instances
 
+
 #================ Mesh ==================#
 analysisType = STANDARD  #Could be STANDARD or EXPLICIT
 
@@ -125,6 +126,9 @@ LL_kN_m = -2.0	    #kN/m^2  2.0
 
 LL=LL_kN_m * 1.0e-3   #N/mm^2
 
+
+#================ History output ==================#
+histFreq = 5 #History output every n increment
 
 
 
@@ -537,6 +541,20 @@ elif riks:
 
 
 
+
+#====================================================================#
+#							HISTORY OUTPUT							 #
+#====================================================================#		
+
+#Delete default history output
+del M.historyOutputRequests['H-Output-1']
+
+#Create deformation history output for top of deleted Column
+M.HistoryOutputRequest(name=column+'_top'+'U', 
+    createStepName='staticStep', variables=('U1', 'U2', 'U3'), frequency=histFreq, 
+    region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, rebar=EXCLUDE)
+
+
 #====================================================================#
 #							Joints 									 #
 #====================================================================#
@@ -843,7 +861,7 @@ if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
 if APM:
-	jobName = 'APM'
+	jobName = 'APMjob'
 
 mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
     explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
@@ -963,42 +981,51 @@ if multiAPM:
 
 
 
-#====================================================================#
-#							POST PROCESSING							 #
-#====================================================================#
+		#====================================================================#
+		#							POST PROCESSING							 #
+		#====================================================================#
 
-print 'Post processing...'
+		print 'Post processing...'
 
-#================ Input =============#
-#Plots
-plotVonMises = 1
-plotPEEQ = 1
-defScale = 100
-printFormat = TIFF #TIFF, PS, EPS, PNG, SVG
+		#================ Input =============#
+		#Plots
+		plotVonMises = 1
+		plotPEEQ = 1
+		defScale = 100
+		printFormat = TIFF #TIFF, PS, EPS, PNG, SVG
 
 
-#================ Print plots =============#
-#Open odb and viewport with countour plot
-odb = odbFunc.open_odb(jobName)
-V=session.viewports['Viewport: 1']
-V.setValues(displayedObject=odb)
-V.odbDisplay.display.setValues(plotState=(
-    CONTOURS_ON_DEF, ))
-V.odbDisplay.commonOptions.setValues(
-			deformationScaling=UNIFORM, uniformScaleFactor=defScale)
 
-#Print plots at the last frame in each step
-for steps in odb.steps.keys():
-	V.odbDisplay.setFrame(step=steps, frame=-1)
-	if plotVonMises:
-		V.odbDisplay.setPrimaryVariable(
-			variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
-			'Mises'), )
-		session.printToFile(fileName='plot_'+steps+'VonMises', format=TIFF, canvasObjects=(V, ))
-	if plotPEEQ:
-		V.odbDisplay.setPrimaryVariable(
-			variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
-		session.printToFile(fileName='plot_'+steps+'PEEQ', format=TIFF, canvasObjects=(V, ))
+
+		#================ Print plots =============#
+		#Open odb and viewport with countour plot
+		odb = odbFunc.open_odb(jobName)
+		V=session.viewports['Viewport: 1']
+		V.setValues(displayedObject=odb)
+		V.odbDisplay.display.setValues(plotState=(
+			CONTOURS_ON_DEF, ))
+		V.odbDisplay.commonOptions.setValues(
+					deformationScaling=UNIFORM, uniformScaleFactor=defScale)
+
+		#Print plots at the last frame in each step
+		for steps in odb.steps.keys():
+			V.odbDisplay.setFrame(step=steps, frame=-1)
+			if plotVonMises:
+				V.odbDisplay.setPrimaryVariable(
+					variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
+					'Mises'), )
+				session.printToFile(fileName='plot_'+steps+'VonMises', format=TIFF, canvasObjects=(V, ))
+			if plotPEEQ:
+				V.odbDisplay.setPrimaryVariable(
+					variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
+				session.printToFile(fileName='plot_'+steps+'PEEQ', format=TIFF, canvasObjects=(V, ))
+
+
+		
+
+
+
+
 
 print '###########    END OF SCRIPT    ###########'
 
