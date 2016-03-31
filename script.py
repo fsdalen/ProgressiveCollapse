@@ -8,7 +8,7 @@ from abaqusConstants import *
 
 modelName = "staticMod"
 
-runJob = 0		     	#If 1: run job
+run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 jobName = 'staticJob'
@@ -800,11 +800,18 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
     numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
     '', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
-if runJob == 1:    
+
+def runJob(jobName):
 	print 'Running %s...' %jobName
-	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
-	mdb.jobs[jobName].waitForCompletion()
-	dispJob()
+	try:
+		mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
+		mdb.jobs[jobName].waitForCompletion()
+		dispJob()
+	except:
+		print mdb.jobs[jobName].status
+
+if run:    
+	runJob(jobName)
 
 
 
