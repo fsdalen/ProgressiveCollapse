@@ -7,18 +7,19 @@ from abaqusConstants import *
 #====================================================================#
 
 
-runJob = 1		     	#If 1: run job
-saveModel = 1			#If 1: Save model
+run = 1		     		#If 1: run job
+saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
+post = 1				#Run post prossesing
 
 modelName = "staticMod"
 jobName = 'staticJob'
 stepName = "staticStep"	
 
 #4x4  x10(5)
-x = 4			#Nr of columns in x direction
-z = 3			#Nr of columns in z direction
-y = 2			#nr of stories
+x = 2			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
+y = 1			#nr of stories
 
 
 #================ Step ==================#
@@ -32,7 +33,7 @@ minIncr = 1e-9
 #================ APM ==================#
 #Single APM
 APM = 1
-column = 'COLUMN_C3-1'
+column = 'COLUMN_A1-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
 
@@ -870,11 +871,14 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
     numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
     '', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
-if runJob == 1:    
+def runJob(jobName):
 	print 'Running %s...' %jobName
 	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 	mdb.jobs[jobName].waitForCompletion()
 	dispJob()
+
+if run == 1:    
+	runJob(jobName)
 
 
 
@@ -973,52 +977,49 @@ if multiAPM:
 	
 	#Run job
 	if runAPMjob:
-		print 'Running %s...' %jobName
-		mdb.jobs[jobName].submit()	#Run job
-		mdb.jobs[jobName].waitForCompletion()
-		dispJob()
+		runJob(jobName)
+
+
+
+if post:
+	#====================================================================#
+	#							POST PROCESSING							 #
+	#====================================================================#
+
+	print 'Post processing...'
+
+	#================ Input =============#
+	#Plots
+	plotVonMises = 1
+	plotPEEQ = 1
+	defScale = 100
+	printFormat = PNG #TIFF, PS, EPS, PNG, SVG
 
 
 
 
-		#====================================================================#
-		#							POST PROCESSING							 #
-		#====================================================================#
+	#================ Print plots =============#
+	#Open odb and viewport with countour plot
+	odb = odbFunc.open_odb(jobName)
+	V=session.viewports['Viewport: 1']
+	V.setValues(displayedObject=odb)
+	V.odbDisplay.display.setValues(plotState=(
+		CONTOURS_ON_DEF, ))
+	V.odbDisplay.commonOptions.setValues(
+				deformationScaling=UNIFORM, uniformScaleFactor=defScale)
 
-		print 'Post processing...'
-
-		#================ Input =============#
-		#Plots
-		plotVonMises = 1
-		plotPEEQ = 1
-		defScale = 100
-		printFormat = TIFF #TIFF, PS, EPS, PNG, SVG
-
-
-
-
-		#================ Print plots =============#
-		#Open odb and viewport with countour plot
-		odb = odbFunc.open_odb(jobName)
-		V=session.viewports['Viewport: 1']
-		V.setValues(displayedObject=odb)
-		V.odbDisplay.display.setValues(plotState=(
-			CONTOURS_ON_DEF, ))
-		V.odbDisplay.commonOptions.setValues(
-					deformationScaling=UNIFORM, uniformScaleFactor=defScale)
-
-		#Print plots at the last frame in each step
-		for steps in odb.steps.keys():
-			V.odbDisplay.setFrame(step=steps, frame=-1)
-			if plotVonMises:
-				V.odbDisplay.setPrimaryVariable(
-					variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
-					'Mises'), )
-				session.printToFile(fileName='plot_'+steps+'VonMises', format=TIFF, canvasObjects=(V, ))
-			if plotPEEQ:
-				V.odbDisplay.setPrimaryVariable(
-					variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
-				session.printToFile(fileName='plot_'+steps+'PEEQ', format=TIFF, canvasObjects=(V, ))
+	#Print plots at the last frame in each step
+	for steps in odb.steps.keys():
+		V.odbDisplay.setFrame(step=steps, frame=-1)
+		if plotVonMises:
+			V.odbDisplay.setPrimaryVariable(
+				variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
+				'Mises'), )
+			session.printToFile(fileName='plot_'+steps+'VonMises', format=TIFF, canvasObjects=(V, ))
+		if plotPEEQ:
+			V.odbDisplay.setPrimaryVariable(
+				variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
+			session.printToFile(fileName='plot_'+steps+'PEEQ', format=TIFF, canvasObjects=(V, ))
 
 
 		
