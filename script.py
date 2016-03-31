@@ -7,7 +7,8 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run = 1		     		#If 1: run job
+
+run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 post = 1				#Run post prossesing
@@ -15,6 +16,8 @@ post = 1				#Run post prossesing
 modelName = "staticMod"
 jobName = 'staticJob'
 stepName = "staticStep"	
+snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
+
 
 #4x4  x10(5)
 x = 2			#Nr of columns in x direction
@@ -167,7 +170,8 @@ import odbFunc
 
 #Print status to console during analysis
 import simpleMonitor
-simpleMonitor.printStatus(ON)
+if not snurre:
+	simpleMonitor.printStatus(ON)
 
 
 
@@ -848,6 +852,8 @@ if APM:
 M.rootAssembly.regenerate()
 
 def dispJob():
+	if snurre:
+		return
 	fullJobName = jobName+'.odb'
 	fls = glob.glob('*.odb')
 	for i in fls:
@@ -875,15 +881,18 @@ mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF,
     numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
     '', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
+
 def runJob(jobName):
 	print 'Running %s...' %jobName
-	mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
-	mdb.jobs[jobName].waitForCompletion()
-	dispJob()
+	try:
+		mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
+		mdb.jobs[jobName].waitForCompletion()
+		dispJob()
+	except:
+		print mdb.jobs[jobName].status
 
-if run == 1:    
+if run:    
 	runJob(jobName)
-
 
 
 
@@ -985,11 +994,13 @@ if multiAPM:
 
 
 
-if post:
-	#====================================================================#
-	#							POST PROCESSING							 #
-	#====================================================================#
 
+
+#====================================================================#
+#							POST PROCESSING							 #
+#====================================================================#
+
+if post:
 	print 'Post processing...'
 
 	#Open ODB
