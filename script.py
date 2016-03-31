@@ -49,9 +49,6 @@ limit = 0.001
 
 
 
-
-
-
 #================ Materials ==================#
 # Material 1
 matFile = 'mat_1.inp'
@@ -129,10 +126,17 @@ LL=LL_kN_m * 1.0e-3   #N/mm^2
 
 
 #================ History output ==================#
-histFreq = 5 #History output every n increment
+histFreq = 1 #History output every n increment
 
 
 
+#================ Input =============#
+#Plots
+plotVonMises = 1
+plotPEEQ = 1
+plotU2 = 1
+defScale = 10
+printFormat = PNG #TIFF, PS, EPS, PNG, SVG
 
 #====================================================================#
 #						PRELIMINARIES								 #
@@ -552,7 +556,7 @@ del M.historyOutputRequests['H-Output-1']
 
 #Create deformation history output for top of deleted Column
 M.HistoryOutputRequest(name=column+'_top'+'U', 
-    createStepName='staticStep', variables=('U1', 'U2', 'U3'), frequency=histFreq, 
+    createStepName='staticStep', variables=('U2',), frequency=histFreq, 
     region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, rebar=EXCLUDE)
 
 
@@ -988,19 +992,14 @@ if post:
 
 	print 'Post processing...'
 
-	#================ Input =============#
-	#Plots
-	plotVonMises = 1
-	plotPEEQ = 1
-	defScale = 100
-	printFormat = PNG #TIFF, PS, EPS, PNG, SVG
-
-
-
-
-	#================ Print plots =============#
-	#Open odb and viewport with countour plot
+	#Open ODB
 	odb = odbFunc.open_odb(jobName)
+
+	#Turn on background and compass for printing
+	session.printOptions.setValues(vpBackground=ON, compass=ON)
+	
+	#================ Print contour plots =============#
+	#Viewport with countour plot
 	V=session.viewports['Viewport: 1']
 	V.setValues(displayedObject=odb)
 	V.odbDisplay.display.setValues(plotState=(
@@ -1015,16 +1014,36 @@ if post:
 			V.odbDisplay.setPrimaryVariable(
 				variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
 				'Mises'), )
-			session.printToFile(fileName='plot_'+steps+'VonMises', format=TIFF, canvasObjects=(V, ))
+			session.printToFile(fileName='plot_cont_'+steps+'VonMises', format=printFormat, canvasObjects=(V, ))
 		if plotPEEQ:
 			V.odbDisplay.setPrimaryVariable(
 				variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
-			session.printToFile(fileName='plot_'+steps+'PEEQ', format=TIFF, canvasObjects=(V, ))
+			session.printToFile(fileName='plot_cont_'+steps+'PEEQ', format=printFormat, canvasObjects=(V, ))
+	
 
 
-		
-
-
+	#================ Print XY plot of U2 at top of removed column =============#
+	if plotU2:
+		#Get name of history output
+		hisrOtp = odb.steps[stepName].historyRegions.keys()
+		#Get node number of output node
+		nodeNr = hisrOtp[0][-1]
+		#Create XY-data from history output
+		xy_result = session.XYDataFromHistory(name='nameHere', odb=odb, 
+			outputVariableName=
+			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
+			steps=tuple(odb.steps.keys()), )
+		#Plot XY
+		c1 = session.Curve(xyData=xy_result)
+		xyp = session.XYPlot('XYPlot-3')
+		chartName = xyp.charts.keys()[0]
+		chart = xyp.charts[chartName].setValues(curvesToPlot=(c1, ), )
+		V.setValues(displayedObject=xyp)
+		#Print XY to file
+		session.printToFile(fileName='plot_XY_U2_'+column, format=printFormat, canvasObjects=(
+			session.viewports['Viewport: 1'], ))
+	
+	print '   done'
 
 
 
