@@ -8,7 +8,7 @@ from abaqusConstants import *
 
 
 
-run = 1		     	#If 1: run job
+run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 post = 0				#Run post prossesing
@@ -818,6 +818,9 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
  
 # LL
+#Create amplitude
+M.SmoothStepAmplitude(name='Smooth', timeSpan=STEP, data=(
+    (0.0, 0.0), (0.8, 1.0)))
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
@@ -827,7 +830,7 @@ for a in range(len(alph)-1):
 				distributionType=UNIFORM, field='', follower=OFF,
 				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
 				region= M.rootAssembly.instances[inst].surfaces['Surf'],
-				traction=GENERAL)
+				traction=GENERAL, amplitude='Smooth')
 
 
 
