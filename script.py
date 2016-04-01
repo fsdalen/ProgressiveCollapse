@@ -8,7 +8,7 @@ from abaqusConstants import *
 
 
 
-run = 0		     	#If 1: run job
+run = 1		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
 post = 0				#Run post prossesing
@@ -153,6 +153,7 @@ from connectorBehavior import *
 from abaqus import *			#These statements make the basic Abaqus objects accessible to the script... 
 from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
 import odbAccess        		# To make ODB-commands available to the script
+import xyPlot
 
 import odbFunc
 
@@ -542,6 +543,47 @@ M.ExplicitDynamicsStep(name=stepName,
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
+#Create history output for energies
+'''
+ALLAE
+'Artificial' strain energy associated with constraints used to remove singular modes
+(such as hourglass control) and with constraints used to make the drill rotation
+follow the in-plane rotation of the shell elements.
+
+ALLCD
+Energy dissipated by viscoelasticity.
+
+ALLIE
+Total strain energy. (ALLIE=ALLSE + ALLPD + ALLCD + ALLAE + ALLDMD+ ALLDC+ ALLFC.)
+
+ALLKE
+Kinetic energy.
+
+ALLPD
+Energy dissipated by rate-independent and rate-dependent plastic deformation.
+
+ALLSE
+Recoverable strain energy.
+
+ALLVD
+Energy dissipated by viscous effects.
+
+ALLWK
+External work.
+
+ALLDMD
+Energy dissipated by damage.
+
+ALLMW
+Work done in propelling mass added in mass scaling. (Available only for the whole model.)
+
+ETOTAL
+total energy
+'''
+M.HistoryOutputRequest(name='Energy', 
+    createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'))
+
+
 #Create deformation history output for top of deleted Column
 M.HistoryOutputRequest(name=column+'_top'+'U', 
     createStepName=stepName, variables=('U2',), frequency=histFreq, 
@@ -884,6 +926,61 @@ if run:
 #====================================================================#
 #							POST PROCESSING							 #
 #====================================================================#
+#====== post stuff =====#
+#Open ODB
+odb = odbFunc.open_odb(jobName)
+#Turn on background and compass for printing
+session.printOptions.setValues(vpBackground=ON, compass=ON)
+#Viewport with countour plot
+V=session.viewports['Viewport: 1']
+
+
+#===== Print Energy XY plots for Quasi Static Step ======#
+
+#Create plot
+xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+    outputVariableName='External work: ALLWK for Whole Model', 
+    suppressQuery=True)
+c1 = session.Curve(xyData=xy1)
+xy2 = xyPlot.XYDataFromHistory(odb=odb, 
+    outputVariableName='Internal energy: ALLIE for Whole Model', 
+    suppressQuery=True)
+c2 = session.Curve(xyData=xy2)
+xy3 = xyPlot.XYDataFromHistory(odb=odb, 
+    outputVariableName='Kinetic energy: ALLKE for Whole Model', 
+    suppressQuery=True)
+c3 = session.Curve(xyData=xy3)
+xyp = session.xyPlots['XYPlot-1']
+chartName = xyp.charts.keys()[0]
+chart = xyp.charts[chartName]
+chart.setValues(curvesToPlot=(c1, c2, c3, ), )
+V.setValues(displayedObject=xyp)
+
+#Print plot
+session.printToFile(fileName='plot_XY_Energy_'+column, format=printFormat, canvasObjects=(
+			session.viewports['Viewport: 1'], ))
+
+'''
+#Get name of history output
+		hisrOtp = odb.steps[stepName].historyRegions.keys()
+		#Get node number of output node
+		nodeNr = hisrOtp[0][-1]
+		#Create XY-data from history output
+		xy_result = session.XYDataFromHistory(name='nameHere', odb=odb, 
+			outputVariableName=
+			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
+			steps=tuple(odb.steps.keys()), )
+		#Plot XY
+		c1 = session.Curve(xyData=xy_result)
+		xyp = session.XYPlot('XYPlot-3')
+		chartName = xyp.charts.keys()[0]
+		chart = xyp.charts[chartName].setValues(curvesToPlot=(c1, ), )
+		V.setValues(displayedObject=xyp)
+		#Print XY to file
+		session.printToFile(fileName='plot_XY_U2_'+column, format=printFormat, canvasObjects=(
+			session.viewports['Viewport: 1'], ))
+'''
+
 
 if post:
 	print 'Post processing...'
