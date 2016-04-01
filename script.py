@@ -11,7 +11,7 @@ from abaqusConstants import *
 run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
-post = 1				#Run post prossesing
+post = 0				#Run post prossesing
 
 modelName = "staticMod"
 jobName = 'staticJob'
@@ -39,16 +39,6 @@ APM = 1
 column = 'COLUMN_A1-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
-
-#MultiAPM
-multiAPM = 0
-runAPMjob = 0
-
-#Data extraction
-elsetName = None
-var = 'PEEQ' #'S'
-var_invariant = None #'mises'
-limit = 0.001
 
 
 
@@ -893,105 +883,6 @@ def runJob(jobName):
 
 if run:    
 	runJob(jobName)
-
-
-
-#====================================================================#
-#							IMPLICIT APM 							 #
-#====================================================================#
-
-
-if multiAPM:
-	
-	#================ Preliminaries =============#
-	print '###########    RUNNING implicitAPM     ###########'
-	
-	#Old names
-	oldJob=jobName
-	odbName = oldJob
-	oldModel = modelName
-	oldStep = stepName
-	
-	#New names
-	jobName = 'multiApmJob'
-	modelName = 'multiApmMod'
-	
-	#Open ODB
-	odb = odbFunc.open_odb(odbName)
-	
-	#Copy new model
-	mdb.Model(name=modelName, objectToCopy=mdb.models[oldModel])	
-	M = mdb.models[modelName]
-	
-	
-	#================ Delete instances =============#
-	#Get all elements over limit as a list with [value, object]
-	print '\n' + "Getting data from ODB..."
-	elmOverLim = odbFunc.getMaxVal(odbName,elsetName, var, oldStep, var_invariant, limit)
-	print "    done"
-	instOverLim = []
-	
-	#Create list of all instance names
-	for i in range(len(elmOverLim)):
-		instOverLim.append(elmOverLim[i][1].instance.name)
-	
-	#Create list with unique names
-	inst = []
-	for i in instOverLim:
-		if i not in inst:
-			inst.append(i)
-	
-	#Remove slabs so they are not deleted
-	instFiltered=[]
-	for i in inst[:]:
-		if not i.startswith('SLAB'):
-			instFiltered.append(i)
-	
-	# Create step for element removal
-	stepName = 'elmRmvStep1'
-	M.rootAssembly.regenerate()
-	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
-		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
-		timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
-	
-	#Merge set of instances to be deleted
-	setList=[]
-	for i in instFiltered:
-		setList.append(M.rootAssembly.allInstances[i].sets['set'])
-	
-	setList = tuple(setList)
-	if setList:
-		M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
-	else:
-		print 'No instances exceed criteria'
-		
-	
-	#Remove instances
-	M.ModelChange(activeInStep=False, createStepName=stepName, 
-		includeStrain=False, name='INST_REMOVAL', region=
-		M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
-	
-	
-	#================ Create new step and job =============#
-	#Create dynamic APM step
-	oldStep = stepName
-	stepName = 'implicitStep'
-	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
-	
-	
-	#Create new job
-	mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
-		explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
-		memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
-		multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
-		numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
-		'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
-	
-	#Run job
-	if runAPMjob:
-		runJob(jobName)
-
 
 
 
