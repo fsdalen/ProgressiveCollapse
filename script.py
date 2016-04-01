@@ -26,7 +26,7 @@ y = 1			#nr of stories
 
 
 #================ Step ==================#
-staticTime = 0.1
+staticTime = 1
 nlg = OFF					# Nonlinear geometry (ON/OFF)
 
 
@@ -186,11 +186,10 @@ if 1:
 	import os
 	import glob
 	fls = glob.glob('*.odb')
-	if not multiAPM:
-		for i in fls:
-			if len(session.odbs.keys())>0:
-				session.odbs[i].close()
-			os.remove(i)
+	for i in fls:
+		if len(session.odbs.keys())>0:
+			session.odbs[i].close()
+		os.remove(i)
 	#Delete old input files
 	inpt = glob.glob('*.inp')
 	for i in inpt:
@@ -819,8 +818,8 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
  
 # LL
 #Create amplitude
-M.SmoothStepAmplitude(name='Smooth', timeSpan=STEP, data=(
-    (0.0, 0.0), (0.8, 1.0)))
+M.SmoothStepAmplitude(name='Smooth', timeSpan=TOTAL, data=(
+    (0.0, 0.0), (0.05*staticTime, 1.0)))
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
@@ -844,8 +843,6 @@ for a in alph:
 			localCsys=None, name=set, region=
 			M.rootAssembly.sets[set], u1=0.0, u2=0.0, u3=0.0
 			, ur1=0.0, ur2=0.0, ur3=0.0)
-
-
 
 
 
@@ -929,65 +926,80 @@ if run:
 #====================================================================#
 #							POST PROCESSING							 #
 #====================================================================#
-#====== post stuff =====#
-#Open ODB
-odb = odbFunc.open_odb(jobName)
-#Turn on background and compass for printing
-session.printOptions.setValues(vpBackground=ON, compass=ON)
-#Viewport with countour plot
-V=session.viewports['Viewport: 1']
-
-
-#===== Print Energy XY plots for Quasi Static Step ======#
-
-#Create plot
-xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-    outputVariableName='External work: ALLWK for Whole Model', 
-    suppressQuery=True)
-c1 = session.Curve(xyData=xy1)
-xy2 = xyPlot.XYDataFromHistory(odb=odb, 
-    outputVariableName='Internal energy: ALLIE for Whole Model', 
-    suppressQuery=True)
-c2 = session.Curve(xyData=xy2)
-xy3 = xyPlot.XYDataFromHistory(odb=odb, 
-    outputVariableName='Kinetic energy: ALLKE for Whole Model', 
-    suppressQuery=True)
-c3 = session.Curve(xyData=xy3)
-xyp = session.xyPlots['XYPlot-1']
-chartName = xyp.charts.keys()[0]
-chart = xyp.charts[chartName]
-chart.setValues(curvesToPlot=(c1, c2, c3, ), )
-V.setValues(displayedObject=xyp)
-
-#Print plot
-session.printToFile(fileName='plot_XY_Energy_'+column, format=printFormat, canvasObjects=(
-			session.viewports['Viewport: 1'], ))
-
-'''
-#Get name of history output
-		hisrOtp = odb.steps[stepName].historyRegions.keys()
-		#Get node number of output node
-		nodeNr = hisrOtp[0][-1]
-		#Create XY-data from history output
-		xy_result = session.XYDataFromHistory(name='nameHere', odb=odb, 
-			outputVariableName=
-			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
-			steps=tuple(odb.steps.keys()), )
-		#Plot XY
-		c1 = session.Curve(xyData=xy_result)
-		xyp = session.XYPlot('XYPlot-3')
-		chartName = xyp.charts.keys()[0]
-		chart = xyp.charts[chartName].setValues(curvesToPlot=(c1, ), )
-		V.setValues(displayedObject=xyp)
-		#Print XY to file
-		session.printToFile(fileName='plot_XY_U2_'+column, format=printFormat, canvasObjects=(
-			session.viewports['Viewport: 1'], ))
-'''
-
 
 if post:
 	print 'Post processing...'
+	
+	#Open ODB
+	odb = odbFunc.open_odb(jobName)
+	#Clear plots
+	for plot in session.xyPlots.keys():
+		del session.xyPlots[plot]
+	
+	#============ XY plot print function ============#
+	def XYprint(odbName, plotName,printFormat, *args):
+		V=session.viewports['Viewport: 1']
+		#Open ODB
+		odb = odbFunc.open_odb(odbName)
+		#Turn on background and compass for printing
+		session.printOptions.setValues(vpBackground=ON, compass=ON)
+		#Create plot
+		if plotName not in session.xyPlots.keys():
+			session.XYPlot(plotName)
+		#Set some variables
+		xyp = session.xyPlots[plotName]
+		chartName = xyp.charts.keys()[0]
+		chart = xyp.charts[chartName]
+		#Create plot
+		chart.setValues(curvesToPlot=args)
+		#Show plot
+		V.setValues(displayedObject=xyp)
+		#Print plot
+		session.printToFile(fileName='plot_XY_'+plotName, format=printFormat, canvasObjects=(V, ))
+		return
 
+
+	#============ Energy ============#
+	plotName = 'Energy'
+	#Create curves to plot
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='External work: ALLWK for Whole Model', 
+		suppressQuery=True)
+	c1 = session.Curve(xyData=xy1)
+	xy2 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Internal energy: ALLIE for Whole Model', 
+		suppressQuery=True)
+	c2 = session.Curve(xyData=xy2)
+	xy3 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Kinetic energy: ALLKE for Whole Model', 
+		suppressQuery=True)
+	c3 = session.Curve(xyData=xy3)
+	#Plot and Print
+	XYprint(jobName, plotName, printFormat, c1, c2, c3)
+
+
+	#============ U2 at the middle of slab ============#
+	plotName = 'U2@midSlab'
+	#Create curves to plot
+	xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=NODAL, variable=((
+		'U', NODAL, ((COMPONENT, 'U2'), )), ), nodePick=(('SLAB_A1-1', 1, (
+		'[#0 #100000 ]', )), ), )
+	curveList = session.curveSet(xyData=xyList)
+	#Plot and Print
+	XYprint(jobName, plotName, printFormat, curveList[0])
+
+
+	#============ R2 at one col-base ============#
+	plotName = 'R2@col-base'
+	#Create curves to plot
+	xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=NODAL, variable=((
+		'RF', NODAL, ((COMPONENT, 'RF2'), )), ), 
+		nodePick=(('COLUMN_B2-1', 1, ('[#1 ]', )), ), )
+	curveList = session.curveSet(xyData=xyList)
+	#Plot and Print
+	XYprint(jobName, plotName, printFormat, curveList[0])
+		
+	'''
 	#Open ODB
 	odb = odbFunc.open_odb(jobName)
 
@@ -1031,14 +1043,14 @@ if post:
 			steps=tuple(odb.steps.keys()), )
 		#Plot XY
 		c1 = session.Curve(xyData=xy_result)
-		xyp = session.XYPlot('XYPlot-3')
+		xyp = session.xyPlot['XYPlot-1']
 		chartName = xyp.charts.keys()[0]
 		chart = xyp.charts[chartName].setValues(curvesToPlot=(c1, ), )
 		V.setValues(displayedObject=xyp)
 		#Print XY to file
 		session.printToFile(fileName='plot_XY_U2_'+column, format=printFormat, canvasObjects=(
 			session.viewports['Viewport: 1'], ))
-	
+	'''
 	print '   done'
 
 
