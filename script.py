@@ -15,7 +15,7 @@ post = 0				#Run post prossesing
 
 modelName = "staticMod"
 jobName = 'staticJob'
-stepName = "staticStep"	
+stepName = "quasi-static"	
 snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
 
 
@@ -26,16 +26,14 @@ y = 1			#nr of stories
 
 
 #================ Step ==================#
-static = 1					# 1 if general, static
-riks =   0					# 1 if Riks static
+staticTime = 0.1
 nlg = OFF					# Nonlinear geometry (ON/OFF)
 
-inInc = 1e-5				# Initial increment
-minIncr = 1e-9
+
 
 #================ APM ==================#
 #Single APM
-APM = 1
+APM = 0
 column = 'COLUMN_A1-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
@@ -529,14 +527,10 @@ M.parts[part3].generateMesh()
 #							STEP 									 #
 #====================================================================#
 
-#================ Create step ==================#
+#================ Create quasi-static step ==================#
 oldStep = 'Initial'
-if static:
-	M.StaticStep(description='description', 
-		initialInc=inInc, minInc=minIncr, name=stepName, nlgeom=nlg, previous=oldStep)
-elif riks:
-	M.StaticRiksStep(description='description', initialArcInc=inInc,
-		name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0, minArcInc=minIncr)
+M.ExplicitDynamicsStep(name=stepName, 
+    previous=oldStep, timePeriod=staticTime, nlgeom=nlg)
 
 
 
@@ -550,7 +544,7 @@ del M.historyOutputRequests['H-Output-1']
 
 #Create deformation history output for top of deleted Column
 M.HistoryOutputRequest(name=column+'_top'+'U', 
-    createStepName='staticStep', variables=('U2',), frequency=histFreq, 
+    createStepName=stepName, variables=('U2',), frequency=histFreq, 
     region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, rebar=EXCLUDE)
 
 
