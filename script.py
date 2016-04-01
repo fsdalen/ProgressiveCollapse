@@ -6,28 +6,32 @@ from abaqusConstants import *
 #====================================================================#
 #====================================================================#
 
-modelName = "staticMod"
+
 
 run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
-jobName = 'staticJob'
+post = 1				#Run post prossesing
 snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
+
+modelName = "staticMod"
+jobName = 'staticJob'
+stepName = "staticStep"	
 
 #4x4  x10(5)
 x = 2			#Nr of columns in x direction
 z = 2			#Nr of columns in z direction
 y = 1			#nr of stories
 
+
 #================ Step ==================#
-stepName = "staticStep"			#Name of step
-
-
 static = 1					# 1 if static
 riks =   0					# 1 if Riks static
 nlg = OFF					# Nonlinear geometry (ON/OFF)
 inInc = 1e-5				# Initial increment
 minIncr = 1e-9
+
+
 
 
 #================ Materials ==================#
