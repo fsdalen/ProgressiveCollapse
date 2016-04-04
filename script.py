@@ -11,13 +11,12 @@ from abaqusConstants import *
 run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
-post = 0				#Run post prossesing
+post = 1				#Run post prossesing
+snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
 jobName = 'staticJob'
 stepName = "quasi-static"	
-snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
-
 
 #4x4  x10(5)
 x = 2			#Nr of columns in x direction
@@ -37,6 +36,8 @@ APM = 0
 column = 'COLUMN_A1-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
+
+
 
 
 
