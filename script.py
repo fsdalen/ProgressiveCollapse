@@ -212,7 +212,7 @@ if 1:
 
 
 
-# #================ Steel ==================#
+#================ Steel ==================#
 # mat1_Description = 'This is the description'
 # mat1_dens = 8.0e-09		#Density
 # mat1_E = 210000.0		#E-module
@@ -227,8 +227,9 @@ if 1:
 # #Hardning (random linear interpolatin)
 # M.materials[mat1].plastic.setValues(table=((355.0, 
     # 0.0), (2000.0, 20.0)))
-# #Damping (almost random mass proportional damping)
-# M.materials[mat1].Damping(beta=0.0031)
+
+#Damping (almost random mass proportional damping)
+M.materials[mat1].Damping(beta=0.0031)
 
 #================ Concrete ==================#
 M.Material(description=mat2_Description, name=mat2)
