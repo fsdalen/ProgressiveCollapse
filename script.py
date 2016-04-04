@@ -11,7 +11,7 @@ from abaqusConstants import *
 run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
-post = 1				#Run post prossesing
+post = 0				#Run post prossesing
 snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
@@ -25,7 +25,7 @@ y = 1			#nr of stories
 
 
 #================ Step ==================#
-staticTime = 1
+staticTime = 0.1
 nlg = OFF					# Nonlinear geometry (ON/OFF)
 
 
@@ -33,7 +33,8 @@ nlg = OFF					# Nonlinear geometry (ON/OFF)
 #================ APM ==================#
 #Single APM
 APM = 0
-column = 'COLUMN_A1-1'
+runAPM = 0
+column = 'COLUMN_B2-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
 
@@ -150,11 +151,11 @@ from sketch import *
 from visualization import *
 from connectorBehavior import *
 
-
 from abaqus import *			#These statements make the basic Abaqus objects accessible to the script... 
 from abaqusConstants import *	#... as well as all the Symbolic Constants defined in the Abaqus Scripting Interface.
 import odbAccess        		# To make ODB-commands available to the script
 import xyPlot
+import regionToolset
 
 import odbFunc
 
@@ -586,9 +587,9 @@ M.HistoryOutputRequest(name='Energy',
 
 
 #Create deformation history output for top of deleted Column
-M.HistoryOutputRequest(name=column+'_top'+'U', 
-    createStepName=stepName, variables=('U2',), frequency=histFreq, 
-    region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, rebar=EXCLUDE)
+# M.HistoryOutputRequest(name=column+'_top'+'U', 
+    # createStepName=stepName, variables=('U2',), frequency=histFreq, 
+    # region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, rebar=EXCLUDE)
 
 
 #====================================================================#
@@ -849,32 +850,6 @@ for a in alph:
 
 
 #====================================================================#
-#							APM 									 #
-#====================================================================#
-
-if APM:
-	M.rootAssembly.regenerate()
-	# Create step for element removal
-	oldStep = stepName
-	stepName = 'elmRemStep'
-	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
-		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
-		timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
-	rmvSet = column+'.set'
-	#Remove element(s)
-	M.ModelChange(activeInStep=False, createStepName=stepName, 
-		includeStrain=False, name='elmRemoval', region=
-		M.rootAssembly.sets[rmvSet], regionType=GEOMETRY)
-	#Create dynamic APM step
-	oldStep = stepName
-	stepName = 'apmStep'
-	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
-
-
-
-
-#====================================================================#
 #							JOB 									 #
 #====================================================================#
 M.rootAssembly.regenerate()
@@ -923,7 +898,76 @@ if run:
 	runJob(jobName)
 
 
+#====================================================================#
+#							APM 									 #
+#====================================================================#
 
+if APM:
+
+#New naming
+oldMod = 'staticMod'
+#oldMod = modelName		#Change to this when APM is done
+modelName = 'APM'
+oldStep = 'quasi-static'
+#oldStep = stepName		#Change to this when APM is done
+
+#Copy Model
+mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+M = mdb.models[modelName]
+
+#Delete col-base BC or col-col constraint
+if column[-1] == '1':
+	del M.boundaryConditions[column+'.col-base']
+else:
+	topColNr = column[-1]
+	botColNr = str(int(topColNr)-1)
+	constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
+	del M.constraints[constName]
+
+#Locate where to add force
+v1 = M.rootAssembly.instances['SLAB_A1-1'].vertices
+verts1 = v1.findAt(((8000.0, 4000.0, 8000.0), ))
+region = regionToolset.Region(vertices=verts1)
+
+#Add force
+'''
+Needs to come from somewhere.
+Needs to be all components, incl moment (now just F2)
+'''
+M.ConcentratedForce(name='colLoad', 
+	createStepName=oldStep, region=region, cf2=100000.0, 
+	amplitude='Smooth', distributionType=UNIFORM, field='', localCsys=None)
+
+#New step
+stepName='forceRmv'
+M.ExplicitDynamicsStep(name=stepName, timePeriod=rmvStepTime, previous=oldStep)
+
+#Create amplitude for force removal
+M.SmoothStepAmplitude(name='Smooth_1.0', timeSpan=TOTAL, data=(
+    (0.0, 0.0), (1.0, 1.0)))
+
+#Remove force
+M.loads['colLoad'].setValuesInStep(stepName='forceRmv', cf2=0.0,
+	amplitude='Smooth_1.0')
+
+#New step
+oldStep = stepName
+stepName='APM'
+M.ExplicitDynamicsStep(name=stepName,timePeriod=dynStepTime, previous=oldStep)
+
+M.rootAssembly.regenerate()
+
+#Create Job
+mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+	explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+	memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
+	multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
+	numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
+	'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
+
+#RunAPM
+if runAPM:    
+	runJob(jobName)
 
 #====================================================================#
 #							POST PROCESSING							 #
