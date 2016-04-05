@@ -31,14 +31,14 @@ nlg = OFF					# Nonlinear geometry (ON/OFF)
 
 
 #================ APM ==================#
-#Single APM
 APM = 0
 runAPM = 0
 column = 'COLUMN_B2-1'
 rmvStepTime = 1e-9		#Also used in MuliAPM
 dynStepTime = 5.0
 
-
+#ODB to read static forces from
+staticJob = 'staticJob.odb'
 
 
 
@@ -183,7 +183,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 #================ Close and delete old jobs and ODBs ==================#
 # This is in order to avoid corrupted files because when running in Parallels
 
-if 1:
+if 0:
 	#Close and delete odb files
 	import os
 	import glob
@@ -902,8 +902,7 @@ if run:
 #							APM 									 #
 #====================================================================#
 
-# if APM:
-
+if APM:
 	#New naming
 	oldMod = modelName
 	modelName = 'APMmod'
@@ -922,30 +921,37 @@ if run:
 		constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
 		del M.constraints[constName]
 
-	#Locate where to add force
-	# v1 = M.rootAssembly.instances['SLAB_A1-1'].vertices
-	# verts1 = v1.findAt(((8000.0, 4000.0, 8000.0), ))
-	# region = regionToolset.Region(vertices=verts1)
+	#Open odb with static analysis
+	odb = odbFunc.open_odb(statocJob)
 
-	# a = mdb.models['test'].rootAssembly
-	# region = a.instances['COLUMN_B2-1'].sets['col-top']
-	# mdb.models['test'].ConcentratedForce(name='Load-3', 
-		# createStepName='quasi-static', region=region, cf2=156.0, 
-		# distributionType=UNIFORM, field='', localCsys=None)
+	#Find correct historyOutput
+	for key in odb.steps['staticStep'].historyRegions.keys():
+		if key.find(column):
+			histName = key
 
+	#Create dictionary with forces
+	dict = {}
+	histOpt = odb.steps['staticStep'].historyRegions[histName].historyOutputs
+	variables = histOpt.keys()
+	for var in variables:
+		value = histOpt[var].data[-1][1]
+		dict[var] = value
+
+	#Where to add forces
 	region = M.rootAssembly.instances[column].sets['col-top']
 
-	#Add force
-	'''
-	Needs to come from somewhere.
-	Needs to be all components, incl moment (now just F2)
-	'''
-	force = 100000.0
-	M.ConcentratedForce(name='colLoad', 
-		createStepName=oldStep, region=region, cf2=force, 
-		amplitude='Smooth', distributionType=UNIFORM, field='', localCsys=None)
+	#Create forces
+	M.ConcentratedForce(name='Forces', 
+		createStepName=oldStep, region=region, amplitude='Smooth',
+		distributionType=UNIFORM, field='', localCsys=None,
+		cf1=dict['SF3'], cf2=-dict['SF1'], cf3=dict['SF2'])
 
-	#New step
+	#Create moments
+	M.Moment(name='Moments', createStepName=oldStep, 
+		region=region, distributionType=UNIFORM, field='', localCsys=None,
+		cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
+
+	#Create removal step
 	stepName='forceRmvStep'
 	M.ExplicitDynamicsStep(name=stepName, timePeriod=rmvStepTime, previous=oldStep)
 
@@ -953,17 +959,21 @@ if run:
 	M.TabularAmplitude(name='Amp-2', timeSpan=STEP, 
 		smooth=SOLVER_DEFAULT, data=((0.0, 1.0), (1.0, 0.0)))
 
-	#Remove force
-	M.loads['colLoad'].setValuesInStep(stepName=stepName,
+	#Remove forces
+	M.loads['Forces'].setValuesInStep(stepName=stepName,
+		amplitude='Amp-2')
+	M.loads['Moments'].setValuesInStep(stepName=stepName,
 		amplitude='Amp-2')
 
-	#New step
+	#Create APM step
 	oldStep = stepName
 	stepName='APMstep'
 	M.ExplicitDynamicsStep(name=stepName,timePeriod=dynStepTime, previous=oldStep)
 
-	#Set force = 0 in last step
-	M.loads['colLoad'].setValuesInStep(stepName=stepName, cf2=0.0,
+	#Set forces = 0 in last step
+	M.loads['Forces'].setValuesInStep(stepName=stepName, cf1=0.0, cf2=0.0, cf3=0.0,
+		amplitude=FREED)
+	M.loads['Moments'].setValuesInStep(stepName=stepName, cm1=0.0, cm2=0.0, cm3=0.0,
 		amplitude=FREED)
 
 	M.rootAssembly.regenerate()
