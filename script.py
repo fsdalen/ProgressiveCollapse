@@ -902,72 +902,86 @@ if run:
 #							APM 									 #
 #====================================================================#
 
-if APM:
+# if APM:
 
-#New naming
-oldMod = 'staticMod'
-#oldMod = modelName		#Change to this when APM is done
-modelName = 'APM'
-oldStep = 'quasi-static'
-#oldStep = stepName		#Change to this when APM is done
+	#New naming
+	oldMod = modelName
+	modelName = 'APMmod'
+	oldStep = stepName
 
-#Copy Model
-mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
-M = mdb.models[modelName]
+	#Copy Model
+	mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+	M = mdb.models[modelName]
 
-#Delete col-base BC or col-col constraint
-if column[-1] == '1':
-	del M.boundaryConditions[column+'.col-base']
-else:
-	topColNr = column[-1]
-	botColNr = str(int(topColNr)-1)
-	constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
-	del M.constraints[constName]
+	#Delete col-base BC or col-col constraint
+	if column[-1] == '1':
+		del M.boundaryConditions[column+'.col-base']
+	else:
+		topColNr = column[-1]
+		botColNr = str(int(topColNr)-1)
+		constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
+		del M.constraints[constName]
 
-#Locate where to add force
-v1 = M.rootAssembly.instances['SLAB_A1-1'].vertices
-verts1 = v1.findAt(((8000.0, 4000.0, 8000.0), ))
-region = regionToolset.Region(vertices=verts1)
+	#Locate where to add force
+	# v1 = M.rootAssembly.instances['SLAB_A1-1'].vertices
+	# verts1 = v1.findAt(((8000.0, 4000.0, 8000.0), ))
+	# region = regionToolset.Region(vertices=verts1)
 
-#Add force
-'''
-Needs to come from somewhere.
-Needs to be all components, incl moment (now just F2)
-'''
-M.ConcentratedForce(name='colLoad', 
-	createStepName=oldStep, region=region, cf2=100000.0, 
-	amplitude='Smooth', distributionType=UNIFORM, field='', localCsys=None)
+	# a = mdb.models['test'].rootAssembly
+	# region = a.instances['COLUMN_B2-1'].sets['col-top']
+	# mdb.models['test'].ConcentratedForce(name='Load-3', 
+		# createStepName='quasi-static', region=region, cf2=156.0, 
+		# distributionType=UNIFORM, field='', localCsys=None)
 
-#New step
-stepName='forceRmv'
-M.ExplicitDynamicsStep(name=stepName, timePeriod=rmvStepTime, previous=oldStep)
+	region = M.rootAssembly.instances[column].sets['col-top']
 
-#Create amplitude for force removal
-M.SmoothStepAmplitude(name='Smooth_1.0', timeSpan=TOTAL, data=(
-    (0.0, 0.0), (1.0, 1.0)))
+	#Add force
+	'''
+	Needs to come from somewhere.
+	Needs to be all components, incl moment (now just F2)
+	'''
+	force = 100000.0
+	M.ConcentratedForce(name='colLoad', 
+		createStepName=oldStep, region=region, cf2=force, 
+		amplitude='Smooth', distributionType=UNIFORM, field='', localCsys=None)
 
-#Remove force
-M.loads['colLoad'].setValuesInStep(stepName='forceRmv', cf2=0.0,
-	amplitude='Smooth_1.0')
+	#New step
+	stepName='forceRmvStep'
+	M.ExplicitDynamicsStep(name=stepName, timePeriod=rmvStepTime, previous=oldStep)
 
-#New step
-oldStep = stepName
-stepName='APM'
-M.ExplicitDynamicsStep(name=stepName,timePeriod=dynStepTime, previous=oldStep)
+	#Create amplitude for force removal
+	M.TabularAmplitude(name='Amp-2', timeSpan=STEP, 
+		smooth=SOLVER_DEFAULT, data=((0.0, 1.0), (1.0, 0.0)))
 
-M.rootAssembly.regenerate()
+	#Remove force
+	M.loads['colLoad'].setValuesInStep(stepName=stepName,
+		amplitude='Amp-2')
 
-#Create Job
-mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
-	explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
-	memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
-	multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
-	numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
-	'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
+	#New step
+	oldStep = stepName
+	stepName='APMstep'
+	M.ExplicitDynamicsStep(name=stepName,timePeriod=dynStepTime, previous=oldStep)
 
-#RunAPM
-if runAPM:    
-	runJob(jobName)
+	#Set force = 0 in last step
+	M.loads['colLoad'].setValuesInStep(stepName=stepName, cf2=0.0,
+		amplitude=FREED)
+
+	M.rootAssembly.regenerate()
+	oldJob = jobName
+	jobName = 'APMjob'
+
+	#Create Job
+	mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+		explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+		memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
+		multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
+		numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
+		'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
+
+	#RunAPM
+	if runAPM:    
+		runJob(jobName)
+
 
 #====================================================================#
 #							POST PROCESSING							 #
@@ -1024,28 +1038,28 @@ if post:
 	XYprint(jobName, plotName, printFormat, c1, c2, c3)
 
 
-	#============ U2 at the middle of slab ============#
-	plotName = 'U2@midSlab'
-	#Create curves to plot
-	xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=NODAL, variable=((
-		'U', NODAL, ((COMPONENT, 'U2'), )), ), nodePick=(('SLAB_A1-1', 1, (
-		'[#0 #100000 ]', )), ), )
-	curveList = session.curveSet(xyData=xyList)
-	#Plot and Print
-	XYprint(jobName, plotName, printFormat, curveList[0])
+	# #============ U2 at the middle of slab ============#
+	# plotName = 'U2@midSlab'
+	# #Create curves to plot
+	# xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=NODAL, variable=((
+		# 'U', NODAL, ((COMPONENT, 'U2'), )), ), nodePick=(('SLAB_A1-1', 1, (
+		# '[#0 #100000 ]', )), ), )
+	# curveList = session.curveSet(xyData=xyList)
+	# #Plot and Print
+	# XYprint(jobName, plotName, printFormat, curveList[0])
 
 
-	#============ R2 at one col-base ============#
-	plotName = 'R2@col-base'
-	#Create curves to plot
-	xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=NODAL, variable=((
-		'RF', NODAL, ((COMPONENT, 'RF2'), )), ), 
-		nodePick=(('COLUMN_B2-1', 1, ('[#1 ]', )), ), )
-	curveList = session.curveSet(xyData=xyList)
-	#Plot and Print
-	XYprint(jobName, plotName, printFormat, curveList[0])
+	# #============ R2 at one col-base ============#
+	# plotName = 'R2@col-base'
+	# #Create curves to plot
+	# xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=NODAL, variable=((
+		# 'RF', NODAL, ((COMPONENT, 'RF2'), )), ), 
+		# nodePick=(('COLUMN_B2-1', 1, ('[#1 ]', )), ), )
+	# curveList = session.curveSet(xyData=xyList)
+	# #Plot and Print
+	# XYprint(jobName, plotName, printFormat, curveList[0])
 		
-	'''
+	
 	#Open ODB
 	odb = odbFunc.open_odb(jobName)
 
@@ -1096,7 +1110,7 @@ if post:
 		#Print XY to file
 		session.printToFile(fileName='plot_XY_U2_'+column, format=printFormat, canvasObjects=(
 			session.viewports['Viewport: 1'], ))
-	'''
+	
 	print '   done'
 
 
