@@ -11,7 +11,7 @@ from abaqusConstants import *
 run = 0		     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus = 8				#Number of CPU's
-post = 1				#Run post prossesing
+post = 0				#Run post prossesing
 snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
@@ -114,8 +114,11 @@ LL=LL_kN_m * 1.0e-3   #N/mm^2
 #====================================================================#
 #						PRELIMINARIES								 #
 #====================================================================#
-print '\n'*4
+print '\n'*6
 print '###########    NEW SCRIPT    ###########'
+
+from datetime import datetime
+print str(datetime.now())[:19]
 
 from part import *
 from material import *
@@ -146,10 +149,16 @@ if not snurre:
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
-mdb.ModelFromInputFile(name=modelName, 
-    inputFileName=matFile)
-M = mdb.models[modelName]								#For simplicity
-if len(mdb.models.keys()) > 0:							#Deletes all other models
+#Import model from mat input file
+print '\n'*2
+mdb.ModelFromInputFile(name=modelName, inputFileName=matFile)
+print '\n'*2
+
+		
+M = mdb.models[modelName]
+
+#Deletes all other models
+if len(mdb.models.keys()) > 0:							
 	a = mdb.models.items()
 	for i in range(len(a)):
 		b = a[i]
@@ -157,6 +166,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 			del mdb.models[b[0]]
 
 
+			
 #================ Close and delete old jobs and ODBs ==================#
 # This is in order to avoid corrupted files because when running in Parallels
 
