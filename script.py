@@ -7,12 +7,11 @@ from abaqusConstants import *
 #====================================================================#
 
 
-
-run = 0		     	#If 1: run job
-saveModel = 0			#If 1: Save model
+run = 1		     	#If 1: run job
+saveModel = 1			#If 1: Save model
 cpus = 8				#Number of CPU's
-post = 0				#Run post prossesing
-snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
+post = 1				#Run post prossesing
+snurre = 1				#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
 jobName = 'staticJob'
@@ -24,22 +23,22 @@ z = 2			#Nr of columns in z direction
 y = 1			#nr of stories
 
 
-#================ Step ==================#
-staticTime = 0.1
+#================ Static Step ==================#
+static = 1
+riks =   0					# 1 if Riks static
 nlg = OFF					# Nonlinear geometry (ON/OFF)
 
-
+inInc = 1e-5				# Initial increment
+minIncr = 1e-9
 
 #================ APM ==================#
-APM = 0
-runAPM = 0
-column = 'COLUMN_B2-1'
-rmvStepTime = 1e-9		#Also used in MuliAPM
-dynStepTime = 5.0
+APM = 1
+runAPM = 01
+column = 'COLUMN_B2-1'		#Column to be removed
 
-#ODB to read static forces from
-staticJob = 'staticJob.odb'
-
+staticTime = 1.0
+rmvStepTime = 1e-9
+dynStepTime = 2
 
 
 #================ Materials ==================#
@@ -530,17 +529,20 @@ M.parts[part3].generateMesh()
 #							STEP 									 #
 #====================================================================#
 
-#================ Create quasi-static step ==================#
+#================ Create step ==================#
 oldStep = 'Initial'
-M.ExplicitDynamicsStep(name=stepName, 
-    previous=oldStep, timePeriod=staticTime, nlgeom=nlg)
-
-
+if static:
+	M.StaticStep(description='description', 
+		initialInc=inInc, minInc=minIncr, name=stepName, nlgeom=nlg, previous=oldStep)
+elif riks:
+	M.StaticRiksStep(description='description', initialArcInc=inInc,
+		name=stepName, nlgeom=nlg, previous=oldStep, maxLPF=1.0, minArcInc=minIncr)
 
 
 #====================================================================#
 #							HISTORY OUTPUT							 #
 #====================================================================#		
+M.rootAssembly.regenerate()
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
@@ -884,9 +886,6 @@ def dispJob():
 if saveModel == 1:
 	mdb.saveAs(pathName = modelName + '.cae')
 
-if APM:
-	jobName = 'APMjob'
-
 mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
     explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
     memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
@@ -916,11 +915,25 @@ if APM:
 	#New naming
 	oldMod = modelName
 	modelName = 'APMmod'
+	
 	oldStep = stepName
+	oldMdbStep = stepName
+	stepName = 'quasi-staticStep'
+	
+	oldJob = jobName
+	jobName = 'APMjob'
 
 	#Copy Model
 	mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
 	M = mdb.models[modelName]
+	
+	#Delete old static-step
+	del M.steps[oldStep]
+	oldStep = 'Initial'
+	
+	#Create quasi-static step
+	M.ExplicitDynamicsStep(name=stepName, 
+		previous=oldStep, timePeriod=staticTime, nlgeom=ON)
 
 	#Delete col-base BC or col-col constraint
 	if column[-1] == '1':
@@ -932,16 +945,16 @@ if APM:
 		del M.constraints[constName]
 
 	#Open odb with static analysis
-	odb = odbFunc.open_odb(statocJob)
+	odb = odbFunc.open_odb(oldJob)
 
 	#Find correct historyOutput
-	for key in odb.steps['staticStep'].historyRegions.keys():
+	for key in odb.steps[oldMdbStep].historyRegions.keys():
 		if key.find(column):
 			histName = key
 
 	#Create dictionary with forces
 	dict = {}
-	histOpt = odb.steps['staticStep'].historyRegions[histName].historyOutputs
+	histOpt = odb.steps[oldMdbStep].historyRegions[histName].historyOutputs
 	variables = histOpt.keys()
 	for var in variables:
 		value = histOpt[var].data[-1][1]
@@ -952,16 +965,17 @@ if APM:
 
 	#Create forces
 	M.ConcentratedForce(name='Forces', 
-		createStepName=oldStep, region=region, amplitude='Smooth',
+		createStepName=stepName, region=region, amplitude='Smooth',
 		distributionType=UNIFORM, field='', localCsys=None,
 		cf1=dict['SF3'], cf2=-dict['SF1'], cf3=dict['SF2'])
 
 	#Create moments
-	M.Moment(name='Moments', createStepName=oldStep, 
+	M.Moment(name='Moments', createStepName=stepName, 
 		region=region, distributionType=UNIFORM, field='', localCsys=None,
 		cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
 
 	#Create removal step
+	oldStep = stepName
 	stepName='forceRmvStep'
 	M.ExplicitDynamicsStep(name=stepName, timePeriod=rmvStepTime, previous=oldStep)
 
@@ -977,7 +991,7 @@ if APM:
 
 	#Create APM step
 	oldStep = stepName
-	stepName='APMstep'
+	stepName='dynamicStep'
 	M.ExplicitDynamicsStep(name=stepName,timePeriod=dynStepTime, previous=oldStep)
 
 	#Set forces = 0 in last step
@@ -987,8 +1001,6 @@ if APM:
 		amplitude=FREED)
 
 	M.rootAssembly.regenerate()
-	oldJob = jobName
-	jobName = 'APMjob'
 
 	#Create Job
 	mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
