@@ -586,7 +586,17 @@ M.HistoryOutputRequest(name='Energy',
     createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'))
 
 
-#Create deformation history output for top of deleted Column
+#Section forces and moments op top element in column to be deleted
+elmNr = M.rootAssembly.instances[column].elements[-1].label
+elm = M.rootAssembly.instances[column].elements[elmNr-1:elmNr]
+M.rootAssembly.Set(elements=elm, name='topColElm')
+
+M.HistoryOutputRequest(name='SectionForces', 
+    createStepName=stepName, variables=('SF1', 'SF2', 'SF3', 'SM1', 'SM2', 
+    'SM3'), region=M.rootAssembly.sets['topColElm'], sectionPoints=DEFAULT, rebar=EXCLUDE)
+
+
+# #Create deformation history output for top of deleted Column
 # M.HistoryOutputRequest(name=column+'_top'+'U', 
     # createStepName=stepName, variables=('U2',), frequency=histFreq, 
     # region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, rebar=EXCLUDE)
