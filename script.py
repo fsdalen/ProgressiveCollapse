@@ -32,6 +32,7 @@ inInc = 1e-5				# Initial increment
 minIncr = 1e-9
 histIntervals = 10 			#History output evenly spaced over n increments
 
+
 #================ APM ==================#
 APM = 0
 runAPM = 0
@@ -47,14 +48,11 @@ histIntervalsAPM = 100 			#History output evenly spaced over n increments
 #Plots
 plotVonMises = 1
 plotPEEQ = 1
-plotU2 = 1
 U2rmvCol = 1
 
 #Other
-defScale = 100
+defScale = 10
 printFormat = PNG #TIFF, PS, EPS, PNG, SVG
-
-
 
 #================ Materials ==================#
 # Material 1
@@ -136,8 +134,11 @@ LL=LL_kN_m * 1.0e-3   #N/mm^2
 #====================================================================#
 #						PRELIMINARIES								 #
 #====================================================================#
-print '\n'*4
+print '\n'*6
 print '###########    NEW SCRIPT    ###########'
+
+from datetime import datetime
+print str(datetime.now())[:19]
 
 from part import *
 from material import *
@@ -171,10 +172,16 @@ if not snurre:
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
-mdb.ModelFromInputFile(name=modelName, 
-    inputFileName=matFile)
-M = mdb.models[modelName]								#For simplicity
-if len(mdb.models.keys()) > 0:							#Deletes all other models
+#Import model from mat input file
+print '\n'*2
+mdb.ModelFromInputFile(name=modelName, inputFileName=matFile)
+print '\n'*2
+
+		
+M = mdb.models[modelName]
+
+#Deletes all other models
+if len(mdb.models.keys()) > 0:							
 	a = mdb.models.items()
 	for i in range(len(a)):
 		b = a[i]
@@ -182,6 +189,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 			del mdb.models[b[0]]
 
 
+			
 #================ Close and delete old jobs and ODBs ==================#
 # This is in order to avoid corrupted files because when running in Parallels
 
@@ -551,6 +559,7 @@ def createHistoryOptput(histIntervals):
 	#Delete default history output
 	del M.historyOutputRequests['H-Output-1']
 
+
 	#Section forces and moments op top element in column to be deleted
 	elmNr = M.rootAssembly.instances[column].elements[-1].label
 	elm = M.rootAssembly.instances[column].elements[elmNr-1:elmNr]
@@ -560,6 +569,7 @@ def createHistoryOptput(histIntervals):
 		createStepName=stepName, variables=('SF1', 'SF2', 'SF3', 'SM1', 'SM2', 
 		'SM3'), region=M.rootAssembly.sets['topColElm'], sectionPoints=DEFAULT, rebar=EXCLUDE, 
 		numIntervals=histIntervals)
+
 
 	#Create deformation history output for top of deleted Column
 	if U2rmvCol:
@@ -611,6 +621,7 @@ def createHistoryOptput(histIntervals):
 	return
 		
 createHistoryOptput(histIntervals)
+
 
 #====================================================================#
 #							Joints 									 #
