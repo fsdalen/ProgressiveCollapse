@@ -26,10 +26,10 @@ y = 1			#nr of stories
 #================ Static Step ==================#
 static = 1
 riks =   0					# 1 if Riks static
-nlg = OFF					# Nonlinear geometry (ON/OFF)
+nlg = ON					# Nonlinear geometry (ON/OFF)
 
-inInc = 1e-5				# Initial increment
-minIncr = 1e-9
+inInc = 0.1				# Initial increment
+minIncr = 1e-12
 histIntervals = 10 			#History output evenly spaced over n increments
 
 
@@ -125,7 +125,8 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 
 
 #================ Loads ==================#
-LL_kN_m = -2.0	    #kN/m^2  2.0
+LL_kN_m = -2.0	    #kN/m^2 (-2.0)
+
 
 LL=LL_kN_m * 1.0e-3   #N/mm^2
 
@@ -166,7 +167,6 @@ import odbFunc
 import simpleMonitor
 if not snurre:
 	simpleMonitor.printStatus(ON)
-
 
 
 #This makes mouse clicks into physical coordinates
@@ -373,7 +373,7 @@ M.HomogeneousShellSection(idealization=NO_IDEALIZATION,
     poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
     thickness=deck_t, thicknessField='', thicknessModulus=None, thicknessType=
     UNIFORM, useDensity=OFF)
-	
+
 #Add rebars to section
 M.sections[sect3].RebarLayers(layerTable=(
     LayerProperties(barArea=rebarArea, orientationAngle=0.0, barSpacing=rebarSpacing, 
@@ -534,7 +534,16 @@ M.parts[part3].setElementType(elemTypes=(ElemType(
 M.parts[part3].generateMesh()
 
 
+def elmCounter():
+	nrElm = 0
+	for inst in M.rootAssembly.instances.values():
+		n = len(inst.elements)
+		nrElm = nrElm + n
+	return nrElm
 
+M.rootAssembly.regenerate()
+nrElm = elmCounter()
+print "Total nr of elements: %s" %nrElm
 
 #====================================================================#
 #							STEP 									 #
@@ -722,6 +731,7 @@ for a in range(len(alph)):
 				
 
 #================ Slabs to beams =============#
+#Uses tie and not MPC
 
 #Create beam surfaces in x (alpha) direction
 for a in range(len(alph)-1):
