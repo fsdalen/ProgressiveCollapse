@@ -7,16 +7,16 @@ from abaqusConstants import *
 #====================================================================#
 
 
-
-run = 0		     	#If 1: run job
+run = 		0	     	#If 1: run job
 saveModel = 0			#If 1: Save model
-cpus = 8				#Number of CPU's
-post = 1				#Run post prossesing
+cpus = 		8			#Number of CPU's
+post = 		0			#Run post prossesing
+snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
+
 
 modelName = "staticMod"
 jobName = 'staticJob'
 stepName = "staticStep"	
-snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
 
 
 #4x4  x10(5)
@@ -26,12 +26,14 @@ y = 1			#nr of stories
 
 
 #================ Step ==================#
-static = 1					# 1 if general, static
+static = 1					# 1 if static
 riks =   0					# 1 if Riks static
-nlg = OFF					# Nonlinear geometry (ON/OFF)
+nlg = ON					# Nonlinear geometry (ON/OFF)
 
-inInc = 1e-5				# Initial increment
-minIncr = 1e-9
+inInc = 0.1				# Initial increment
+minIncr = 1e-12
+histIntervals = 10 			#History output evenly spaced over n increments
+
 
 #================ APM ==================#
 #Single APM
@@ -50,6 +52,16 @@ var = 'PEEQ' #'S'
 var_invariant = None #'mises'
 limit = 0.001
 
+
+#================ Post =============#
+#Plots
+plotVonMises = 1
+plotPEEQ = 1
+U2rmvCol = 1
+
+#Other
+defScale = 10
+printFormat = PNG #TIFF, PS, EPS, PNG, SVG
 
 
 #================ Materials ==================#
@@ -123,7 +135,7 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 
 
 #================ Loads ==================#
-LL_kN_m = -2.0	    #kN/m^2  2.0
+LL_kN_m = -2.0	    #kN/m^2 (-2.0)
 
 LL=LL_kN_m * 1.0e-3   #N/mm^2
 
@@ -144,8 +156,11 @@ printFormat = PNG #TIFF, PS, EPS, PNG, SVG
 #====================================================================#
 #						PRELIMINARIES								 #
 #====================================================================#
-print '\n'*4
+print '\n'*6
 print '###########    NEW SCRIPT    ###########'
+
+from datetime import datetime
+print str(datetime.now())[:19]
 
 from part import *
 from material import *
@@ -174,14 +189,19 @@ if not snurre:
 	simpleMonitor.printStatus(ON)
 
 
-
 #This makes mouse clicks into physical coordinates
 session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
 
-mdb.ModelFromInputFile(name=modelName, 
-    inputFileName=matFile)
-M = mdb.models[modelName]								#For simplicity
-if len(mdb.models.keys()) > 0:							#Deletes all other models
+#Import model from mat input file
+print '\n'*2
+mdb.ModelFromInputFile(name=modelName, inputFileName=matFile)
+print '\n'*2
+
+		
+M = mdb.models[modelName]
+
+#Deletes all other models
+if len(mdb.models.keys()) > 0:							
 	a = mdb.models.items()
 	for i in range(len(a)):
 		b = a[i]
@@ -189,6 +209,7 @@ if len(mdb.models.keys()) > 0:							#Deletes all other models
 			del mdb.models[b[0]]
 
 
+			
 #================ Close and delete old jobs and ODBs ==================#
 # This is in order to avoid corrupted files because when running in Parallels
 
@@ -223,7 +244,7 @@ if 1:
 
 
 
-# #================ Steel ==================#
+#================ Steel ==================#
 # mat1_Description = 'This is the description'
 # mat1_dens = 8.0e-09		#Density
 # mat1_E = 210000.0		#E-module
@@ -238,8 +259,9 @@ if 1:
 # #Hardning (random linear interpolatin)
 # M.materials[mat1].plastic.setValues(table=((355.0, 
     # 0.0), (2000.0, 20.0)))
-# #Damping (almost random mass proportional damping)
-# M.materials[mat1].Damping(beta=0.0031)
+
+#Damping (almost random mass proportional damping)
+M.materials[mat1].Damping(beta=0.0031)
 
 #================ Concrete ==================#
 M.Material(description=mat2_Description, name=mat2)
@@ -372,7 +394,7 @@ M.HomogeneousShellSection(idealization=NO_IDEALIZATION,
     poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
     thickness=deck_t, thicknessField='', thicknessModulus=None, thicknessType=
     UNIFORM, useDensity=OFF)
-	
+
 #Add rebars to section
 M.sections[sect3].RebarLayers(layerTable=(
     LayerProperties(barArea=rebarArea, orientationAngle=0.0, barSpacing=rebarSpacing, 
@@ -533,7 +555,16 @@ M.parts[part3].setElementType(elemTypes=(ElemType(
 M.parts[part3].generateMesh()
 
 
+def elmCounter():
+	nrElm = 0
+	for inst in M.rootAssembly.instances.values():
+		n = len(inst.elements)
+		nrElm = nrElm + n
+	return nrElm
 
+M.rootAssembly.regenerate()
+nrElm = elmCounter()
+print "Total nr of elements: %s" %nrElm
 
 #====================================================================#
 #							STEP 									 #
@@ -551,19 +582,67 @@ elif riks:
 
 
 
+
 #====================================================================#
 #							HISTORY OUTPUT							 #
 #====================================================================#		
+def createHistoryOptput(histIntervals):
+	M.rootAssembly.regenerate()
 
-#Delete default history output
-del M.historyOutputRequests['H-Output-1']
+	#Delete default history output
+	del M.historyOutputRequests['H-Output-1']
 
-#Create deformation history output for top of deleted Column
-M.HistoryOutputRequest(name=column+'_top'+'U', 
-    createStepName='staticStep', variables=('U2',), frequency=histFreq, 
-    region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, rebar=EXCLUDE)
+	#Create deformation history output for top of deleted Column
+	if U2rmvCol:
+		M.HistoryOutputRequest(name=column+'_top'+'U', 
+			createStepName=stepName, variables=('U2',), 
+			region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, 
+			rebar=EXCLUDE, numIntervals=histIntervals)
 
+	#Create history output for energies
+	M.HistoryOutputRequest(name='Energy', 
+		createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'), 
+		numIntervals=histIntervals)
+	'''
+	ALLAE
+	'Artificial' strain energy associated with constraints used to remove singular modes
+	(such as hourglass control) and with constraints used to make the drill rotation
+	follow the in-plane rotation of the shell elements.
 
+	ALLCD
+	Energy dissipated by viscoelasticity.
+
+	ALLIE
+	Total strain energy. (ALLIE=ALLSE + ALLPD + ALLCD + ALLAE + ALLDMD+ ALLDC+ ALLFC.)
+
+	ALLKE
+	Kinetic energy.
+
+	ALLPD
+	Energy dissipated by rate-independent and rate-dependent plastic deformation.
+
+	ALLSE
+	Recoverable strain energy.
+
+	ALLVD
+	Energy dissipated by viscous effects.
+
+	ALLWK
+	External work.
+
+	ALLDMD
+	Energy dissipated by damage.
+
+	ALLMW
+	Work done in propelling mass added in mass scaling. (Available only for the whole model.)
+
+	ETOTAL
+	total energy
+	'''
+	return
+		
+createHistoryOptput(histIntervals)
+		
 #====================================================================#
 #							Joints 									 #
 #====================================================================#
@@ -663,6 +742,7 @@ for a in range(len(alph)):
 				
 
 #================ Slabs to beams =============#
+#Uses tie and not MPC
 
 #Create beam surfaces in x (alpha) direction
 for a in range(len(alph)-1):
@@ -895,6 +975,106 @@ if run:
 	runJob(jobName)
 
 
+#====================================================================#
+#							POST PROCESSING							 #
+#====================================================================#
+
+#============ XY plot print function ============#
+def XYprint(odbName, plotName,printFormat, *args):
+	V=session.viewports['Viewport: 1']
+	#Open ODB
+	odb = odbFunc.open_odb(odbName)
+	#Turn on background and compass for printing
+	session.printOptions.setValues(vpBackground=ON, compass=ON)
+	#Create plot
+	if plotName not in session.xyPlots.keys():
+		session.XYPlot(plotName)
+	#Set some variables
+	xyp = session.xyPlots[plotName]
+	chartName = xyp.charts.keys()[0]
+	chart = xyp.charts[chartName]
+	#Create plot
+	chart.setValues(curvesToPlot=args)
+	#Show plot
+	V.setValues(displayedObject=xyp)
+	#Print plot
+	session.printToFile(fileName='plot_XY_'+plotName, format=printFormat, canvasObjects=(V, ))
+	return
+
+
+
+if post:
+	print 'Post processing...'
+	
+	#Open ODB
+	odb = odbFunc.open_odb(jobName)
+	#Clear plots
+	for plot in session.xyPlots.keys():
+		del session.xyPlots[plot]
+		
+	
+	#================ Contour plots =============#
+	#Viewport with countour plot
+	V=session.viewports['Viewport: 1']
+	V.setValues(displayedObject=odb)
+	V.odbDisplay.display.setValues(plotState=(
+		CONTOURS_ON_DEF, ))
+	V.odbDisplay.commonOptions.setValues(
+				deformationScaling=UNIFORM, uniformScaleFactor=defScale)
+
+	#Print plots at the last frame in each step
+	for steps in odb.steps.keys():
+		V.odbDisplay.setFrame(step=steps, frame=-1)
+		if plotVonMises:
+			V.odbDisplay.setPrimaryVariable(
+				variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
+				'Mises'), )
+			session.printToFile(fileName='plot_cont_'+steps+'VonMises', format=printFormat, canvasObjects=(V, ))
+		if plotPEEQ:
+			V.odbDisplay.setPrimaryVariable(
+				variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
+			session.printToFile(fileName='plot_cont_'+steps+'PEEQ', format=printFormat, canvasObjects=(V, ))
+	
+	
+	#============ XY Energy ============#
+	plotName = 'Energy'
+	#Create curves to plot
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='External work: ALLWK for Whole Model', 
+		suppressQuery=True)
+	c1 = session.Curve(xyData=xy1)
+	xy2 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Internal energy: ALLIE for Whole Model', 
+		suppressQuery=True)
+	c2 = session.Curve(xyData=xy2)
+	xy3 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Kinetic energy: ALLKE for Whole Model', 
+		suppressQuery=True)
+	c3 = session.Curve(xyData=xy3)
+	#Plot and Print
+	XYprint(jobName, plotName, printFormat, c1, c2, c3)
+	
+	
+	#================ Print XY plot of U2 at top of removed column =============#
+	if U2rmvCol:
+		plotName = 'U2rmvCol'
+		#Find correct historyOutput
+		for key in odb.steps[stepName].historyRegions.keys():
+			if key.find('Node '+column) > -1:
+				histName = key
+		histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
+		#Get node number
+		nodeNr = histName[-1]
+		#Create XY-curve
+		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+			outputVariableName=
+			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
+			suppressQuery=True)
+		c1 = session.Curve(xyData=xy1)
+		#Plot and Print
+		XYprint(jobName, plotName, printFormat, c1)
+	
+	print '   done'
 
 #====================================================================#
 #							IMPLICIT APM 							 #
