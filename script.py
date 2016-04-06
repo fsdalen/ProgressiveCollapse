@@ -8,11 +8,11 @@ from abaqusConstants import *
 
 
 
-run = 0		     	#If 1: run job
+run = 		1	     	#If 1: run job
 saveModel = 0			#If 1: Save model
-cpus = 8				#Number of CPU's
-post = 0				#Run post prossesing
-snurre = 0				#1 if running on snurre (removes extra commands like display ODB)
+cpus = 		1			#Number of CPU's
+post = 		1			#Run post prossesing
+snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
 jobName = 'staticJob'
@@ -28,11 +28,20 @@ y = 1			#nr of stories
 static = 1					# 1 if static
 riks =   0					# 1 if Riks static
 nlg = OFF					# Nonlinear geometry (ON/OFF)
+
 inInc = 1e-5				# Initial increment
 minIncr = 1e-9
+histIntervals = 10 			#History output evenly spaced over n increments
 
+#================ Post =============#
+#Plots
+plotVonMises = 1
+plotPEEQ = 1
+U2rmvCol = 0
 
-
+#Other
+defScale = 10
+printFormat = PNG #TIFF, PS, EPS, PNG, SVG
 
 #================ Materials ==================#
 # Material 1
@@ -528,6 +537,66 @@ elif riks:
 
 
 #====================================================================#
+#							HISTORY OUTPUT							 #
+#====================================================================#		
+def createHistoryOptput(histIntervals):
+	M.rootAssembly.regenerate()
+
+	#Delete default history output
+	del M.historyOutputRequests['H-Output-1']
+
+	#Create deformation history output for top of deleted Column
+	if U2rmvCol:
+		M.HistoryOutputRequest(name=column+'_top'+'U', 
+			createStepName=stepName, variables=('U2',), 
+			region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, 
+			rebar=EXCLUDE, numIntervals=histIntervals)
+
+	#Create history output for energies
+	M.HistoryOutputRequest(name='Energy', 
+		createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'), 
+		numIntervals=histIntervals)
+	'''
+	ALLAE
+	'Artificial' strain energy associated with constraints used to remove singular modes
+	(such as hourglass control) and with constraints used to make the drill rotation
+	follow the in-plane rotation of the shell elements.
+
+	ALLCD
+	Energy dissipated by viscoelasticity.
+
+	ALLIE
+	Total strain energy. (ALLIE=ALLSE + ALLPD + ALLCD + ALLAE + ALLDMD+ ALLDC+ ALLFC.)
+
+	ALLKE
+	Kinetic energy.
+
+	ALLPD
+	Energy dissipated by rate-independent and rate-dependent plastic deformation.
+
+	ALLSE
+	Recoverable strain energy.
+
+	ALLVD
+	Energy dissipated by viscous effects.
+
+	ALLWK
+	External work.
+
+	ALLDMD
+	Energy dissipated by damage.
+
+	ALLMW
+	Work done in propelling mass added in mass scaling. (Available only for the whole model.)
+
+	ETOTAL
+	total energy
+	'''
+	return
+		
+createHistoryOptput(histIntervals)
+		
+#====================================================================#
 #							Joints 									 #
 #====================================================================#
 print 'Adding constraints...'
@@ -829,6 +898,106 @@ if run:
 	runJob(jobName)
 
 
+#====================================================================#
+#							POST PROCESSING							 #
+#====================================================================#
+
+#============ XY plot print function ============#
+def XYprint(odbName, plotName,printFormat, *args):
+	V=session.viewports['Viewport: 1']
+	#Open ODB
+	odb = odbFunc.open_odb(odbName)
+	#Turn on background and compass for printing
+	session.printOptions.setValues(vpBackground=ON, compass=ON)
+	#Create plot
+	if plotName not in session.xyPlots.keys():
+		session.XYPlot(plotName)
+	#Set some variables
+	xyp = session.xyPlots[plotName]
+	chartName = xyp.charts.keys()[0]
+	chart = xyp.charts[chartName]
+	#Create plot
+	chart.setValues(curvesToPlot=args)
+	#Show plot
+	V.setValues(displayedObject=xyp)
+	#Print plot
+	session.printToFile(fileName='plot_XY_'+plotName, format=printFormat, canvasObjects=(V, ))
+	return
+
+
+
+if post:
+	print 'Post processing...'
+	
+	#Open ODB
+	odb = odbFunc.open_odb(jobName)
+	#Clear plots
+	for plot in session.xyPlots.keys():
+		del session.xyPlots[plot]
+		
+	
+	#================ Contour plots =============#
+	#Viewport with countour plot
+	V=session.viewports['Viewport: 1']
+	V.setValues(displayedObject=odb)
+	V.odbDisplay.display.setValues(plotState=(
+		CONTOURS_ON_DEF, ))
+	V.odbDisplay.commonOptions.setValues(
+				deformationScaling=UNIFORM, uniformScaleFactor=defScale)
+
+	#Print plots at the last frame in each step
+	for steps in odb.steps.keys():
+		V.odbDisplay.setFrame(step=steps, frame=-1)
+		if plotVonMises:
+			V.odbDisplay.setPrimaryVariable(
+				variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
+				'Mises'), )
+			session.printToFile(fileName='plot_cont_'+steps+'VonMises', format=printFormat, canvasObjects=(V, ))
+		if plotPEEQ:
+			V.odbDisplay.setPrimaryVariable(
+				variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
+			session.printToFile(fileName='plot_cont_'+steps+'PEEQ', format=printFormat, canvasObjects=(V, ))
+	
+	
+	#============ XY Energy ============#
+	plotName = 'Energy'
+	#Create curves to plot
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='External work: ALLWK for Whole Model', 
+		suppressQuery=True)
+	c1 = session.Curve(xyData=xy1)
+	xy2 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Internal energy: ALLIE for Whole Model', 
+		suppressQuery=True)
+	c2 = session.Curve(xyData=xy2)
+	xy3 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Kinetic energy: ALLKE for Whole Model', 
+		suppressQuery=True)
+	c3 = session.Curve(xyData=xy3)
+	#Plot and Print
+	XYprint(jobName, plotName, printFormat, c1, c2, c3)
+	
+	
+	#================ Print XY plot of U2 at top of removed column =============#
+	if U2rmvCol:
+		plotName = 'U2rmvCol'
+		#Find correct historyOutput
+		for key in odb.steps[stepName].historyRegions.keys():
+			if key.find('Node '+column) > -1:
+				histName = key
+		histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
+		#Get node number
+		nodeNr = histName[-1]
+		#Create XY-curve
+		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+			outputVariableName=
+			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
+			suppressQuery=True)
+		c1 = session.Curve(xyData=xy1)
+		#Plot and Print
+		XYprint(jobName, plotName, printFormat, c1)
+	
+	print '   done'
 
 
 
