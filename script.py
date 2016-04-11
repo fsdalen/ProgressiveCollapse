@@ -964,6 +964,22 @@ if APM:
 	M.ExplicitDynamicsStep(name=stepName, 
 		previous=oldStep, timePeriod=staticTime, nlgeom=ON)
 	
+	#Create smooth step for forces
+	M.SmoothStepAmplitude(name='Smooth_APM', timeSpan=TOTAL, data=(
+    (0.0, 0.0), (0.5, 1.0)))
+	
+	#Add LL again (gets deleted with static step)
+	for a in range(len(alph)-1):
+		for n in range(len(numb)-1):
+			for e in range(len(etg)):
+				inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
+				M.SurfaceTraction(createStepName=stepName, 
+					directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+					distributionType=UNIFORM, field='', follower=OFF,
+					localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+					region= M.rootAssembly.instances[inst].surfaces['Surf'],
+					traction=GENERAL, amplitude='Smooth_APM')
+
 	#Readd history output
 	createHistoryOptput(histIntervalsAPM)
 	
@@ -997,13 +1013,14 @@ if APM:
 
 	#Create forces
 	M.ConcentratedForce(name='Forces', 
-		createStepName=stepName, region=region, amplitude='Smooth',
+		createStepName=stepName, region=region, amplitude='Smooth_APM',
 		distributionType=UNIFORM, field='', localCsys=None,
 		cf1=dict['SF3'], cf2=-dict['SF1'], cf3=dict['SF2'])
 
 	#Create moments
 	M.Moment(name='Moments', createStepName=stepName, 
 		region=region, distributionType=UNIFORM, field='', localCsys=None,
+		amplitude='Smooth_APM', 
 		cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
 
 	#Create removal step
@@ -1012,14 +1029,14 @@ if APM:
 	M.ExplicitDynamicsStep(name=stepName, timePeriod=rmvStepTime, previous=oldStep)
 
 	#Create amplitude for force removal
-	M.TabularAmplitude(name='Amp-2', timeSpan=STEP, 
+	M.TabularAmplitude(name='lin-dec', timeSpan=STEP, 
 		smooth=SOLVER_DEFAULT, data=((0.0, 1.0), (1.0, 0.0)))
 
 	#Remove forces
 	M.loads['Forces'].setValuesInStep(stepName=stepName,
-		amplitude='Amp-2')
+		amplitude='lin-dec')
 	M.loads['Moments'].setValuesInStep(stepName=stepName,
-		amplitude='Amp-2')
+		amplitude='lin-dec')
 
 	#Create APM step
 	oldStep = stepName
