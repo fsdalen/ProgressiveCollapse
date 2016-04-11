@@ -240,7 +240,7 @@ if 0:
     # 0.0), (2000.0, 20.0)))
 
 #Damping (almost random mass proportional damping)
-M.materials[mat1].Damping(beta=0.0031)
+#M.materials[mat1].Damping(beta=0.0031)
 
 #================ Concrete ==================#
 M.Material(description=mat2_Description, name=mat2)
@@ -249,7 +249,7 @@ M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
 M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 
 #Damping (almost random mass proportional damping)
-M.materials[mat2].Damping(beta=0.0031)
+#M.materials[mat2].Damping(beta=0.0031)
 
 #================ Rebar Steel ==================#
 M.Material(description=mat3_Description, name=mat3)
@@ -262,7 +262,7 @@ M.materials[mat3].plastic.setValues(table=((355.0,
     0.0), (2000.0, 20.0)))
 
 #Damping (almost random mass proportional damping)
-M.materials[mat3].Damping(beta=0.0031)
+#M.materials[mat3].Damping(beta=0.0031)
 
 
 
