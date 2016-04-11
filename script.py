@@ -861,9 +861,6 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
  
 # LL
-#Create amplitude
-M.SmoothStepAmplitude(name='Smooth', timeSpan=TOTAL, data=(
-    (0.0, 0.0), (0.05*staticTime, 1.0)))
 for a in range(len(alph)-1):
 	for n in range(len(numb)-1):
 		for e in range(len(etg)):
@@ -873,7 +870,7 @@ for a in range(len(alph)-1):
 				distributionType=UNIFORM, field='', follower=OFF,
 				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
 				region= M.rootAssembly.instances[inst].surfaces['Surf'],
-				traction=GENERAL, amplitude='Smooth')
+				traction=GENERAL)
 
 
 
