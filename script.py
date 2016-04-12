@@ -7,7 +7,7 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run =       0	     	#If 1: run job
+run =       1	     	#If 1: run job
 saveModel = 0			#If 1: Save model
 cpus =   	8			#Number of CPU's
 post =   	0			#Run post prossesing
@@ -34,13 +34,13 @@ histIntervals = 10 			#History output evenly spaced over n increments
 
 
 #================ APM ==================#
-APM = 0
-runAPM = 0
+APM = 1
+runAPM = 1
 column = 'COLUMN_B2-1'		#Column to be removed
 
-staticTime = 0.01
+staticTime = 1
 rmvStepTime = 1e-9
-dynStepTime = 0.01
+dynStepTime = 1
 
 histIntervalsAPM = 100 			#History output evenly spaced over n increments
 
@@ -1102,7 +1102,15 @@ if post:
 	for plot in session.xyPlots.keys():
 		del session.xyPlots[plot]
 		
+	#Print CPU time to file
+	with open(jobName+'.sta') as f:
+		lines = f.readlines()
 	
+	cpuTime = lines[-7][32:40]
+	cpuTimeFormated = cpuTime.replace(':','_')
+	with open(jobName+'_cpuTime_'+cpuTimeFormated, 'w'):
+		None
+
 	#================ Contour plots =============#
 	#Viewport with countour plot
 	V=session.viewports['Viewport: 1']
