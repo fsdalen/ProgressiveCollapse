@@ -7,11 +7,11 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run =       0	     	#If 1: run job
+run =       1	     	#If 1: run job
 saveModel = 0			#If 1: Save model
-cpus =   	1			#Number of CPU's
+cpus =   	8			#Number of CPU's
 post =   	0			#Run post prossesing
-snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
+snurre = 	1			#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "qsMod"
 jobName = 'qsJob'
@@ -27,7 +27,7 @@ y = 1			#nr of stories
 nlg = ON					# Nonlinear geometry (ON/OFF)
 
 
-histIntervals = 10 			#History output evenly spaced over n increments
+histIntervals = 200 			#History output evenly spaced over n increments
 
 
 #================ APM ==================#
@@ -1194,7 +1194,7 @@ def paraFunc():
 	XYprint(jobName, plotName, printFormat, c1)
 	with open(modelName+'.sta') as f:
 		lines = f.readlines()
-		cpuTime = lines[-7][21:30]
+		cpuTime = lines[-7][32:40]
 	with open(modelName+'_cpuTime_'+cpuTime, 'w'):
 		None
 	return
