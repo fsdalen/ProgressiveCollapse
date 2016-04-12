@@ -965,6 +965,10 @@ if APM:
 	M.SmoothStepAmplitude(name='Smooth_APM', timeSpan=TOTAL, data=(
     (0.0, 0.0), (0.5, 1.0)))
 	
+	#Add Gravity again (gets deleted with static step)
+	M.Gravity(comp2=-9800.0, createStepName=stepName, 
+	    distributionType=UNIFORM, field='', name='Gravity')
+
 	#Add LL again (gets deleted with static step)
 	for a in range(len(alph)-1):
 		for n in range(len(numb)-1):
@@ -977,7 +981,7 @@ if APM:
 					region= M.rootAssembly.instances[inst].surfaces['Surf'],
 					traction=GENERAL, amplitude='Smooth_APM')
 
-	#Readd history output
+	#Re-add history output
 	createHistoryOptput(histIntervalsAPM)
 	
 	#Delete col-base BC or col-col constraint
@@ -1105,7 +1109,7 @@ if post:
 	#Print CPU time to file
 	with open(jobName+'.sta') as f:
 		lines = f.readlines()
-	
+
 	cpuTime = lines[-7][32:40]
 	cpuTimeFormated = cpuTime.replace(':','_')
 	with open(jobName+'_cpuTime_'+cpuTimeFormated, 'w'):
