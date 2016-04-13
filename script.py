@@ -10,7 +10,7 @@ from abaqusConstants import *
 
 run = 		0	     	#If 1: run job
 saveModel = 0			#If 1: Save model
-cpus = 		8			#Number of CPU's
+cpus = 		1			#Number of CPU's
 post = 		0			#Run post prossesing
 snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
@@ -54,7 +54,7 @@ mat2_Description = 'This is the description'
 mat2_dens = 2.5e-09		#Density
 mat2_E = 35000.0		#E-module
 mat2_v = 0.3			#Poisson
-mat2_yield = 355.0			#Yield stress
+mat2_yield = 30.0			#Yield stress
 
 # Material 3
 mat3 = "Rebar Steel"		#Material name
