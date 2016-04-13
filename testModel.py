@@ -7,19 +7,22 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run       =      0	     	#If 1: run job
+run       =     0	     	#If 1: run job
 saveModel =     0			#If 1: Save model
 cpus      =   	1			#Number of CPU's
-post      =   	0			#Run post prossesing
+post      =   	1			#Run post prossesing
 snurre    = 	0			#1 if running on snurre (removes extra commands like display ODB)
+blast     =     0
 
 modelName = "testMod"
 jobName   = 'damageJob'
 stepName  = "damageStep"	
 
-stepTime = 3.0
-load     = 1.0e7
-seed1    = 800.0
+stepTime = 2.0
+load     = 5.0e6
+seed1    = 400.0
+
+printFormat = PNG
 
 #====================================================================#
 #====================================================================#
@@ -50,6 +53,9 @@ import odbAccess        		# To make ODB-commands available to the script
 import xyPlot
 import regionToolset
 
+import odbFunc
+
+
 #Print status to console during analysis
 #import simpleMonitor
 #if not snurre:
@@ -71,12 +77,13 @@ print '\n'*2
 
 		
 M = mdb.models[modelName]
+a = M.rootAssembly
 
 #Deletes all other models
 if len(mdb.models.keys()) > 0:							
-	a = mdb.models.items()
-	for i in range(len(a)):
-		b = a[i]
+	items = mdb.models.items()
+	for i in range(len(items)):
+		b = items[i]
 		if b[0] != modelName:
 			del mdb.models[b[0]]
 
@@ -124,7 +131,22 @@ M.parts[part1].Set(name='col-base', vertices=
 M.parts[part1].Set(name='col-top', vertices=
     M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
 
+#Partition
+p = M.parts['COLUMN']
+e = p.edges
+pickedRegions = e.findAt(((0.0, 1000.0, 0.0), ))
+p.deleteMesh(regions=pickedRegions)
+p = M.parts['COLUMN']
+e, v, d = p.edges, p.vertices, p.datums
+p.PartitionEdgeByPoint(edge=e.findAt(coordinates=(0.0, 1000.0, 0.0)), 
+    point=p.InterestingPoint(edge=e.findAt(coordinates=(0.0, 1000.0, 0.0)), 
+    rule=MIDDLE))
 
+#Create set at middle
+p = M.parts['COLUMN']
+v = p.vertices
+verts = v.findAt(((0.0, 2000.0, 0.0), ))
+p.Set(vertices=verts, name='col-mid')
 
 #================ Mesh ==================#
 analysisType = STANDARD  #Could be STANDARD or EXPLICIT
@@ -147,12 +169,13 @@ M.rootAssembly.Instance(name='COLUMN-1', part=M.parts['COLUMN'], dependent=ON)
 
 
 #================ Step ==================#
+oldStep = 'Initial'
 #Static step
-#M.StaticStep(name='Step-1', previous='Initial', 
+#M.StaticStep(name=stepName, previous=oldStep, 
 #    initialInc=0.1)
 
 #Explicit Step
-M.ExplicitDynamicsStep(name='Step-1', previous='Initial', 
+M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
     timePeriod=stepTime)
 
 #================ BC ==================#
@@ -161,13 +184,48 @@ M.DisplacementBC(name='BC-1', createStepName='Initial',
     region=region, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
     amplitude=UNSET, distributionType=UNIFORM, fieldName='', localCsys=None)
 
+region = M.rootAssembly.instances['COLUMN-1'].sets['col-top']
+M.DisplacementBC(name='BC-2', createStepName='Initial', 
+    region=region, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
+    amplitude=UNSET, distributionType=UNIFORM, fieldName='', localCsys=None)
+
 
 #================ Load ==================#
-region = M.rootAssembly.instances['COLUMN-1'].sets['col-top']
-M.ConcentratedForce(name='Load-1', createStepName='Step-1', 
-    region=region, cf2=load, distributionType=UNIFORM, field='', 
-    localCsys=None)
+M.SmoothStepAmplitude(name='Smooth', timeSpan=STEP, data=((
+    0.0, 0.0), (1.0, 1.0)))
+
+e1 = a.instances['COLUMN-1'].edges
+edges1 = e1.findAt(((0.0, 1000.0, 0.0), ))
+region = a.Set(edges=edges1, name='Set-1')
+M.LineLoad(name='Load-2', createStepName=stepName, 
+    region=region, comp1=5000.0, amplitude='Smooth')
+
+# region = M.rootAssembly.instances['COLUMN-1'].sets['col-top']
+# M.ConcentratedForce(name='Load-1', createStepName=stepName, 
+#     region=region, cf2=load, distributionType=UNIFORM, field='', 
+#     localCsys=None, amplitude='Smooth')
                     
+
+#Field output
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
+
+#History output
+
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-base']
+M.HistoryOutputRequest(name='load-base', 
+    createStepName='damageStep', variables=('RF1', ), region=regionDef, 
+    sectionPoints=DEFAULT, rebar=EXCLUDE)
+
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-top']
+M.HistoryOutputRequest(name='load-top', 
+    createStepName='damageStep', variables=('RF1', ), region=regionDef, 
+    sectionPoints=DEFAULT, rebar=EXCLUDE)
+
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-mid']
+M.HistoryOutputRequest(name='displacement', 
+    createStepName='damageStep', variables=('U1', ), region=regionDef, 
+    sectionPoints=DEFAULT, rebar=EXCLUDE)
 
 
 #====================================================================#
@@ -213,49 +271,107 @@ def runJob(jobName):
 if run:    
     runJob(jobName)
 
+if post:
+def XYprint(odbName, plotName,printFormat, *args):
+    V=session.viewports['Viewport: 1']
+    #Open ODB
+    odb = odbFunc.open_odb(odbName)
+    #Turn on background and compass for printing
+    session.printOptions.setValues(vpBackground=ON, compass=ON)
+    #Create plot
+    if plotName not in session.xyPlots.keys():
+        session.XYPlot(plotName)
+    #Set some variables
+    xyp = session.xyPlots[plotName]
+    chartName = xyp.charts.keys()[0]
+    chart = xyp.charts[chartName]
+    #Create plot
+    chart.setValues(curvesToPlot=args)
+    #Show plot
+    V.setValues(displayedObject=xyp)
+    #Print plot
+    session.printToFile(fileName='plot_XY_'+plotName, format=printFormat, canvasObjects=(V, ))
+    return
+
+
+#Plot force-displacement
+odb = session.odbs[jobName+'.odb']
+rf1 = session.XYDataFromHistory(name='XYData-1', odb=odb, 
+    outputVariableName='Reaction force: RF1 at Node 1 in NSET COL-BASE', )
+# rf1 = session.XYDataFromHistory(name='XYData-2', odb=odb, 
+#     outputVariableName='Reaction force: RF1 at Node 1 in NSET COL-BASE', )
+rf2 = session.XYDataFromHistory(name='XYData-2', odb=odb, 
+    outputVariableName='Reaction force: RF1 at Node 3 in NSET COL-TOP', )
+# rf2 = session.XYDataFromHistory(name='XYData-3', odb=odb, 
+#     outputVariableName='Reaction force: RF1 at Node 11 in NSET COL-TOP', )
+u = session.XYDataFromHistory(name='XYData-3', odb=odb, 
+    outputVariableName='Spatial displacement: U1 at Node 2 in NSET COL-MID', )
+xy = combine(u, -(rf1+rf2))
+c1 = session.Curve(xyData=xy)
+plotName = 'force-displacement'
+XYprint(jobName, plotName, printFormat, c1)
+
+
+
 #====================================================================#
 #====================================================================#
 #                        Incident wave                               #
 #====================================================================#
 #====================================================================#
 
-if 0:
-    fluidDensity = 1.225e-12    #1.225 kg/m^3
+if blast:
+    a = M.rootAssembly
+
+    airDensity = 1.225e-12    #1.225 kg/m^3
     soundSpeed =340.29e3    # 340.29 m/s
-
-    #Create interaction property
-    M.IncidentWaveProperty(name='Blast', 
-        definition=SPHERICAL, fluidDensity=fluidDensity, soundSpeed=soundSpeed)
-
-    #Source Point
-    M.rootAssembly.ReferencePoint(point=(-1000.0, 2000.0, 0.0))
-
-    #Reference Point
-    M.rootAssembly.ReferencePoint(point=(-500.0, 2000.0, 0.0))
 
 
     #Pressure amplitude
     M.TabularAmplitude(name='Blast', timeSpan=STEP, 
-        smooth=SOLVER_DEFAULT, data=((0.0, 0.0), (0.01, 1000.0), (0.1, 0.0)))
+        smooth=SOLVER_DEFAULT, data=((0.0, 0.0), (0.1, 1.0), (1, 0.0)))
 
-    a = mdb.models['testMod'].rootAssembly
-    r1 = M.rootAssembly.referencePoints
-    refPoints1=(r1[4], )
-    region1=a.Set(referencePoints=refPoints1, name='m_Set-1')
-    a = mdb.models['testMod'].rootAssembly
-    r1 = a.referencePoints
-    refPoints1=(r1[5], )
-    region2=a.Set(referencePoints=refPoints1, name='Set-1')
-    a = mdb.models['testMod'].rootAssembly
-    c1 = a.instances['COLUMN-1'].edges
-    circumEdges1 = c1.findAt(((0.0, 1000.0, 0.0), ))
-    region3=a.Surface(circumEdges=circumEdges1, name='s_Surf-1')
-    mdb.models['testMod'].IncidentWave(name='Int-1', createStepName='Step-1', 
-        sourcePoint=region1, standoffPoint=region2, surface=region3, 
+    #Source Point
+    feature = a.ReferencePoint(point=(-1000.0, 2000.0, 0.0))
+    ID = feature.id
+    sourceRP = a.referencePoints[ID]
+    a.Set(name='Source', referencePoints=(sourceRP,))
+
+    #Standoff Point
+    feature = a.ReferencePoint(point=(-500.0, 2000.0, 0.0))
+    ID = feature.id
+    standoffRP = a.referencePoints[ID]
+    a.Set(name='Standoff', referencePoints=(standoffRP,))
+
+    #Create surfaces to apply loads to
+    circumEdges1 = a.instances['COLUMN-1'].edges.findAt(((0.0, 1000.0, 0.0), ))
+    region3=a.Surface(circumEdges=circumEdges1, name='Column_surf')
+
+    #Create interaction property
+    M.IncidentWaveProperty(name='Blast', 
+        definition=SPHERICAL, fluidDensity=airDensity, soundSpeed=soundSpeed)
+
+    #Create incident Wave Interaction
+    M.IncidentWave(name='Blast', createStepName=stepName, 
+        sourcePoint=a.sets['Source'], standoffPoint=a.sets['Standoff'],
+        surface=a.surfaces['Column_surf'],
         definition=PRESSURE, interactionProperty='Blast', 
-        referenceMagnitude=1000.0, amplitude='Amp-1', imaginaryAmplitude='')
+        referenceMagnitude=1.0, amplitude='Blast')
 
+    #Fluid inertia of section
+    M.sections['HUP'].setValues(useFluidInertia=ON, fluidMassDensity=airDensity, crossSectionRadius=300.0, 
+        lateralMassCoef=1.15)   #latteralMassCoef is for rectangle from wikipedia
 
+    #Set model wave formulation (does not matter when fluid is not modeled)
+    M.setValues(waveFormulation=TOTAL)
+
+    #New step
+    freeTime = 2.0
+    oldStep = stepName
+    stepName = 'freeStep'
+    M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+    timePeriod=freeTime)
+
+    # runJob(jobName)
 
     #  Blast history
     #  
