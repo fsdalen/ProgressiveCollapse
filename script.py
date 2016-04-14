@@ -8,21 +8,21 @@ from abaqusConstants import *
 
 
 run = 		1	     	#If 1: run job
-saveModel = 0			#If 1: Save model
-cpus = 		4			#Number of CPU's
+saveModel = 1			#If 1: Save model
+cpus = 		8			#Number of CPU's
 post = 		1			#Run post prossesing
-snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
+snurre = 	1			#1 if running on snurre (removes extra commands like display ODB)
 
 
-modelName = "staticMod"
-jobName = 'staticJob'
+modelName = "APMMod"
+jobName = 'APMJob'
 stepName = "staticStep"	
 
 
 #4x4  x10(5)
-x = 3			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
-y = 3			#nr of stories
+x = 4			#Nr of columns in x direction
+z = 4			#Nr of columns in z direction
+y = 5			#nr of stories
 
 
 #================ Step ==================#
@@ -32,30 +32,30 @@ nlg = ON					# Nonlinear geometry (ON/OFF)
 
 inInc = 0.1				# Initial increment
 minIncr = 1e-12
-histIntervals = 10 			#History output evenly spaced over n increments
+histIntervals = 100 			#History output evenly spaced over n increments
 
 
 #================ APM ==================#
 #Single APM
-APM = 0
-column = 'COLUMN_C2-1'
-rmvStepTime = 1e-3		#Also used in MuliAPM
-dynStepTime = 3.0
+APM = 1
+column = 'COLUMN_D4-1'
+rmvStepTime = 1e-3		#Also used in MuliAPM (Fu uses 20e-3)
+dynStepTime = 5.0
 
 #MultiAPM
 multiAPM = 1	#Job(s) are also run with this command
 
 #Data extraction
 elsetName = None
-var = 'S' # 'PEEQ'
-var_invariant = 'mises' #None
-limit = 65.0	#Correct limit for PEEQ = 0.1733
+var = 'PEEQ' #'S'
+var_invariant = None #'mises'
+limit = 0.1733	#Correct limit for PEEQ = 0.1733
 
 
 #================ Post =============#
 #Plots
 plotVonMises = 1
-plotPEEQ = 0
+plotPEEQ = 1
 U2rmvCol = 1
 
 #Other
@@ -137,10 +137,6 @@ element3 = S4R #S4R or S8R for linear or quadratic (S8R is not available for Exp
 LL_kN_m = -2.0	    #kN/m^2 (-2.0)
 
 LL=LL_kN_m * 1.0e-3   #N/mm^2
-
-
-#================ History output ==================#
-histFreq = 1 #History output every n increment
 
 
 
@@ -239,7 +235,13 @@ if 1:
 			del mdb.jobs[i]
 	print 'Old jobs and ODBs have been closed.'
 
-
+if saveModel == 1:
+	if multiAPM:
+		caeName = 'multiAPM'
+	elif APM:
+		caeName = 'APM'
+	else:
+		caeName = 'Static'
 
 
 #====================================================================#
@@ -644,6 +646,7 @@ def createHistoryOptput(histIntervals):
 	total energy
 	'''
 	return
+
 		
 createHistoryOptput(histIntervals)
 		
@@ -956,15 +959,7 @@ def dispJob():
 	return
 	
 if saveModel == 1:
-	if multiAPM:
-		caeName = 'multiAPM'
-		mdb.saveAs(pathName = caeName+'.cae')
-	elif APM:
-		caeName = 'APM'
-		mdb.saveAs(pathName = caeName+'.cae')
-	else:
-		caeName = 'Static'
-		mdb.saveAs(pathName = caeName+'.cae')
+	mdb.saveAs(pathName = caeName+'.cae')
 
 if APM:
 	jobName = 'APMjob'
@@ -989,6 +984,10 @@ def runJob(jobName):
 if run:    
 	runJob(jobName)
 
+with open('CPUtime.txt','a') as f:
+	f.write('Static done at: ')
+	f.write(str(datetime.now())[:19])
+	f.write('\n')
 
 #====================================================================#
 #							POST PROCESSING							 #
@@ -1115,7 +1114,7 @@ if multiAPM:
 	while len(elmOverLim) > 0:
 		count = count + 1
 		#New names
-		modelName = 'multiApm_'+str(count)
+		modelName = 'multiAPM_'+str(count)
 		jobName = modelName
 
 		#Copy new model
