@@ -964,12 +964,12 @@ if APM:
 		previous=oldStep, timePeriod=staticTime, nlgeom=ON)
 	
 	#Create smooth step for forces
-	M.SmoothStepAmplitude(name='Smooth_APM', timeSpan=TOTAL, data=(
-    (0.0, 0.0), (0.5, 1.0)))
+	M.SmoothStepAmplitude(name='Smooth_APM', timeSpan=STEP, data=(
+    (0.0, 0.0), (0.9*staticTime, 1.0)))
 	
 	#Add Gravity again (gets deleted with static step)
 	M.Gravity(comp2=-9800.0, createStepName=stepName, 
-	    distributionType=UNIFORM, field='', name='Gravity')
+	    distributionType=UNIFORM, field='', name='Gravity', amplitude='Smooth_APM')
 
 	#Add LL again (gets deleted with static step)
 	for a in range(len(alph)-1):
