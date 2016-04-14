@@ -7,9 +7,9 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run =       1	     	#If 1: run job
+run =       0	     	#If 1: run job
 saveModel = 0			#If 1: Save model
-cpus =   	8			#Number of CPU's
+cpus =   	1			#Number of CPU's
 post =   	0			#Run post prossesing
 snurre = 	1			#1 if running on snurre (removes extra commands like display ODB)
 
@@ -35,7 +35,7 @@ APM = 0
 runAPM = 0
 column = 'COLUMN_B2-1'		#Column to be removed
 
-staticTime = 2
+staticTime = 3
 
 
 histIntervalsAPM = 100 			#History output evenly spaced over n increments
@@ -236,7 +236,7 @@ if 0:
     # 0.0), (2000.0, 20.0)))
 
 #Damping (almost random mass proportional damping)
-#M.materials[mat1].Damping(beta=0.0031)
+M.materials[mat1].Damping(alpha=0.05)
 
 #================ Concrete ==================#
 M.Material(description=mat2_Description, name=mat2)
@@ -245,7 +245,7 @@ M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
 M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 
 #Damping (almost random mass proportional damping)
-#M.materials[mat2].Damping(beta=0.0031)
+M.materials[mat2].Damping(alpha=0.05)
 
 #================ Rebar Steel ==================#
 M.Material(description=mat3_Description, name=mat3)
@@ -258,7 +258,7 @@ M.materials[mat3].plastic.setValues(table=((355.0,
     0.0), (2000.0, 20.0)))
 
 #Damping (almost random mass proportional damping)
-#M.materials[mat3].Damping(beta=0.0031)
+M.materials[mat3].Damping(alpha=0.05)
 
 
 
@@ -858,25 +858,25 @@ print '    done'
 
 #================ Loads ==================#
 
-# Gravity
-M.Gravity(comp2=-9800.0, createStepName=stepName, 
-    distributionType=UNIFORM, field='', name='Gravity')
+# # Gravity
+# M.Gravity(comp2=-9800.0, createStepName=stepName, 
+#     distributionType=UNIFORM, field='', name='Gravity')
 
  
-# LL
-#Create amplitude
-M.SmoothStepAmplitude(name='Smooth', timeSpan=TOTAL, data=(
-    (0.0, 0.0), (0.05*staticTime, 1.0)))
-for a in range(len(alph)-1):
-	for n in range(len(numb)-1):
-		for e in range(len(etg)):
-			inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
-			M.SurfaceTraction(createStepName=stepName, 
-				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
-				distributionType=UNIFORM, field='', follower=OFF,
-				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
-				region= M.rootAssembly.instances[inst].surfaces['Surf'],
-				traction=GENERAL, amplitude='Smooth')
+# # LL
+# #Create amplitude
+# M.SmoothStepAmplitude(name='Smooth', timeSpan=TOTAL, data=(
+#     (0.0, 0.0), (0.2*staticTime, 1.0)))
+# for a in range(len(alph)-1):
+# 	for n in range(len(numb)-1):
+# 		for e in range(len(etg)):
+# 			inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
+# 			M.SurfaceTraction(createStepName=stepName, 
+# 				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+# 				distributionType=UNIFORM, field='', follower=OFF,
+# 				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+# 				region= M.rootAssembly.instances[inst].surfaces['Surf'],
+# 				traction=GENERAL, amplitude='Smooth')
 
 
 
@@ -1167,7 +1167,7 @@ print 'Starting Parameter Study'
 #================== Zero damping ==================#
 #New naming
 oldMod = modelName
-modelName = 'Zero'
+modelName = 'basic'
 jobName = modelName
 
 #Copy Model
@@ -1182,6 +1182,7 @@ def paraFunc():
 		multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
 		numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
 		'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
+	mdb.saveAs(pathName = modelName + '.cae')
 	#Run Job
 	runJob(jobName)
 	#Open ODB
@@ -1192,49 +1193,82 @@ def paraFunc():
 	    outputVariableName='Spatial displacement: U2 PI: SLAB_A1-1 Node 66 in NSET CENTERSLAB',)
 	c1 = session.Curve(xyData=xy1)
 	XYprint(jobName, plotName, printFormat, c1)
-	with open(modelName+'.sta') as f:
-		lines = f.readlines()
-		cpuTime = lines[-7][32:40]
-	with open(modelName+'_cpuTime_'+cpuTime, 'w'):
-		None
+	# with open(modelName+'.sta') as f:
+	# 	lines = f.readlines()
+	# 	cpuTime = lines[-7][32:40]
+	# with open(modelName+'_cpuTime_'+cpuTime, 'w'):
+	# 	None
 	return
 
-paraFunc()
+#paraFunc()
 
+# ================== Smooth damping ==================#
 
-#================== Alpha damping ==================#
-[1e-4, 1e-3, 3e-3, 6e-3, 1e-2]
-for damp in [0.0001, 0.001, 0.003, 0.005, 0.01]:
+for amp in [0.1, 0.2, 0.5, 0.8, 0.9]:
 	#New naming
-	modelName = 'alpha_'+'%.0e' %damp
+	modelName = 'smooth'+'%.0e' %amp
 	jobName = modelName
+
 
 	#Copy Model
 	mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
-
-	#Change damping of steel
 	M = mdb.models[modelName]
-	M.materials[mat1].Damping(alpha=damp)
 
+	#Create amplitude
+	M.SmoothStepAmplitude(name='Smooth', timeSpan=STEP, data=(
+	    (0.0, 0.0), (amp*staticTime, 1.0)))
+
+	# Gravity
+	M.Gravity(comp2=-9800.0, createStepName=stepName, 
+	    distributionType=UNIFORM, field='', name='Gravity', amplitude='Smooth')
+	 
+	# LL
+	for a in range(len(alph)-1):
+		for n in range(len(numb)-1):
+			for e in range(len(etg)):
+				inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
+				M.SurfaceTraction(createStepName=stepName, 
+					directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+					distributionType=UNIFORM, field='', follower=OFF,
+					localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+					region= M.rootAssembly.instances[inst].surfaces['Surf'],
+					traction=GENERAL,amplitude='Smooth', resultant =ON) 
 	paraFunc()
 
-#================== Beta damping ==================#
-for damp in [0.0001, 0.001, 0.003, 0.005, 0.01]:
-	#New naming
-	modelName = 'beta'+'%.0e' %damp
-	jobName = modelName
 
-	#Copy Model
-	mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+# #================== Alpha damping ==================#
+# [1e-4, 1e-3, 3e-3, 6e-3, 1e-2]
+# for damp in [0.0001, 0.001, 0.003, 0.005, 0.01]:
+# 	#New naming
+# 	modelName = 'alpha_'+'%.0e' %damp
+# 	jobName = modelName
 
-	#Change damping of steel
-	M = mdb.models[modelName]
-	M.materials[mat1].Damping(beta=damp)
+# 	#Copy Model
+# 	mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
 
-	paraFunc()
+# 	#Change damping of steel
+# 	M = mdb.models[modelName]
+# 	M.materials[mat1].Damping(alpha=damp)
+
+# 	paraFunc()
+
+# #================== Beta damping ==================#
+# for damp in [0.0001, 0.001, 0.003, 0.005, 0.01]:
+# 	#New naming
+# 	modelName = 'beta'+'%.0e' %damp
+# 	jobName = modelName
+
+# 	#Copy Model
+# 	mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+
+# 	#Change damping of steel
+# 	M = mdb.models[modelName]
+# 	M.materials[mat1].Damping(beta=damp)
+
+# 	paraFunc()
 
 
-M.materials[mat1].Damping(beta=0.0031)
+# M.materials[mat1].Damping(beta=0.0031)
 
 
 print '###########    END OF SCRIPT    ###########'
