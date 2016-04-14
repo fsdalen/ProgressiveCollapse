@@ -7,10 +7,10 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run = 		0	     	#If 1: run job
+run = 		1	     	#If 1: run job
 saveModel = 0			#If 1: Save model
-cpus = 		1			#Number of CPU's
-post = 		0			#Run post prossesing
+cpus = 		4			#Number of CPU's
+post = 		1			#Run post prossesing
 snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
 
@@ -20,9 +20,9 @@ stepName = "staticStep"
 
 
 #4x4  x10(5)
-x = 2			#Nr of columns in x direction
+x = 3			#Nr of columns in x direction
 z = 2			#Nr of columns in z direction
-y = 1			#nr of stories
+y = 3			#nr of stories
 
 
 #================ Step ==================#
@@ -37,26 +37,25 @@ histIntervals = 10 			#History output evenly spaced over n increments
 
 #================ APM ==================#
 #Single APM
-APM = 1
-column = 'COLUMN_A1-1'
-rmvStepTime = 1e-9		#Also used in MuliAPM
-dynStepTime = 5.0
+APM = 0
+column = 'COLUMN_C2-1'
+rmvStepTime = 1e-3		#Also used in MuliAPM
+dynStepTime = 3.0
 
 #MultiAPM
-multiAPM = 0
-runAPMjob = 0
+multiAPM = 1	#Job(s) are also run with this command
 
 #Data extraction
 elsetName = None
-var = 'PEEQ' #'S'
-var_invariant = None #'mises'
-limit = 0.001
+var = 'S' # 'PEEQ'
+var_invariant = 'mises' #None
+limit = 50.0
 
 
 #================ Post =============#
 #Plots
 plotVonMises = 1
-plotPEEQ = 1
+plotPEEQ = 0
 U2rmvCol = 1
 
 #Other
@@ -182,6 +181,7 @@ from abaqusConstants import *	#... as well as all the Symbolic Constants defined
 import odbAccess        		# To make ODB-commands available to the script
 
 import odbFunc
+import xyPlot
 
 #Print status to console during analysis
 import simpleMonitor
@@ -909,7 +909,7 @@ if APM:
 	# Create step for element removal
 	oldStep = stepName
 	stepName = 'elmRemStep'
-	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
+	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=20, name=
 		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
 		timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
 	rmvSet = column+'.set'
@@ -1083,94 +1083,102 @@ if post:
 
 if multiAPM:
 	
-	#================ Preliminaries =============#
-	print '###########    RUNNING implicitAPM     ###########'
-	
-	#Old names
-	oldJob=jobName
-	odbName = oldJob
-	oldModel = modelName
-	oldStep = stepName
-	
-	#New names
-	jobName = 'multiApmJob'
-	modelName = 'multiApmMod'
-	
-	#Open ODB
-	odb = odbFunc.open_odb(odbName)
-	
-	#Copy new model
-	mdb.Model(name=modelName, objectToCopy=mdb.models[oldModel])	
-	M = mdb.models[modelName]
-	
-	
-	#================ Delete instances =============#
+	#Original Names
+	originModel = modelName		#oldModel = modelName
+	originLastStep = stepName 	#oldStep = stepName
+	oldODB = jobName 	#odbName = oldJob  oldJob=jobName
+
+
+
+	#========================== Check original odb ==================================#
 	#Get all elements over limit as a list with [value, object]
 	print '\n' + "Getting data from ODB..."
-	elmOverLim = odbFunc.getMaxVal(odbName,elsetName, var, oldStep, var_invariant, limit)
+	elmOverLim = odbFunc.getMaxVal(oldODB,elsetName, var, originLastStep, var_invariant, limit)
 	print "    done"
-	instOverLim = []
-	
-	#Create list of all instance names
-	for i in range(len(elmOverLim)):
-		instOverLim.append(elmOverLim[i][1].instance.name)
-	
-	#Create list with unique names
-	inst = []
-	for i in instOverLim:
-		if i not in inst:
-			inst.append(i)
-	
-	#Remove slabs so they are not deleted
-	instFiltered=[]
-	for i in inst[:]:
-		if not i.startswith('SLAB'):
-			instFiltered.append(i)
-	
-	# Create step for element removal
-	stepName = 'elmRmvStep1'
-	M.rootAssembly.regenerate()
-	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
-		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
-		timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
-	
-	#Merge set of instances to be deleted
-	setList=[]
-	for i in instFiltered:
-		setList.append(M.rootAssembly.allInstances[i].sets['set'])
-	
-	setList = tuple(setList)
-	if setList:
-		M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
-	else:
-		print 'No instances exceed criteria'
-		
-	
-	#Remove instances
-	M.ModelChange(activeInStep=False, createStepName=stepName, 
-		includeStrain=False, name='INST_REMOVAL', region=
-		M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
-	
-	
-	#================ Create new step and job =============#
-	#Create dynamic APM step
-	oldStep = stepName
-	stepName = 'implicitStep'
-	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
-	
-	
-	#Create new job
-	mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
-		explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
-		memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
-		multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
-		numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
-		'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
-	
-	#Run job
-	if runAPMjob:
+
+	count = 0
+	while len(elmOverLim) > 0:
+		count = count + 1
+		#New names
+		modelName = 'multiApm_'+str(count)
+		jobName = modelName
+
+		#Copy new model
+		mdb.Model(name=modelName, objectToCopy=mdb.models[originModel])	
+		M = mdb.models[modelName]
+
+		#================ Delete instances =============#
+		instOverLim = []
+		#Create list of all instance names
+		for i in range(len(elmOverLim)):
+			instOverLim.append(elmOverLim[i][1].instance.name)
+
+		#Create list with unique names
+		inst = []
+		for i in instOverLim:
+			if i not in inst:
+				inst.append(i)
+
+		#Remove slabs so they are not deleted
+		instFiltered=[]
+		for i in inst[:]:
+			if not i.startswith('SLAB'):
+				instFiltered.append(i)
+
+		# Create step for element removal
+		stepName = 'elmRmvStep1'
+		M.rootAssembly.regenerate()
+		M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
+			stepName, noStop=OFF, nohaf=OFF, previous=originLastStep, 
+			timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
+
+		#Merge set of instances to be deleted
+		setList=[]
+		for i in instFiltered:
+			setList.append(M.rootAssembly.allInstances[i].sets['set'])
+
+		setList = tuple(setList)
+		if setList:
+			M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
+		else:
+			print 'No instances exceed criteria'
+			
+
+		#Remove instances
+		M.ModelChange(activeInStep=False, createStepName=stepName, 
+			includeStrain=False, name='INST_REMOVAL', region=
+			M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
+
+
+		#================ Create new step and job =============#
+		#Create dynamic APM step
+		oldStep = stepName
+		stepName = 'implicitStep'
+		M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
+			stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
+
+
+		#Create new job
+		mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+			explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+			memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
+			multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
+			numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
+			'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
+		mdb.saveAs(pathName = modelName + '.cae')
+		#Run job
 		runJob(jobName)
+
+		#========================== Check new ODB ==================================#
+		oldODB = modelName
+		print '\n' + "Getting data from ODB..."
+		elmOverLim = odbFunc.getMaxVal(oldODB,elsetName, var, originLastStep, var_invariant, limit)
+		print "    done"
+		if len(elmOverLim) == 0:
+			print 'Required itterations: %s' % (count)
+
+		pass
+
 
 
 
@@ -1188,7 +1196,7 @@ if post:
 
 	#Turn on background and compass for printing
 	session.printOptions.setValues(vpBackground=ON, compass=ON)
-	
+
 	#================ Print contour plots =============#
 	#Viewport with countour plot
 	V=session.viewports['Viewport: 1']
@@ -1210,11 +1218,11 @@ if post:
 			V.odbDisplay.setPrimaryVariable(
 				variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
 			session.printToFile(fileName='plot_cont_'+steps+'PEEQ', format=printFormat, canvasObjects=(V, ))
-	
+
 
 
 	#================ Print XY plot of U2 at top of removed column =============#
-	if plotU2:
+	if 0:
 		#Get name of history output
 		hisrOtp = odb.steps[stepName].historyRegions.keys()
 		#Get node number of output node
@@ -1233,7 +1241,7 @@ if post:
 		#Print XY to file
 		session.printToFile(fileName='plot_XY_U2_'+column, format=printFormat, canvasObjects=(
 			session.viewports['Viewport: 1'], ))
-	
+
 	print '   done'
 
 
