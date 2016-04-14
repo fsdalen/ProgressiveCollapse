@@ -49,7 +49,7 @@ multiAPM = 1	#Job(s) are also run with this command
 elsetName = None
 var = 'S' # 'PEEQ'
 var_invariant = 'mises' #None
-limit = 50.0
+limit = 65.0
 
 
 #================ Post =============#
@@ -208,6 +208,10 @@ if len(mdb.models.keys()) > 0:
 		if b[0] != modelName:
 			del mdb.models[b[0]]
 
+with open('CPUtime.txt','w') as f:
+	f.write('Start: ')
+	f.write(str(datetime.now())[:19])
+	f.write('\n')
 
 			
 #================ Close and delete old jobs and ODBs ==================#
@@ -1172,7 +1176,7 @@ if multiAPM:
 		#========================== Check new ODB ==================================#
 		oldODB = modelName
 		print '\n' + "Getting data from ODB..."
-		elmOverLim = odbFunc.getMaxVal(oldODB,elsetName, var, originLastStep, var_invariant, limit)
+		elmOverLim = odbFunc.getMaxVal(oldODB,elsetName, var, stepName, var_invariant, limit)
 		print "    done"
 		if len(elmOverLim) == 0:
 			print 'Required itterations: %s' % (count)
@@ -1244,7 +1248,10 @@ if post:
 
 	print '   done'
 
-
+with open('CPUtime.txt','a') as f:
+	f.write('End: ')
+	f.write(str(datetime.now())[:19])
+	f.write('\n')
 
 print '###########    END OF SCRIPT    ###########'
 
