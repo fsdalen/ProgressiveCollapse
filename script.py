@@ -391,7 +391,7 @@ M.parts[part3].assignRebarOrientation(
 	
 #Create surface
 #Gets name Slab_A1-1.Surf
-M.parts[part3].Surface(name='Surf', side2Faces=
+M.parts[part3].Surface(name='Surf', side1Faces=
     M.parts[part3].faces.findAt(((0.0, 0.0, 0.0), )))
 
 #Create set of part
