@@ -49,7 +49,7 @@ multiAPM = 1	#Job(s) are also run with this command
 elsetName = None
 var = 'S' # 'PEEQ'
 var_invariant = 'mises' #None
-limit = 65.0
+limit = 65.0	#Correct limit for PEEQ = 0.1733
 
 
 #================ Post =============#
@@ -927,6 +927,9 @@ if APM:
 	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
 		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
 
+	if saveModel == 1:
+		mdb.saveAs(pathName = caeName+'.cae')
+
 
 
 
@@ -953,7 +956,15 @@ def dispJob():
 	return
 	
 if saveModel == 1:
-	mdb.saveAs(pathName = modelName + '.cae')
+	if multiAPM:
+		caeName = 'multiAPM'
+		mdb.saveAs(pathName = caeName+'.cae')
+	elif APM:
+		caeName = 'APM'
+		mdb.saveAs(pathName = caeName+'.cae')
+	else:
+		caeName = 'Static'
+		mdb.saveAs(pathName = caeName+'.cae')
 
 if APM:
 	jobName = 'APMjob'
@@ -1169,7 +1180,11 @@ if multiAPM:
 			multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
 			numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
 			'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
-		mdb.saveAs(pathName = modelName + '.cae')
+		
+		#Save model
+		if saveModel == 1:
+			mdb.saveAs(pathName = caeName+'.cae')
+		
 		#Run job
 		runJob(jobName)
 
@@ -1226,7 +1241,7 @@ if post:
 
 
 	#================ Print XY plot of U2 at top of removed column =============#
-	if 0:
+	if U2rmvCol:
 		#Get name of history output
 		hisrOtp = odb.steps[stepName].historyRegions.keys()
 		#Get node number of output node
