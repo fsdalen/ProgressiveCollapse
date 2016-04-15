@@ -1169,13 +1169,15 @@ if post:
 		histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
 		#Get node number
 		nodeNr = histName[-1]
-		#Create XY-curve
+		#Create XY-data
 		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
 			outputVariableName=
 			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
 			suppressQuery=True)
-		c1 = session.Curve(xyData=xy1)
+		#Write XY-data to file
+		session.writeXYReport(fileName='U2.txt', appendMode=OFF, xyData=(xy1, ))
 		#Plot and Print
+		c1 = session.Curve(xyData=xy1)
 		XYprint(jobName, plotName, printFormat, c1)
 	
 	print '   done'
