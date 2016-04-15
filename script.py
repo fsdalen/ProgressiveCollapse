@@ -7,11 +7,11 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run = 		1	     	#If 1: run job
-saveModel = 1			#If 1: Save model
+run = 		0	     	#If 1: run job
+saveModel = 0			#If 1: Save model
 cpus = 		8			#Number of CPU's
-post = 		1			#Run post prossesing
-snurre = 	1			#1 if running on snurre (removes extra commands like display ODB)
+post = 		0			#Run post prossesing
+snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
 
 modelName = "APMMod"
@@ -20,9 +20,9 @@ stepName = "staticStep"
 
 
 #4x4  x10(5)
-x = 4			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 5			#nr of stories
+x = 2			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
+y = 1			#nr of stories
 
 
 #================ Step ==================#
@@ -43,7 +43,7 @@ rmvStepTime = 1e-3		#Also used in MuliAPM (Fu uses 20e-3)
 dynStepTime = 5.0
 
 #MultiAPM
-multiAPM = 1	#Job(s) are also run with this command
+multiAPM = 0	#Job(s) are also run with this command
 
 #Data extraction
 elsetName = None
@@ -916,7 +916,7 @@ if APM:
 	# Create step for element removal
 	oldStep = stepName
 	stepName = 'elmRemStep'
-	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=20, name=
+	M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=50, name=
 		stepName, noStop=OFF, nohaf=OFF, previous=oldStep, 
 		timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
 	rmvSet = column+'.set'
@@ -928,7 +928,8 @@ if APM:
 	oldStep = stepName
 	stepName = 'apmStep'
 	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
+		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg,
+		maxNumInc=300)
 
 	if saveModel == 1:
 		mdb.saveAs(pathName = caeName+'.cae')
@@ -1142,7 +1143,7 @@ if multiAPM:
 		# Create step for element removal
 		stepName = 'elmRmvStep1'
 		M.rootAssembly.regenerate()
-		M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=1, name=
+		M.ImplicitDynamicsStep(initialInc=rmvStepTime, maxNumInc=50, name=
 			stepName, noStop=OFF, nohaf=OFF, previous=originLastStep, 
 			timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
 
@@ -1169,7 +1170,8 @@ if multiAPM:
 		oldStep = stepName
 		stepName = 'implicitStep'
 		M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
-			stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg)
+			stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg,
+			maxNumInc=300)
 
 
 		#Create new job
