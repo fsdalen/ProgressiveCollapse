@@ -11,7 +11,7 @@ run = 		1	     	#If 1: run job
 saveModel = 1			#If 1: Save model
 cpus = 		1			#Number of CPU's
 post = 		1			#Run post prossesing
-snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
+snurre = 	1			#1 if running on snurre (removes extra commands like display ODB)
 
 
 modelName = "APMMod"
@@ -20,9 +20,9 @@ stepName = "staticStep"
 
 
 #4x4  x10(5)
-x = 2			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
-y = 1			#nr of stories
+x = 4			#Nr of columns in x direction
+z = 4			#Nr of columns in z direction
+y = 5			#nr of stories
 
 
 #================ Step ==================#
@@ -38,7 +38,7 @@ histIntervals = 100 			#History output evenly spaced over n increments
 #================ APM ==================#
 #Single APM
 APM = 1
-column = 'COLUMN_B2-1'
+column = 'COLUMN_D4-1'
 rmvStepTime = 1e-3		#Also used in MuliAPM (Fu uses 20e-3)
 dynStepTime = 5.0
 
@@ -55,7 +55,7 @@ limit = 0.1733	#Correct limit for PEEQ = 0.1733
 #================ Post =============#
 #Plots
 plotVonMises = 1
-plotPEEQ = 1
+plotPEEQ = 0
 U2rmvCol = 1
 
 #Other
@@ -139,14 +139,6 @@ LL_kN_m = -2.0	    #kN/m^2 (-2.0)
 LL=LL_kN_m * 1.0e-3   #N/mm^2
 
 
-
-#================ Input =============#
-#Plots
-plotVonMises = 1
-plotPEEQ = 1
-plotU2 = 1
-defScale = 10
-printFormat = PNG #TIFF, PS, EPS, PNG, SVG
 
 #====================================================================#
 #						PRELIMINARIES								 #
