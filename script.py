@@ -8,9 +8,9 @@ from abaqusConstants import *
 
 
 run =       1	     	#If 1: run job
-saveModel = 0			#If 1: Save model
+saveModel = 1			#If 1: Save model
 cpus = 		1			#Number of CPU's
-post = 		0			#Run post prossesing
+post = 		1			#Run post prossesing
 snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
@@ -39,7 +39,7 @@ runAPM = 1
 column = 'COLUMN_B2-1'		#Column to be removed
 
 staticTime = 1
-rmvStepTime = 1e-9
+rmvStepTime = 1e-3
 dynStepTime = 1
 
 histIntervalsAPM = 100 			#History output evenly spaced over n increments
@@ -931,8 +931,36 @@ def runJob(jobName):
 	except:
 		print mdb.jobs[jobName].status
 
-if run:    
+class CPUtime(object):
+	"""docstring for CPUtime"""
+	def __init__(self):
+		self.model = None
+		self.file = None
+	
+	def createFile(self, fileName):
+		self.file = fileName
+		f=open(self.file, 'w')
+		f.write('Model	WallClockTime\n\n')
+		f.close()
+    
+	def start(self, model):
+		self.startTime = datetime.now()
+		self.model = model
+    
+	def end(self):
+		t = datetime.now() - self.startTime
+		time = str(t)[:-7]
+		f = open(self.file,'a')
+		text = '%s	%s\n' % (self.model, time) 
+		f.write(text)
+		f.close()
+
+if run:
+	timer = CPUtime()
+	timer.createFile('WallClockTime.txt')
+	timer.start(modelName)    
 	runJob(jobName)
+	timer.end()
 
 
 #====================================================================#
@@ -1068,7 +1096,9 @@ if APM:
 	
 	#RunAPM
 	if runAPM:    
+		timer.start(modelName)    
 		runJob(jobName)
+		timer.end()
 
 
 #====================================================================#
@@ -1114,7 +1144,9 @@ if post:
 
 	cpuTime = lines[-7][32:40]
 	cpuTimeFormated = cpuTime.replace(':','_')
-	with open(jobName+'_cpuTime_'+cpuTimeFormated, 'w'):
+	with open('CPUtime.txt', 'w') as f:
+		f.write('Model	CPUtime (from .sta)\n')
+		f.write(jobName + '	' +cpuTimeFormated+'\n')
 		None
 
 	#================ Contour plots =============#
