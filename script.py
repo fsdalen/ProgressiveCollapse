@@ -7,10 +7,10 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run = 		0	     	#If 1: run job
-saveModel = 0			#If 1: Save model
-cpus = 		8			#Number of CPU's
-post = 		0			#Run post prossesing
+run = 		1	     	#If 1: run job
+saveModel = 1			#If 1: Save model
+cpus = 		1			#Number of CPU's
+post = 		1			#Run post prossesing
 snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
 
@@ -38,12 +38,12 @@ histIntervals = 100 			#History output evenly spaced over n increments
 #================ APM ==================#
 #Single APM
 APM = 1
-column = 'COLUMN_D4-1'
+column = 'COLUMN_B2-1'
 rmvStepTime = 1e-3		#Also used in MuliAPM (Fu uses 20e-3)
 dynStepTime = 5.0
 
 #MultiAPM
-multiAPM = 0	#Job(s) are also run with this command
+multiAPM = 1	#Job(s) are also run with this command
 
 #Data extraction
 elsetName = None
@@ -203,11 +203,6 @@ if len(mdb.models.keys()) > 0:
 		b = a[i]
 		if b[0] != modelName:
 			del mdb.models[b[0]]
-
-with open('CPUtime.txt','w') as f:
-	f.write('Start: ')
-	f.write(str(datetime.now())[:19])
-	f.write('\n')
 
 			
 #================ Close and delete old jobs and ODBs ==================#
@@ -982,114 +977,44 @@ def runJob(jobName):
 	except:
 		print mdb.jobs[jobName].status
 
-if run:    
+class CPUtime(object):
+	"""docstring for CPUtime"""
+	def __init__(self):
+		self.model = None
+		self.file = None
+	
+	def createFile(self, fileName):
+		self.file = fileName
+		f=open(self.file, 'w')
+		f.write('Model	WallClockTime\n\n')
+		f.close()
+    
+	def start(self, model):
+		self.startTime = datetime.now()
+		self.model = model
+    
+	def end(self):
+		t = datetime.now() - self.startTime
+		time = str(t)[:-7]
+		f = open(self.file,'a')
+		text = '%s	%s\n' % (self.model, time) 
+		f.write(text)
+		f.close()
+
+timer = None
+if run:
+	timer = CPUtime()    
+	timer.start(caeName)
 	runJob(jobName)
+	timer.createFile('CPUtime.txt')
+	timer.end()
 
 with open('CPUtime.txt','a') as f:
 	f.write('Static done at: ')
 	f.write(str(datetime.now())[:19])
 	f.write('\n')
 
-#====================================================================#
-#							POST PROCESSING							 #
-#====================================================================#
 
-#============ XY plot print function ============#
-def XYprint(odbName, plotName,printFormat, *args):
-	V=session.viewports['Viewport: 1']
-	#Open ODB
-	odb = odbFunc.open_odb(odbName)
-	#Turn on background and compass for printing
-	session.printOptions.setValues(vpBackground=ON, compass=ON)
-	#Create plot
-	if plotName not in session.xyPlots.keys():
-		session.XYPlot(plotName)
-	#Set some variables
-	xyp = session.xyPlots[plotName]
-	chartName = xyp.charts.keys()[0]
-	chart = xyp.charts[chartName]
-	#Create plot
-	chart.setValues(curvesToPlot=args)
-	#Show plot
-	V.setValues(displayedObject=xyp)
-	#Print plot
-	session.printToFile(fileName='plot_XY_'+plotName, format=printFormat, canvasObjects=(V, ))
-	return
-
-
-
-if post:
-	print 'Post processing...'
-	
-	#Open ODB
-	odb = odbFunc.open_odb(jobName)
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
-		
-	
-	#================ Contour plots =============#
-	#Viewport with countour plot
-	V=session.viewports['Viewport: 1']
-	V.setValues(displayedObject=odb)
-	V.odbDisplay.display.setValues(plotState=(
-		CONTOURS_ON_DEF, ))
-	V.odbDisplay.commonOptions.setValues(
-				deformationScaling=UNIFORM, uniformScaleFactor=defScale)
-
-	#Print plots at the last frame in each step
-	for steps in odb.steps.keys():
-		V.odbDisplay.setFrame(step=steps, frame=-1)
-		if plotVonMises:
-			V.odbDisplay.setPrimaryVariable(
-				variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
-				'Mises'), )
-			session.printToFile(fileName='plot_cont_'+steps+'VonMises', format=printFormat, canvasObjects=(V, ))
-		if plotPEEQ:
-			V.odbDisplay.setPrimaryVariable(
-				variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
-			session.printToFile(fileName='plot_cont_'+steps+'PEEQ', format=printFormat, canvasObjects=(V, ))
-	
-	
-	#============ XY Energy ============#
-	plotName = 'Energy'
-	#Create curves to plot
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='External work: ALLWK for Whole Model', 
-		suppressQuery=True)
-	c1 = session.Curve(xyData=xy1)
-	xy2 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Internal energy: ALLIE for Whole Model', 
-		suppressQuery=True)
-	c2 = session.Curve(xyData=xy2)
-	xy3 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Kinetic energy: ALLKE for Whole Model', 
-		suppressQuery=True)
-	c3 = session.Curve(xyData=xy3)
-	#Plot and Print
-	XYprint(jobName, plotName, printFormat, c1, c2, c3)
-	
-	
-	#================ Print XY plot of U2 at top of removed column =============#
-	if U2rmvCol:
-		plotName = 'U2rmvCol'
-		#Find correct historyOutput
-		for key in odb.steps[stepName].historyRegions.keys():
-			if key.find('Node '+column) > -1:
-				histName = key
-		histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
-		#Get node number
-		nodeNr = histName[-1]
-		#Create XY-curve
-		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-			outputVariableName=
-			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
-			suppressQuery=True)
-		c1 = session.Curve(xyData=xy1)
-		#Plot and Print
-		XYprint(jobName, plotName, printFormat, c1)
-	
-	print '   done'
 
 #====================================================================#
 #							IMPLICIT APM 							 #
@@ -1187,7 +1112,12 @@ if multiAPM:
 			mdb.saveAs(pathName = caeName+'.cae')
 		
 		#Run job
-		runJob(jobName)
+		if not timer:
+			timer = CPUtime()    
+			timer.createFile('CPUtime.txt')
+		timer.start(modelName)
+		runJob(jobName)		
+		timer.end()
 
 		#========================== Check new ODB ==================================#
 		oldODB = modelName
@@ -1207,6 +1137,34 @@ if multiAPM:
 #====================================================================#
 #							POST PROCESSING							 #
 #====================================================================#
+odb = odbFunc.open_odb(jobName)
+
+#Clear plots
+for plot in session.xyPlots.keys():
+	del session.xyPlots[plot]
+
+#============ XY plot print function ============#
+def XYprint(odbName, plotName,printFormat, *args):
+	V=session.viewports['Viewport: 1']
+	#Open ODB
+	odb = odbFunc.open_odb(odbName)
+	#Turn on background and compass for printing
+	session.printOptions.setValues(vpBackground=ON, compass=ON)
+	#Create plot
+	if plotName not in session.xyPlots.keys():
+		session.XYPlot(plotName)
+	#Set some variables
+	xyp = session.xyPlots[plotName]
+	chartName = xyp.charts.keys()[0]
+	chart = xyp.charts[chartName]
+	#Create plot
+	chart.setValues(curvesToPlot=args)
+	#Show plot
+	V.setValues(displayedObject=xyp)
+	#Print plot
+	session.printToFile(fileName='plot_XY_'+plotName, format=printFormat, canvasObjects=(V, ))
+	return
+
 
 if post:
 	print 'Post processing...'
@@ -1245,8 +1203,9 @@ if post:
 	if U2rmvCol:
 		#Get name of history output
 		hisrOtp = odb.steps[stepName].historyRegions.keys()
+		h = filter(lambda x:'Node' in x,hisrOtp)
 		#Get node number of output node
-		nodeNr = hisrOtp[0][-1]
+		nodeNr = h[0][-1]
 		#Create XY-data from history output
 		xy_result = session.XYDataFromHistory(name='nameHere', odb=odb, 
 			outputVariableName=
@@ -1254,7 +1213,7 @@ if post:
 			steps=tuple(odb.steps.keys()), )
 		#Plot XY
 		c1 = session.Curve(xyData=xy_result)
-		xyp = session.XYPlot('XYPlot-3')
+		xyp = session.XYPlot('XYPlot-1')
 		chartName = xyp.charts.keys()[0]
 		chart = xyp.charts[chartName].setValues(curvesToPlot=(c1, ), )
 		V.setValues(displayedObject=xyp)
@@ -1264,10 +1223,5 @@ if post:
 
 	print '   done'
 
-with open('CPUtime.txt','a') as f:
-	f.write('End: ')
-	f.write(str(datetime.now())[:19])
-	f.write('\n')
 
 print '###########    END OF SCRIPT    ###########'
-
