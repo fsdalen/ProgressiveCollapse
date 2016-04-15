@@ -1009,11 +1009,6 @@ if run:
 	timer.createFile('CPUtime.txt')
 	timer.end()
 
-with open('CPUtime.txt','a') as f:
-	f.write('Static done at: ')
-	f.write(str(datetime.now())[:19])
-	f.write('\n')
-
 
 
 #====================================================================#
@@ -1207,10 +1202,12 @@ if post:
 		#Get node number of output node
 		nodeNr = h[0][-1]
 		#Create XY-data from history output
-		xy_result = session.XYDataFromHistory(name='nameHere', odb=odb, 
+		xy_result = session.XYDataFromHistory(name='U2', odb=odb, 
 			outputVariableName=
 			'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
 			steps=tuple(odb.steps.keys()), )
+		#Write data to file
+		session.writeXYReport(fileName='U2.txt', appendMode=OFF, xyData=(xy_result, ))
 		#Plot XY
 		c1 = session.Curve(xyData=xy_result)
 		xyp = session.XYPlot('XYPlot-1')
