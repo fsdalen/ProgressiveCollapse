@@ -1,20 +1,20 @@
 clc
 clear all
-close all
+%close all
 
 %% Inputs
 P_0 = 0;		%Ambient pressure
 P_s_pos = 500;	%Peak peak side on (incident) pressure
-n = 10;	%Nr of increments
-T_pos = 1; % 50e-3;  %Duration of positive pressure
-b = 1.5;    %Parameter in modified Frielander curve
+n = 100;	%Nr of increments
+T_pos = 0.01; % 50e-3;  %Duration of positive pressure
+b = 2.0;    %Parameter in modified Frielander curve
 
 lin = 0;
 expon = 1;
 
 %% Calculations
 delta_t = T_pos/n;
-t = 0.1:delta_t:T_pos;
+t = 0:delta_t:T_pos;
 
 if lin == 1;
     P = P_0 + P_s_pos*(1-(t/T_pos));
@@ -25,6 +25,7 @@ end
 plot (t,P)
 xlabel('Time [s]')
 ylabel('Pressure [Mpa]')
+%axis([0 max(p) 0 max(model)])
 
 %% Wrtie to file
 fich=fopen(['blast.csv'],'w');
