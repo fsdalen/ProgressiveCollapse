@@ -44,6 +44,11 @@ dynStepTime = 1
 
 histIntervalsAPM = 100 			#History output evenly spaced over n increments
 
+
+#================ Blast (Incident wave) ==================#
+blast = 1
+
+
 #================ Post =============#
 #Plots
 plotVonMises = 1
