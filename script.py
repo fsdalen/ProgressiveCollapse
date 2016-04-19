@@ -1114,158 +1114,165 @@ if APM:
 #====================================================================#
 
 
-if blast:
-	import csv
+#if blast:
+import csv
 
-	airDensity = 1.225e-12    #1.225 kg/m^3
-	soundSpeed =340.29e3    # 340.29 m/s
-	beamDrag = 1.15	#latteralMassCoef is for rectangle from wikipedia
-
-
-
-	#================== Copy model and create quasi-static step ==========================#
-	#New naming
-	oldMod = modelName
-	modelName = 'blastMod'
-
-	oldStep = stepName
-	oldMdbStep = stepName
-	stepName = 'quasi-staticStep'
-
-	oldJob = jobName
-	jobName = 'blastJob'
-
-	#Copy Model
-	mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
-	M = mdb.models[modelName]
-	ass = M.rootAssembly
-
-	#Delete old static-step
-	del M.steps[oldStep]
-	oldStep = 'Initial'
-
-	#Create quasi-static step
-	M.ExplicitDynamicsStep(name=stepName, 
-		previous=oldStep, timePeriod=staticTime, nlgeom=ON)
-
-	#Create smooth step for forces
-	M.SmoothStepAmplitude(name='Smooth_APM', timeSpan=STEP, data=(
-	(0.0, 0.0), (0.9*staticTime, 1.0)))
-
-	#Add Gravity again (gets deleted with static step)
-	M.Gravity(comp2=-9800.0, createStepName=stepName, 
-	    distributionType=UNIFORM, field='', name='Gravity', amplitude='Smooth_APM')
-
-	#Add LL again (gets deleted with static step)
-	for a in range(len(alph)-1):
-		for n in range(len(numb)-1):
-			for e in range(len(etg)):
-				inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
-				M.SurfaceTraction(createStepName=stepName, 
-					directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
-					distributionType=UNIFORM, field='', follower=OFF,
-					localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
-					region= M.rootAssembly.instances[inst].surfaces['Surf'],
-					traction=GENERAL, amplitude='Smooth_APM')
-
-	#Re-add history output
-	createHistoryOptput(histIntervalsAPM)
-
-	#Field output
-	M.FieldOutputRequest(name='damage', 
-	    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
+airDensity = 1.225e-12    #1.225 kg/m^3
+soundSpeed =340.29e3    # 340.29 m/s
+beamDrag = 1.15	#latteralMassCoef is for rectangle from wikipedia
 
 
 
-	#========================== Blast stuff ==================================#
+#================== Copy model and create quasi-static step ==========================#
+#New naming
+oldMod = modelName
+modelName = 'blastMod'
 
-	#Pressure amplitude
-	table=[]
-	with open('blast.csv', 'r') as f:
-		reader = csv.reader(f, delimiter='\t')
-		for row in reader:
-			table.append((float(row[0]), float(row[1])))
-			blastTime = float(row[0])
+oldStep = stepName
+oldMdbStep = stepName
+stepName = 'quasi-staticStep'
 
+oldJob = jobName
+jobName = 'blastJob'
 
-	tpl = tuple(table)
-	M.TabularAmplitude(name='Blast', timeSpan=STEP, 
-	   	smooth=SOLVER_DEFAULT, data=(tpl))
+#Copy Model
+mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+M = mdb.models[modelName]
+ass = M.rootAssembly
 
-	#Create blast step
-	oldStep = stepName
-	stepName = 'blastStep'
-	M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-	timePeriod=blastTime)
+#Delete old static-step
+del M.steps[oldStep]
+oldStep = 'Initial'
 
+#Create quasi-static step
+M.ExplicitDynamicsStep(name=stepName, 
+	previous=oldStep, timePeriod=staticTime, nlgeom=ON)
 
-	#Source Point
-	feature = ass.ReferencePoint(point=(-4000.0, 2000.0, 4000.0))
-	ID = feature.id
-	sourceRP = ass.referencePoints[ID]
-	ass.Set(name='Source', referencePoints=(sourceRP,))
+#Create smooth step for forces
+M.SmoothStepAmplitude(name='Smooth_APM', timeSpan=STEP, data=(
+(0.0, 0.0), (0.9*staticTime, 1.0)))
 
-	#Standoff Point
-	feature = ass.ReferencePoint(point=(-1000.0, 2000.0, 4000.0))
-	ID = feature.id
-	standoffRP = ass.referencePoints[ID]
-	ass.Set(name='Standoff', referencePoints=(standoffRP,))
+#Add Gravity again (gets deleted with static step)
+M.Gravity(comp2=-9800.0, createStepName=stepName, 
+    distributionType=UNIFORM, field='', name='Gravity', amplitude='Smooth_APM')
 
+#Add LL again (gets deleted with static step)
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
+			M.SurfaceTraction(createStepName=stepName, 
+				directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+				distributionType=UNIFORM, field='', follower=OFF,
+				localCsys=None, magnitude= LL, name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+				region= M.rootAssembly.instances[inst].surfaces['Surf'],
+				traction=GENERAL, amplitude='Smooth_APM')
 
+#Re-add history output
+createHistoryOptput(histIntervalsAPM)
 
-	#Create column surfaces
-	for a in range(len(alph)):
-		for n in range(len(numb)):
-			for e in range(len(etg)):
-				inst = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
-				print inst
-				ass.Surface(circumEdges=
-					ass.instances[inst].edges.findAt(
-					((x_d*a , col1_height*(e)+1, z_d*n), ), ), name=inst+'_surf')
-
-
-	#Join blast surfaces
-	lst = []
-	for key in ass.surfaces.keys():
-		if not key.startswith('SLAB'):
-			lst.append(ass.surfaces[key])
-	blastSurf = tuple(lst)
-	ass.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
+#Field output
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
 
 
-	#Load slabs as well
+
+#========================== Blast stuff ==================================#
+
+#Pressure amplitude
+table=[]
+with open('blast.csv', 'r') as f:
+	reader = csv.reader(f, delimiter='\t')
+	for row in reader:
+		table.append((float(row[0]), float(row[1])))
+		blastTime = float(row[0])
 
 
-	#Create interaction property
-	M.IncidentWaveProperty(name='Blast', 
-	    definition=SPHERICAL, fluidDensity=airDensity, soundSpeed=soundSpeed)
+tpl = tuple(table)
+M.TabularAmplitude(name='Blast', timeSpan=STEP, 
+   	smooth=SOLVER_DEFAULT, data=(tpl))
 
-	#Create incident Wave Interaction
-	M.IncidentWave(name='Blast', createStepName=stepName, 
-	    sourcePoint=ass.sets['Source'], standoffPoint=ass.sets['Standoff'],
-	    surface=ass.surfaces['blastSurf'],
-	    definition=PRESSURE, interactionProperty='Blast', 
-	    referenceMagnitude=1.0, amplitude='Blast')
-
-	#Fluid inertia of sections
-	#Column
-	M.sections[sect1].setValues(useFluidInertia=ON, fluidMassDensity=airDensity,
-		crossSectionRadius=300.0, lateralMassCoef=beamDrag) 
-		
-	#Beam
-	M.sections[sect2].setValues(useFluidInertia=ON, fluidMassDensity=airDensity,
-		crossSectionRadius=400.0, lateralMassCoef=beamDrag)
+#Create blast step
+oldStep = stepName
+stepName = 'blastStep'
+M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+timePeriod=blastTime)
 
 
-	#Set model wave formulation (must be set, but does not matter when fluid is not modeled)
-	M.setValues(waveFormulation=TOTAL)
+#Source Point
+feature = ass.ReferencePoint(point=(-4000.0, 2000.0, 4000.0))
+ID = feature.id
+sourceRP = ass.referencePoints[ID]
+ass.Set(name='Source', referencePoints=(sourceRP,))
 
-	#New step
-	oldStep = stepName
-	stepName = 'freeStep'
-	M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-	timePeriod=dynStepTime)
+#Standoff Point
+feature = ass.ReferencePoint(point=(-1000.0, 2000.0, 4000.0))
+ID = feature.id
+standoffRP = ass.referencePoints[ID]
+ass.Set(name='Standoff', referencePoints=(standoffRP,))
 
+
+
+#Create column surfaces
+for a in range(len(alph)):
+	for n in range(len(numb)):
+		for e in range(len(etg)):
+			inst = part1+"_"+ alph[a]+numb[n] + "-" +etg[e]
+			print inst
+			ass.Surface(circumEdges=
+				ass.instances[inst].edges.findAt(
+				((x_d*a , col1_height*(e)+1, z_d*n), ), ), name=inst+'_surf')
+
+
+#Join blast surfaces
+lst = []
+for key in ass.surfaces.keys():
+	if not key.startswith('SLAB'):
+		lst.append(ass.surfaces[key])
+blastSurf = tuple(lst)
+ass.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
+
+
+#Load slabs as well
+
+
+#Create interaction property
+M.IncidentWaveProperty(name='Blast', 
+    definition=SPHERICAL, fluidDensity=airDensity, soundSpeed=soundSpeed)
+
+#Create incident Wave Interaction
+M.IncidentWave(name='Blast', createStepName=stepName, 
+    sourcePoint=ass.sets['Source'], standoffPoint=ass.sets['Standoff'],
+    surface=ass.surfaces['blastSurf'],
+    definition=PRESSURE, interactionProperty='Blast', 
+    referenceMagnitude=1.0, amplitude='Blast')
+
+#Fluid inertia of sections
+#Column
+M.sections[sect1].setValues(useFluidInertia=ON, fluidMassDensity=airDensity,
+	crossSectionRadius=300.0, lateralMassCoef=beamDrag) 
+	
+#Beam
+M.sections[sect2].setValues(useFluidInertia=ON, fluidMassDensity=airDensity,
+	crossSectionRadius=400.0, lateralMassCoef=beamDrag)
+
+
+#Set model wave formulation (must be set, but does not matter when fluid is not modeled)
+M.setValues(waveFormulation=TOTAL)
+
+#New step
+oldStep = stepName
+stepName = 'freeStep'
+M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+timePeriod=dynStepTime)
+
+#Create Job
+mdb.Job(atTime=None, contactPrint=OFF, description='', echoPrint=OFF, 
+	explicitPrecision=SINGLE, getMemoryFromAnalysis=True, historyPrint=OFF, 
+	memory=90, memoryUnits=PERCENTAGE, model=modelName, modelPrint=OFF, 
+	multiprocessingMode=DEFAULT, name=jobName, nodalOutputPrecision=SINGLE, 
+	numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
+	'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
 # Create job
  #    # runJob(jobName)
