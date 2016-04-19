@@ -1228,15 +1228,22 @@ for a in range(len(alph)):
 
 #Join blast surfaces
 lst = []
+#Beams
 for key in ass.surfaces.keys():
 	if not key.startswith('SLAB'):
 		lst.append(ass.surfaces[key])
+
+#Slabs
+for a in range(len(alph)-1):
+	for n in range(len(numb)-1):
+		for e in range(len(etg)):
+			inst = part3+'_'+ alph[a]+numb[n]+"-"+etg[e]
+			surf = ass.instances[inst].surfaces['botSurf']
+			lst.append(surf)
+
+#Join
 blastSurf = tuple(lst)
 ass.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
-
-
-#Load slabs as well
-
 
 #Create interaction property
 M.IncidentWaveProperty(name='Blast', 
