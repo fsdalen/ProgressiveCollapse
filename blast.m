@@ -4,10 +4,10 @@ clear all
 
 %% Inputs
 P_0 = 0;		%Ambient pressure
-P_s_pos = 50;	%Peak peak side on (incident) pressure
+P_s_pos = 1.5;	%Peak peak side on (incident) pressure
 n = 100;	%Nr of increments
-T_pos = 0.01; % 50e-3;  %Duration of positive pressure
-b = 2.0;    %Parameter in modified Frielander curve
+T_pos = 15.6*10^-3; %Duration of positive pressure
+b = 8.3;    %Parameter in modified Frielander curve
 
 lin = 0;
 expon = 1;
@@ -48,6 +48,40 @@ fclose(fich);
 
 
 
+
+%% Brute force b
+clear b
+b_list = 0:0.1:20;
+
+int_list = [];
+for b = b_list
+    P_func = @(time) P_0 + P_s_pos*(1-(time/T_pos)).*exp((-b*time)/(T_pos));
+    int = integral(P_func,0,T_pos);
+    int_list = [int_list integral(P_func,0,T_pos)];
+end
+
+%% Optimize b
+
+i_s = 2.51*10^-3;   %Impulse [MPa*s]
+
+P_func = @(time) P_0 + P_s_pos*(1-(time/T_pos)).*exp((-b*time)/(T_pos));
+int = integral(P_func,0,T_pos);
+
+%% section
+
+i_s = 2.51*10^-3;   %Impulse [MPa*s]
+syms b
+P_func = @(time,b) P_0 + P_s_pos*(1-(time/T_pos)).*exp((-b*time)/(T_pos));
+int = integral(P_func,0,T_pos)
+eqn = integral(P_func,0,T_pos) == i_s;
+sol = solve(eqn,b);
+
+%% 
+
+%fun = @(x) exp(-x.^2).*log(x).^2;
+syms x
+eqn = sin(x) == 1;
+sol = solve(eqn,x)
 
 
 
