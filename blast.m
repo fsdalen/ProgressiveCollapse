@@ -4,7 +4,7 @@ clear all
 
 %% Inputs
 P_0 = 0;		%Ambient pressure
-P_s_pos = 500;	%Peak peak side on (incident) pressure
+P_s_pos = 50;	%Peak peak side on (incident) pressure
 n = 100;	%Nr of increments
 T_pos = 0.01; % 50e-3;  %Duration of positive pressure
 b = 2.0;    %Parameter in modified Frielander curve
@@ -21,6 +21,11 @@ if lin == 1;
 elseif expon == 1;
     P = P_0 + P_s_pos*(1-(t/T_pos)).*exp((-b*t)/(T_pos));
 end
+
+%Shift the graph 1 time step to the right in order to start at 0,0
+t = [t T_pos+delta_t];
+P = [0 P];
+
 %% Plot
 plot (t,P)
 xlabel('Time [s]')
