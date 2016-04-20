@@ -9,7 +9,7 @@ from abaqusConstants import *
 
 run = 		1	     	#If 1: run job
 saveModel = 1			#If 1: Save model
-cpus = 		1			#Number of CPU's
+cpus = 		8			#Number of CPU's
 post = 		1			#Run post prossesing
 snurre = 	1			#1 if running on snurre (removes extra commands like display ODB)
 
@@ -32,7 +32,7 @@ nlg = ON					# Nonlinear geometry (ON/OFF)
 
 inInc = 0.1				# Initial increment
 minIncr = 1e-12
-histIntervals = 100 			#History output evenly spaced over n increments
+#histIntervals = 100 			#History output evenly spaced over n increments
 
 
 #================ APM ==================#
@@ -55,7 +55,7 @@ limit = 0.1733	#Correct limit for PEEQ = 0.1733
 #================ Post =============#
 #Plots
 plotVonMises = 1
-plotPEEQ = 0
+plotPEEQ = 1
 U2rmvCol = 1
 
 #Other
@@ -579,7 +579,7 @@ elif riks:
 #====================================================================#
 #							HISTORY OUTPUT							 #
 #====================================================================#		
-def createHistoryOptput(histIntervals):
+def createHistoryOptput():
 	M.rootAssembly.regenerate()
 
 	#Delete default history output
@@ -590,12 +590,12 @@ def createHistoryOptput(histIntervals):
 		M.HistoryOutputRequest(name=column+'_top'+'U', 
 			createStepName=stepName, variables=('U2',), 
 			region=M.rootAssembly.allInstances[column].sets['col-top'], sectionPoints=DEFAULT, 
-			rebar=EXCLUDE, numIntervals=histIntervals)
+			rebar=EXCLUDE, frequency=1)
 
 	#Create history output for energies
 	M.HistoryOutputRequest(name='Energy', 
 		createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'), 
-		numIntervals=histIntervals)
+		frequency=1)
 	'''
 	ALLAE
 	'Artificial' strain energy associated with constraints used to remove singular modes
@@ -635,7 +635,7 @@ def createHistoryOptput(histIntervals):
 	return
 
 		
-createHistoryOptput(histIntervals)
+createHistoryOptput()
 		
 #====================================================================#
 #							Joints 									 #
@@ -1124,11 +1124,7 @@ if multiAPM:
 #====================================================================#
 #							POST PROCESSING							 #
 #====================================================================#
-odb = odbFunc.open_odb(jobName)
 
-#Clear plots
-for plot in session.xyPlots.keys():
-	del session.xyPlots[plot]
 
 #============ XY plot print function ============#
 def XYprint(odbName, plotName,printFormat, *args):
@@ -1154,10 +1150,15 @@ def XYprint(odbName, plotName,printFormat, *args):
 
 
 if post:
+
 	print 'Post processing...'
 
 	#Open ODB
 	odb = odbFunc.open_odb(jobName)
+
+	#Clear plots
+	for plot in session.xyPlots.keys():
+		del session.xyPlots[plot]
 
 	#Turn on background and compass for printing
 	session.printOptions.setValues(vpBackground=ON, compass=ON)
