@@ -7,10 +7,10 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run =       1	     	#If 1: run job
-saveModel = 1			#If 1: Save model
+run =       0	     	#If 1: run job
+saveModel = 0			#If 1: Save model
 cpus = 		8			#Number of CPU's
-post = 		1			#Run post prossesing
+post = 		0			#Run post prossesing
 snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
@@ -18,9 +18,9 @@ jobName = 'staticJob'
 stepName = "staticStep"	
 
 #4x4  x10(5)
-x = 4			#Nr of columns in x direction
-z = 4			#Nr of columns in z direction
-y = 5			#nr of stories
+x = 2			#Nr of columns in x direction
+z = 2			#Nr of columns in z direction
+y = 1			#nr of stories
 
 
 #================ Static Step ==================#
@@ -46,7 +46,7 @@ histIntervalsAPM = 100 			#History output evenly spaced over n increments
 
 
 #================ Blast (Incident wave) ==================#
-blast = 1
+blast = 0
 
 
 #================ Post =============#
@@ -1286,8 +1286,9 @@ if blast:
 		numCpus=cpus, numDomains=cpus, numGPUs=0, queue=None, resultsFormat=ODB, scratch=
 		'', type=ANALYSIS, userSubroutine='', waitHours=0, waitMinutes=0)
 
-
+	timer.start(modelName)    
 	runJob(jobName)
+	timer.end()
 
 
 #====================================================================#
