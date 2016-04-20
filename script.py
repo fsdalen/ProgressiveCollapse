@@ -7,20 +7,20 @@ from abaqusConstants import *
 #====================================================================#
 
 
-run =       0	     	#If 1: run job
-saveModel = 0			#If 1: Save model
-cpus = 		1			#Number of CPU's
-post = 		0			#Run post prossesing
-snurre = 	10			#1 if running on snurre (removes extra commands like display ODB)
+run =       1	     	#If 1: run job
+saveModel = 1			#If 1: Save model
+cpus = 		8			#Number of CPU's
+post = 		1			#Run post prossesing
+snurre = 	0			#1 if running on snurre (removes extra commands like display ODB)
 
 modelName = "staticMod"
 jobName = 'staticJob'
 stepName = "staticStep"	
 
 #4x4  x10(5)
-x = 2			#Nr of columns in x direction
-z = 2			#Nr of columns in z direction
-y = 1			#nr of stories
+x = 4			#Nr of columns in x direction
+z = 4			#Nr of columns in z direction
+y = 5			#nr of stories
 
 
 #================ Static Step ==================#
@@ -36,7 +36,7 @@ histIntervals = 10 			#History output evenly spaced over n increments
 #================ APM ==================#
 APM = 0
 runAPM = 0
-column = 'COLUMN_D4-1'		#Column to be removed
+column = 'COLUMN_D3-1'		#Column to be removed
 
 staticTime = 3				#Also used in Blast
 rmvStepTime = 1e-3
@@ -46,14 +46,14 @@ histIntervalsAPM = 100 			#History output evenly spaced over n increments
 
 
 #================ Blast (Incident wave) ==================#
-blast = 0
+blast = 1
 
 
 #================ Post =============#
 #Plots
 plotVonMises = 1
 plotPEEQ = 1
-U2rmvCol = 1
+U2rmvCol = 0
 
 #Other
 defScale = 10
@@ -1194,11 +1194,13 @@ if blast:
 	M.TabularAmplitude(name='Blast', timeSpan=STEP, 
 	   	smooth=SOLVER_DEFAULT, data=(tpl))
 
+	#blastStepTime = blastTime*5
+
 	#Create blast step
 	oldStep = stepName
 	stepName = 'blastStep'
 	M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-	timePeriod=blastTime)
+	timePeriod=dynStepTime)
 
 
 	#Source Point
@@ -1269,11 +1271,11 @@ if blast:
 	#Set model wave formulation (must be set, but does not matter when fluid is not modeled)
 	M.setValues(waveFormulation=TOTAL)
 
-	#New step
-	oldStep = stepName
-	stepName = 'freeStep'
-	M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-	timePeriod=dynStepTime)
+	# #New step
+	# oldStep = stepName
+	# stepName = 'freeStep'
+	# M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+	# timePeriod=dynStepTime)
 
 
 	#Create Job
@@ -1399,6 +1401,20 @@ if post:
 		c1 = session.Curve(xyData=xy1)
 		XYprint(jobName, plotName, printFormat, c1)
 	
+	#==================== Animate time history ===========================#
+	import animation
+	V.odbDisplay.display.setValues(plotState=(CONTOURS_ON_DEF, ))
+	V.odbDisplay.setPrimaryVariable(
+		variableLabel='S', outputPosition=INTEGRATION_POINT, refinement=(INVARIANT, 
+		'Mises'), )
+	session.animationController.setValues(animationType=TIME_HISTORY, viewports=(V.name,))
+	session.animationController.play()
+	session.imageAnimationOptions.setValues(frameRate = 7, compass = ON,
+		vpBackground=ON)
+	session.writeImageAnimation(fileName=jobName, format=AVI, canvasObjects=(V, ))
+		#format = QUICKTIME or AVI
+	session.animationController.stop()
+
 	print '   done'
 
 
