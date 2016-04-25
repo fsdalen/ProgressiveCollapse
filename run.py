@@ -12,8 +12,8 @@ from abaqusConstants import *
 
 mdbName      = 'Static'
 cpus         = 1			#Number of CPU's
-run          = 1
-post         = 1			#Run post prossesing
+run          = 0
+post         = 0			#Run post prossesing
 monitor      = 0
 
 #4x4  x10(5)
@@ -46,13 +46,15 @@ printFormat = PNG 	#TIFF, PS, EPS, PNG, SVG
 #============================================================#
 #============================================================#
 
+
+
 #=========== Import modules  ============#
 
 import os
 import glob
 from datetime import datetime
 
-import myFuncs
+import ProgressiveCollapse.myFuncs as myFuncs
 reload(myFuncs)
 
 
@@ -89,7 +91,7 @@ with open('results.txt', 'w') as f:
 
 #=========== Set up model  ============#
 modelName = "staticMod"
-matFile = 'mat_1.inp'
+matFile = 'ProgressiveCollapse/mat_1.inp'
 
 #Create model based on input material
 print '\n'*2
