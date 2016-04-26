@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName      = 'Static'
+mdbName      = 'Implicit'
 cpus         = 1			#Number of CPU's
 monitor      = 1
 
@@ -39,11 +39,11 @@ maxStaticInc = 50 #Maximum number of increments for static step
 APM           = 1
 runAPM        = 1
 APMpost       = 1
-multiAPM      = 0	#This includes run and post for multi
+multiAPM      = 1	#This includes run and post for multi
 
-APMcol        = 'COLUMN_D4-1'
+APMcol        = 'COLUMN_B2-1'
 rmvStepTime   = 1e-3		#Also used in MuliAPM (Fu uses 20e-3)
-dynStepTime   = 5.0
+dynStepTime   = 0.1
 
 
 #Data extraction for multiAPM
@@ -225,7 +225,8 @@ del M.historyOutputRequests['H-Output-1']
 M.HistoryOutputRequest(name='Energy', 
 	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
 
-
+#Section forces at top of column to be removed in APM
+myFuncs.historySectionForces(M, APMcol, stepName)
 
 #=========== Loads  ============#
 # Gravity
@@ -312,7 +313,7 @@ if APM:
 	
 	#Create dynamic APM step
 	oldStep = stepName
-	stepName = 'DynamicStep'
+	stepName = 'dynamicStep'
 	M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
 		stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=nlg,
 		maxNumInc=300)
@@ -335,7 +336,7 @@ if APM:
 	if runAPM:
 		myFuncs.runJob(modelName)
 		#Write CPU time to file
-		# myFuncs.staticCPUtime(modelName, 'results.txt')
+		myFuncs.staticCPUtime(modelName, 'results.txt')
 
 
 	#=========== Post proccesing  ============#
@@ -366,18 +367,21 @@ if APM:
 #========================================================#
 #========================================================#
 
+
+
 if multiAPM:
-	
+		
 	#Original Names
 	originModel = modelName		#oldModel = modelName
 	originLastStep = stepName 	#oldStep = stepName
-	
+
 
 	#Check original ODB
 	print '\n' + "Getting data from ODB..."
-	elmOverLim = odbFunc.getElmOverLim(oldODB,elsetName, var,
+	elmOverLim = myFuncs.getElmOverLim(originModel, var,
 		originLastStep, var_invariant, limit)
 	print "    done"
+	if not elmOverLim: print 'No element over limit'
 
 	#Run itterations
 	count = 0
@@ -418,11 +422,13 @@ if multiAPM:
 		
 		#Run job
 		myFuncs.runJob(modelName)
+		#Write CPU time to file
+		myFuncs.staticCPUtime(modelName, 'results.txt')
 
 		#================ Check new ODB ==========================#
 		oldODB = modelName
 		print '\n' + "Getting data from ODB..."
-		elmOverLim = odbFunc.getElmOverLim(oldODB,elsetName, var,
+		elmOverLim = myFuncs.getElmOverLim(modelName, var,
 			originLastStep, var_invariant, limit)
 		print "    done"
 		if len(elmOverLim) == 0:

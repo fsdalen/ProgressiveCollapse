@@ -1078,7 +1078,19 @@ def animate(odbName, defScale, frameRate):
 #==================================================#
 #==================================================#
 
-def getElmOverLim(odbName,elsetName, var, stepName, var_invariant, limit):
+def historySectionForces(M, column, stepName):
+	#Section forces and moments of top element in column to be deleted
+	elmNr = M.rootAssembly.instances[column].elements[-1].label
+	elm = M.rootAssembly.instances[column].elements[elmNr-1:elmNr]
+	M.rootAssembly.Set(elements=elm, name='topColElm')
+
+	M.HistoryOutputRequest(name='SectionForces', createStepName=stepName,
+		variables=('SF1', 'SF2', 'SF3', 'SM1', 'SM2', 
+		'SM3'), region=M.rootAssembly.sets['topColElm'],)
+
+
+def getElmOverLim(odbName, var, stepName, var_invariant, limit,
+		elsetName=None):
 	"""
 	Returns list with value and object for all elements over limit
 
