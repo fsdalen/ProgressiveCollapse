@@ -12,8 +12,6 @@ from abaqusConstants import *
 
 mdbName      = 'Static'
 cpus         = 1			#Number of CPU's
-run          = 1
-post         = 1			#Run post prossesing
 monitor      = 1
 
 #4x4  x10(5)
@@ -21,7 +19,11 @@ x            = 2			#Nr of columns in x direction
 z            = 2			#Nr of columns in z direction
 y            = 1			#nr of stories
 
-#Static step
+
+#=========== Static  ============#
+runStatic    = 1
+staticPost   = 1			#Run post prossesing
+
 staticType   = 'general' 	#'general' or 'riks'
 nlg          = ON				# Nonlinear geometry (ON/OFF)
 inInc        = 0.1				# Initial increment
@@ -228,14 +230,13 @@ mdb.Job(model=modelName, name=modelName,
     explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE)
 
 #Run job
-if run:
+if runStatic:
 	myFuncs.runJob(modelName)
-
-#Write CPU time to file
-myFuncs.staticCPUtime(modelName, 'results.txt')
+	#Write CPU time to file
+	myFuncs.staticCPUtime(modelName, 'results.txt')
 
 #=========== Post proccesing  ============#
-if post:
+if staticPost:
 
 	print 'Post processing...'
 
