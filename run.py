@@ -25,6 +25,7 @@ y            = 1			#nr of stories
 runStatic    = 0
 staticPost   = 0			#Run post prossesing
 
+
 staticType   = 'general' 	#'general' or 'riks'
 nlg          = ON				# Nonlinear geometry (ON/OFF)
 inInc        = 0.1				# Initial increment
@@ -253,19 +254,12 @@ mdb.Job(model=modelName, name=modelName,
     numCpus=cpus, numDomains=cpus,
     explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE)
 
-
 #Save mdb
 mdb.saveAs(pathName = mdbName + '.cae')
 
-#Create timer object
-timer = myFuncs.timer()
-
 #Run job
 if runStatic:
-	timer.start(modelName)
 	myFuncs.runJob(modelName)
-	timer.end('results.txt')
-	myFuncs.dispJob(modelName, defScale)
 
 
 #Write CPU time to file
