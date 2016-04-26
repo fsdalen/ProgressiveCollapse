@@ -906,7 +906,7 @@ def open_odb(odbPath):
 
 def XYprint(odbName, plotName, printFormat, *args):
 	'''
-	Prints XY curve(s) to file
+	Prints XY plot to file
 
 	odbName     = name of odbFile
 	plotName    = name to give plot
@@ -914,9 +914,12 @@ def XYprint(odbName, plotName, printFormat, *args):
 	*args       = curve(s) to plot
 	'''
 
+	
 	V=session.viewports['Viewport: 1']
 	#Open ODB
 	odb = open_odb(odbName)
+
+	#=========== XP plot  ============#
 	#Create plot
 	if plotName not in session.xyPlots.keys():
 		session.XYPlot(plotName)
@@ -931,8 +934,37 @@ def XYprint(odbName, plotName, printFormat, *args):
 	#Print plot
 	session.printToFile(fileName='XY_'+plotName,format=printFormat,
 		canvasObjects=(V, ))
+	
 
+def writeData(odbName, data, name, var1, var2, unit1, unit2):
+	'''
+	Takes xy data and writes to file. 
+	
+	odbName      = odb to read from
+	data         = tuple of double tuples (or list) containing data
+	name         = name of data set
+	var1, var2   = name of variables
+	unit1, unit2 = units of variables
 
+	Output format of file:
+	=======================
+	var1_unit1	var2_unit2
+
+	data1	data2
+	data1	data2
+	data1	data2
+	=======================
+	'''
+
+	v1 = [x[0] for x in data]
+	v2 = [x[1] for x in data]
+	fileName = odbName+'_'+name+'.txt'
+	with open(fileName, 'w+') as f:
+		f.write(var1+'_'+unit1+'\t'+var2+''+unit2+'\n\n')
+		for i in range(len(v1)):
+			f.write('%10.6E' %(v1[i]))
+			f.write('\t')
+			f.write('%10.6E \n' %(v2[i]))
 
 
 def countourPrint(odbName, defScale, printFormat):
@@ -1033,7 +1065,36 @@ def xyAPMcolPrint(odbName, column, printFormat):
 		suppressQuery=True)
 	c1 = session.Curve(xyData=xy1)
 	#Plot and Print
-	XYprint(jobName, plotName, printFormat, c1)
+	XYprint(odbName, plotName, printFormat, c1)
+
+	#=========== Data  ============#
+	data = histOpt.data
+	writeData(odbName, data, name='U2topColRmv',
+		var1='Time', var2='Displacement', unit1='s', unit2='mm')
+		
+
+
+with open(odbName + '_Displ_mm.txt', 'w+') as f:
+	
+
+with (fileName, 'w') as f:
+
+
+	
+
+
+	
+	session.writeXYReport(fileName='test.txt', xyData=(xy1, ))
+	#Create tab file from report file
+with open(fname, 'rb') as f:
+    lines = f.readlines()
+
+with open('test_new.txt', 'w') as f:
+    for line in lines:
+        lst = line.lstrip().rstrip().split()
+        for entry in lst:
+            f.write (entry+'\t')
+        f.write('\n')
 
 
 
