@@ -227,15 +227,9 @@ mdb.Job(model=modelName, name=modelName,
     numCpus=cpus, numDomains=cpus,
     explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE)
 
-#Create timer object
-timer = myFuncs.timer()
-
 #Run job
 if run:
-	timer.start(modelName)
 	myFuncs.runJob(modelName)
-	timer.end('results.txt')
-	myFuncs.dispJob(modelName, defScale)
 
 #Write CPU time to file
 myFuncs.staticCPUtime(modelName, 'results.txt')

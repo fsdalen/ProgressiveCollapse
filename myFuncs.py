@@ -763,42 +763,8 @@ def addSlabLoad(M, x, z, y, step, load):
 #===========================================================#
 
 
-def dispJob(jobName, defScale):
-	'''
-	Opens the job in a viewport
 
-	jobName:	name of job to display
-	defScale:	Deformation scale
-	'''
-	#Open odb
-	odb = open_odb(jobName)
-	#View odb in viewport
-	V=session.viewports['Viewport: 1']
-	V.setValues(displayedObject=odb)
-	V.odbDisplay.display.setValues(plotState=(
-		CONTOURS_ON_DEF, ))
-	V.odbDisplay.commonOptions.setValues(
-		deformationScaling=UNIFORM, uniformScaleFactor=defScale)
-
-
-def runJob(jobName):
-	print 'Running %s...' %jobName
-
-	'''Need to run jobs with an exeption in order to continue after riks step.
-	The step is not completed but aborted when it reached max LPF.
-	Also if maximum nr of increments is reach I still whant to be able to 
-	do post proccesing'''
-
-	try:
-		mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
-		mdb.jobs[jobName].waitForCompletion()
-	except:
-		print 'runJob Exeption:'
-		print mdb.jobs[jobName].status
-
-
-
-class timer(object):
+class clockTimer(object):
 	"""
 	Class for taking the wallclocktime of an analysis.
 	Uses the python function datetime to calculate the elapsed time.
@@ -824,8 +790,48 @@ class timer(object):
 		t = datetime.now() - self.startTime
 		time = str(t)[:-7]
 		with open(fileName,'a') as f:
-			text = '%s wallClockTime:	%s\n' % (self.model, time) 
+			text = '%s	wallClockTime:	%s\n' % (self.model, time) 
 			f.write(text)
+
+
+
+def runJob(jobName):
+	print 'Running %s...' %jobName
+
+	'''
+	Need to run jobs with an exeption in order to continue after riks step.
+	The step is not completed but aborted when it reached max LPF.
+	Also if maximum nr of increments is reach I still whant to be able to 
+	do post proccesing'''
+
+	#Create and start timer
+	timer = clockTimer()
+	timer.start(jobName)
+
+	#Run job
+	try:
+		mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
+		mdb.jobs[jobName].waitForCompletion()
+	except:
+		print 'runJob Exeption:'
+		print mdb.jobs[jobName].status
+
+	#End timer and write result to file
+	timer.end('results.txt')
+
+	#=========== Display Job  ============#
+	#Open odb
+	odb = open_odb(jobName)
+	#View odb in viewport
+	V=session.viewports['Viewport: 1']
+	V.setValues(displayedObject=odb)
+	V.odbDisplay.display.setValues(plotState=(
+		CONTOURS_ON_DEF, ))
+	V.odbDisplay.commonOptions.setValues(
+		deformationScaling=UNIFORM, uniformScaleFactor=10)
+
+
+
 
 def staticCPUtime(jobName, fileName):
 	'''
@@ -840,7 +846,7 @@ def staticCPUtime(jobName, fileName):
 
 	cpuTime = lines[-2]
 	with open(fileName, 'a') as f:
-		f.write(jobName + ':	' +cpuTime+'\n')
+		f.write(jobName + '	' +cpuTime+'\n')
 
 
 #=========== Post proccesing  ============#
