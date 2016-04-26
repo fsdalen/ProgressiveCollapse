@@ -243,7 +243,7 @@ myFuncs.addSlabLoad(M, x, z, y, stepName, load = LL)
 
 #===========================================================#
 #===========================================================#
-#                   JOB 		                            #
+#                   JOB ANS POST                            #
 #===========================================================#
 #===========================================================#
 
@@ -251,8 +251,7 @@ M.rootAssembly.regenerate()
 
 #Create job
 mdb.Job(model=modelName, name=modelName,
-    numCpus=cpus, numDomains=cpus,
-    explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE)
+    numCpus=cpus, numDomains=cpus)
 
 #Save mdb
 mdb.saveAs(pathName = mdbName + '.cae')
@@ -260,18 +259,9 @@ mdb.saveAs(pathName = mdbName + '.cae')
 #Run job
 if runStatic:
 	myFuncs.runJob(modelName)
-	#Write CPU time to file
-	myFuncs.staticCPUtime(modelName, 'results.txt')
+	#Write CPU time and nr of incs to file
+	myFuncs.readMsgFile(modelName, 'results.txt')
 
-
-
-
-
-#====================================================#
-#====================================================#
-#                    POST                            #
-#====================================================#
-#====================================================#
 
 #=========== Post proccesing  ============#
 if staticPost:

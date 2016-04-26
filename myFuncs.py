@@ -324,6 +324,21 @@ def createSets(M, col_height):
 	M.parts['COLUMN'].Set(name='col-top', vertices=
 	    M.parts['COLUMN'].vertices.findAt(((0.0, col_height, 0.0),)))
 
+	#Column
+	M.parts['COLUMN'].Set(edges=
+	    M.parts['COLUMN'].edges.findAt(((0.0, 1.0, 0.0), )), 
+	    name='set')
+
+	#Beam
+	M.parts['BEAM'].Set(edges=
+	    M.parts['BEAM'].edges.findAt(((1.0, 0.0, 0.0), )), 
+	    name='set')
+
+	#Slab
+	M.parts['SLAB'].Set(faces=
+	    M.parts['SLAB'].faces.findAt(((1.0, 1.0, 0.0), )), 
+	    name='set')
+
 
 
 def createSurfs(M):
@@ -833,20 +848,27 @@ def runJob(jobName):
 
 
 
-def staticCPUtime(jobName, fileName):
+def readMsgFile(jobName, fileName):
 	'''
-	Reads CPU time from .msg file and writes that to file
+	Reads CPU time and nr of increments from .msg file
+	and writes that to fileName
 
 	jobName  = model to read CPU time for
 	fileName = name of file to write result
 	'''
-	#Print CPU time to file
+	#Read .msg file
 	with open(jobName+'.msg') as f:
 		lines = f.readlines()
 
+	#CPU time
 	cpuTime = lines[-2]
 	with open(fileName, 'a') as f:
 		f.write(jobName + '	' +cpuTime+'\n')
+
+	#Nr of increments
+	inc = lines[-22]
+	with open(fileName, 'a') as f:
+		f.write(jobName + '	' +inc+'\n')	
 
 
 
