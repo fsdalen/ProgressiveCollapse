@@ -1085,33 +1085,6 @@ def xyAPMcolPrint(odbName, column, printFormat):
 	data = histOpt.data
 	writeData(odbName, data, name='U2topColRmv',
 		var1='Time', var2='Displacement', unit1='s', unit2='mm')
-		
-
-
-with open(odbName + '_Displ_mm.txt', 'w+') as f:
-	
-
-with (fileName, 'w') as f:
-
-
-	
-
-
-	
-	session.writeXYReport(fileName='test.txt', xyData=(xy1, ))
-	#Create tab file from report file
-with open(fname, 'rb') as f:
-    lines = f.readlines()
-
-with open('test_new.txt', 'w') as f:
-    for line in lines:
-        lst = line.lstrip().rstrip().split()
-        for entry in lst:
-            f.write (entry+'\t')
-        f.write('\n')
-
-
-
 
 
 
@@ -1297,6 +1270,7 @@ def blastSurf(M):
 			lst.append(ass.instances[inst].surfaces['botSurf'])
 	blastSurf = tuple(lst)
 	ass.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
+
 
 
 
