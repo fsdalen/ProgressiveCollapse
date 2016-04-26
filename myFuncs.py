@@ -848,20 +848,27 @@ def runJob(jobName):
 
 
 
-def staticCPUtime(jobName, fileName):
+def readMsgFile(jobName, fileName):
 	'''
-	Reads CPU time from .msg file and writes that to file
+	Reads CPU time and nr of increments from .msg file
+	and writes that to fileName
 
 	jobName  = model to read CPU time for
 	fileName = name of file to write result
 	'''
-	#Print CPU time to file
+	#Read .msg file
 	with open(jobName+'.msg') as f:
 		lines = f.readlines()
 
+	#CPU time
 	cpuTime = lines[-2]
 	with open(fileName, 'a') as f:
 		f.write(jobName + '	' +cpuTime+'\n')
+
+	#Nr of increments
+	inc = lines[-22]
+	with open(fileName, 'a') as f:
+		f.write(jobName + '	' +inc+'\n')	
 
 
 #=========== Post proccesing  ============#

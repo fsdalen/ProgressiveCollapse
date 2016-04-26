@@ -232,7 +232,7 @@ mdb.Job(model=modelName, name=modelName,
 if runStatic:
 	myFuncs.runJob(modelName)
 	#Write CPU time to file
-	myFuncs.staticCPUtime(modelName, 'results.txt')
+	myFuncs.readMsgFile(modelName, 'results.txt')
 
 #=========== Post proccesing  ============#
 if staticPost:
