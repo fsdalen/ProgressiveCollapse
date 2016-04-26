@@ -326,17 +326,19 @@ def createSets(M, col_height):
 	#Column
 	M.parts['COLUMN'].Set(edges=
 	    M.parts['COLUMN'].edges.findAt(((0.0, 1.0, 0.0), )), 
-	    name='COLUMN')
+	    name='set')
+
 
 	#Beam
 	M.parts['BEAM'].Set(edges=
 	    M.parts['BEAM'].edges.findAt(((1.0, 0.0, 0.0), )), 
-	    name='BEAM')
+	    name='set')
 
 	#Slab
 	M.parts['SLAB'].Set(faces=
 	    M.parts['SLAB'].faces.findAt(((1.0, 1.0, 0.0), )), 
-	    name='SLAB')
+	    name='set')
+
 
 
 
