@@ -399,7 +399,7 @@ if APM:
 	#Run job
 	if runAPM:
 		myFuncs.runJob(modelName)
-		myFuncs.explicitCPUtime(modelName, 'results.txt')
+		myFuncs.readStaFile(modelName, 'results.txt')
 
 
 	#=========== Post proccesing  ============#
@@ -539,7 +539,7 @@ if blast:
 	#Run job
 	if runBlast:
 		myFuncs.runJob(modelName)
-		myFuncs.explicitCPUtime(modelName, 'results.txt')
+		myFuncs.readStaFile(modelName, 'results.txt')
 	
 	
 	#=========== Post proccesing  ============#

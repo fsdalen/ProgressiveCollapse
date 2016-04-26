@@ -872,15 +872,17 @@ def readMsgFile(jobName, fileName):
 
 
 
-def explicitCPUtime(jobName, fileName):
-	#Explicit from .sta
+def readStaFile(jobName, fileName):
+	
 	#Print CPU time to file
 	with open(jobName+'.sta') as f:
 		lines = f.readlines()
 
 	cpuTime = lines[-7][32:40]
+	stblInc = lines[-7][41:50]
 	with open(fileName, 'a') as f:
-		f.write(jobName + '	' +cpuTime+'\n')
+		f.write(jobName + '	CPUtime ' +cpuTime+'\n')
+		f.write(jobName + '	Stable Time Increment ' +stblInc+'\n')
 
 
 #=========== Post proccesing  ============#
