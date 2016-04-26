@@ -12,9 +12,9 @@ from abaqusConstants import *
 
 mdbName      = 'Static'
 cpus         = 1			#Number of CPU's
-run          = 0
-post         = 0			#Run post prossesing
-monitor      = 0
+run          = 1
+post         = 1			#Run post prossesing
+monitor      = 1
 
 #4x4  x10(5)
 x            = 2			#Nr of columns in x direction
@@ -100,12 +100,6 @@ print '\n'*2
 
 #For convinience
 M = mdb.models[modelName]
-ass = M.rootAssembly
-'''
-M and ass are used as object cointaining the model and the assembly of
-that model. If a new model is created they needs to be updated.
-This is just for faster writing and easier copy pasting of code. 
-'''
 
 #Deletes all other models
 myFuncs.delModels(modelName)
@@ -156,7 +150,7 @@ myFuncs.mesh(M, seed)
 M.rootAssembly.regenerate()
 nrElm = myFuncs.elmCounter(M)
 with open('results.txt','a') as f:
-	f.write("Total nr of elements: %s" %nrElm)
+	f.write("%s	Elements: %s \n" %(modelName, nrElm))
 
 
 #=========== Joints  ============#
@@ -233,10 +227,18 @@ mdb.Job(model=modelName, name=modelName,
     numCpus=cpus, numDomains=cpus,
     explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE)
 
+#Create timer object
+timer = myFuncs.timer()
+
 #Run job
 if run:
+	timer.start(modelName)
 	myFuncs.runJob(modelName)
+	timer.end('results.txt')
+	myFuncs.dispJob(modelName, defScale)
 
+#Write CPU time to file
+myFuncs.staticCPUtime(modelName, 'results.txt')
 
 #=========== Post proccesing  ============#
 if post:
@@ -253,6 +255,9 @@ if post:
 	#=========== XY  ============#
 	myFuncs.xyEnergyPrint(modelName, printFormat)
 
+	#=========== Animation  ============#
+	myFuncs.animate(modelName, defScale, frameRate= 1)
+	
 
 	print '   done'
 

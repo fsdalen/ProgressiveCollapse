@@ -17,6 +17,7 @@ from connectorBehavior import *
 import odbAccess
 import xyPlot
 from jobMessage import ANY_JOB, ANY_MESSAGE_TYPE
+import animation
 
 #Python modules
 from datetime import datetime
@@ -321,21 +322,6 @@ def createSets(M, col_height):
 	    M.parts['COLUMN'].vertices.findAt(((0.0, 0.0, 0.0),)))		
 	M.parts['COLUMN'].Set(name='col-top', vertices=
 	    M.parts['COLUMN'].vertices.findAt(((0.0, col_height, 0.0),)))
-
-	#Column
-	M.parts['COLUMN'].Set(edges=
-	    M.parts['COLUMN'].edges.findAt(((0.0, 1.0, 0.0), )), 
-	    name='COLUMN')
-
-	#Beam
-	M.parts['BEAM'].Set(edges=
-	    M.parts['BEAM'].edges.findAt(((1.0, 0.0, 0.0), )), 
-	    name='BEAM')
-
-	#Slab
-	M.parts['SLAB'].Set(faces=
-	    M.parts['SLAB'].faces.findAt(((1.0, 1.0, 0.0), )), 
-	    name='SLAB')
 
 
 
@@ -777,28 +763,22 @@ def addSlabLoad(M, x, z, y, step, load):
 #===========================================================#
 
 
-def dispJob(jobName):
+def dispJob(jobName, defScale):
 	'''
 	Opens the job in a viewport
 
-	Parameter
 	jobName:	name of job to display
+	defScale:	Deformation scale
 	'''
-	fullJobName = jobName+'.odb'
-	fls = glob.glob('*.odb')
-	for i in fls:
-		if i == fullJobName:
-			dispObj = session.openOdb(name=fullJobName)
-			session.viewports['Viewport: 1'].setValues(
-				displayedObject=dispObj)
-			session.viewports['Viewport: 1'].odbDisplay.display.setValues(
-				plotState=(CONTOURS_ON_DEF, ))
-			session.viewports['Viewport: 1'].odbDisplay.commonOptions.setValues(
-				uniformScaleFactor=10)
-		else:
-			print 'dispJob error'
-			print 'dispJob() error, jobName does not exist'
-	return
+	#Open odb
+	odb = open_odb(jobName)
+	#View odb in viewport
+	V=session.viewports['Viewport: 1']
+	V.setValues(displayedObject=odb)
+	V.odbDisplay.display.setValues(plotState=(
+		CONTOURS_ON_DEF, ))
+	V.odbDisplay.commonOptions.setValues(
+		deformationScaling=UNIFORM, uniformScaleFactor=defScale)
 
 
 def runJob(jobName):
@@ -812,21 +792,55 @@ def runJob(jobName):
 	try:
 		mdb.jobs[jobName].submit(consistencyChecking=OFF)	#Run job
 		mdb.jobs[jobName].waitForCompletion()
-		dispJob(jobName)
 	except:
 		print 'runJob Exeption:'
 		print mdb.jobs[jobName].status
 
 
 
+class timer(object):
+	"""
+	Class for taking the wallclocktime of an analysis.
+	Uses the python function datetime to calculate the elapsed time.
+	"""
+	def __init__(self):
+		self.model = None
+    
+	def start(self, model):
+		'''
+		Start a timer
 
+		model = name of model to time
+		'''
+		self.startTime = datetime.now()
+		self.model = model
+    
+	def end(self, fileName):
+		'''
+		End a timer and write result to file
 
+		fileName = name of file to write result to
+		'''
+		t = datetime.now() - self.startTime
+		time = str(t)[:-7]
+		with open(fileName,'a') as f:
+			text = '%s wallClockTime:	%s\n' % (self.model, time) 
+			f.write(text)
 
+def staticCPUtime(jobName, fileName):
+	'''
+	Reads CPU time from .msg file and writes that to file
 
+	jobName  = model to read CPU time for
+	fileName = name of file to write result
+	'''
+	#Print CPU time to file
+	with open(jobName+'.msg') as f:
+		lines = f.readlines()
 
-
-
-
+	cpuTime = lines[-2]
+	with open(fileName, 'a') as f:
+		f.write(jobName + ':	' +cpuTime+'\n')
 
 
 #=========== Post proccesing  ============#
@@ -921,12 +935,12 @@ def countourPrint(odbName, defScale, printFormat):
 		V.odbDisplay.setPrimaryVariable(
 			variableLabel='S', outputPosition=INTEGRATION_POINT,
 			refinement=(INVARIANT, 'Mises'), )
-		session.printToFile(fileName='Cont_VonMises'+step,
+		session.printToFile(fileName='Cont_VonMises_'+step,
 			format=printFormat, canvasObjects=(V, ))
 		#PEEQ
 		V.odbDisplay.setPrimaryVariable(
 			variableLabel='PEEQ', outputPosition=INTEGRATION_POINT, )
-		session.printToFile(fileName='Cont_PEEQ'+step,
+		session.printToFile(fileName='Cont_PEEQ_'+step,
 			format=printFormat, canvasObjects=(V, ))
 
 
@@ -992,3 +1006,43 @@ def xyAPMcolPrint(odbName, column, printFormat):
 	c1 = session.Curve(xyData=xy1)
 	#Plot and Print
 	XYprint(jobName, plotName, printFormat, c1)
+
+
+
+
+def animate(odbName, defScale, frameRate):
+	'''
+	Animates the deformation with Von Mises contour plot
+	Each field output frame is a frame in the animation
+	(that means the animation time is not real time)
+
+	odbName = name of job
+	defScal = deformation scale
+	frameRate = frame rate
+	'''
+	
+	#Open odb
+	odb = open_odb(odbName)
+	#Create object for viewport
+	V=session.viewports['Viewport: 1']
+
+	#View odb in viewport
+	V.setValues(displayedObject=odb)
+	V.odbDisplay.display.setValues(plotState=(CONTOURS_ON_DEF, ))
+	V.odbDisplay.commonOptions.setValues(
+		deformationScaling=UNIFORM, uniformScaleFactor=defScale)
+	V.odbDisplay.setPrimaryVariable(
+		variableLabel='S', outputPosition=INTEGRATION_POINT,
+		refinement=(INVARIANT, 'Mises'), )
+
+	#Create and save animation
+	session.animationController.setValues(animationType=TIME_HISTORY,
+		viewports=(V.name,))
+	session.animationController.play()
+	session.imageAnimationOptions.setValues(frameRate = frameRate,
+		compass = ON, vpBackground=ON)
+	session.writeImageAnimation(fileName=odbName, format=QUICKTIME,
+		canvasObjects=(V, )) #format = QUICKTIME or AVI
+
+	#Stop animation
+	session.animationController.stop()
