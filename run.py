@@ -226,8 +226,7 @@ mdb.saveAs(pathName = mdbName + '.cae')
 
 #Create job
 mdb.Job(model=modelName, name=modelName,
-    numCpus=cpus, numDomains=cpus,
-    explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE)
+    numCpus=cpus, numDomains=cpus)
 
 #Run job
 if runStatic:

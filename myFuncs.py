@@ -323,6 +323,21 @@ def createSets(M, col_height):
 	M.parts['COLUMN'].Set(name='col-top', vertices=
 	    M.parts['COLUMN'].vertices.findAt(((0.0, col_height, 0.0),)))
 
+	#Column
+	M.parts['COLUMN'].Set(edges=
+	    M.parts['COLUMN'].edges.findAt(((0.0, 1.0, 0.0), )), 
+	    name='set')
+
+	#Beam
+	M.parts['BEAM'].Set(edges=
+	    M.parts['BEAM'].edges.findAt(((1.0, 0.0, 0.0), )), 
+	    name='set')
+
+	#Slab
+	M.parts['SLAB'].Set(faces=
+	    M.parts['SLAB'].faces.findAt(((1.0, 1.0, 0.0), )), 
+	    name='set')
+
 
 
 def createSurfs(M):
