@@ -12,7 +12,7 @@ from abaqusConstants import *
 
 mdbName      = 'Explicit'
 cpus         = 1			#Number of CPU's
-monitor      = 0
+monitor      = 1
 
 
 #4x4  x10(5)
@@ -36,7 +36,7 @@ maxStaticInc = 50 #Maximum number of increments for static step
 #=========== APM  ============#
 APM           = 0
 runAPM        = 0
-APMpost 	  = 1
+APMpost 	  = 0
 
 APMcol        = 'COLUMN_B2-1'		#Column to be removed
 histIntervals = 200 		#History output evenly spaced over n increments
@@ -48,8 +48,8 @@ dynStepTime   = 1.0
 
 #=========== Blast  ============#
 blast      = 1
-runBlast   = 1
-blastPost  = 1
+runBlast   = 0
+blastPost  = 0
 staticTime = staticTime
 blastTime  = 2.0
 
@@ -260,10 +260,8 @@ mdb.saveAs(pathName = mdbName + '.cae')
 #Run job
 if runStatic:
 	myFuncs.runJob(modelName)
-
-
-#Write CPU time to file
-myFuncs.staticCPUtime(modelName, 'results.txt')
+	#Write CPU time to file
+	myFuncs.staticCPUtime(modelName, 'results.txt')
 
 
 
@@ -411,6 +409,7 @@ if APM:
 	#Run job
 	if runAPM:
 		myFuncs.runJob(modelName)
+		myFuncs.explicitCPUtime(modelName, 'results.txt')
 
 
 	#=========== Post proccesing  ============#
@@ -538,6 +537,8 @@ if blast:
 
 	#=========== Job  ============#
 	
+	M.rootAssembly.regenerate()
+
 	#Create job
 	mdb.Job(model=modelName, name=modelName,
 	    numCpus=cpus, numDomains=cpus,
@@ -548,6 +549,7 @@ if blast:
 	#Run job
 	if runBlast:
 		myFuncs.runJob(modelName)
+		myFuncs.explicitCPUtime(modelName, 'results.txt')
 	
 	
 	#=========== Post proccesing  ============#

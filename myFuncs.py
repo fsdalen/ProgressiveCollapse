@@ -849,6 +849,18 @@ def staticCPUtime(jobName, fileName):
 		f.write(jobName + '	' +cpuTime+'\n')
 
 
+
+def explicitCPUtime(jobName, fileName):
+	#Explicit from .sta
+	#Print CPU time to file
+	with open(jobName+'.sta') as f:
+		lines = f.readlines()
+
+	cpuTime = lines[-7][32:40]
+	with open(fileName, 'a') as f:
+		f.write(jobName + '	' +cpuTime+'\n')
+
+
 #=========== Post proccesing  ============#
 
 
