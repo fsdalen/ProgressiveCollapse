@@ -936,35 +936,30 @@ def XYprint(odbName, plotName, printFormat, *args):
 		canvasObjects=(V, ))
 	
 
-def writeData(odbName, data, name, var1, var2, unit1, unit2):
+def fixReportFile(reportFile, plotName, odbName):
 	'''
-	Takes xy data and writes to file. 
+	Creates a tab file froma stupid report file
+
+	reportFile = name of report file to fix
+	plotName   = what is plottes
+	odbName    = name of job
+	'''
 	
-	odbName      = odb to read from
-	data         = tuple of double tuples (or list) containing data
-	name         = name of data set
-	var1, var2   = name of variables
-	unit1, unit2 = units of variables
+	fileName = 'xyData_'+plotName+'_'+odbName+'.txt'
+	with open(reportFile, 'r') as f:
+	    lines = f.readlines()
 
-	Output format of file:
-	=======================
-	var1_unit1	var2_unit2
+	with open(fileName, 'w') as f:
+	    for line in lines:
+	        lst = line.lstrip().rstrip().split()
+	        if lst:
+		        f.write(lst[0])
+		        f.write('\t')
+		        f.write(lst[1])
+		        f.write('\n')
 
-	data1	data2
-	data1	data2
-	data1	data2
-	=======================
-	'''
 
-	v1 = [x[0] for x in data]
-	v2 = [x[1] for x in data]
-	fileName = odbName+'_'+name+'.txt'
-	with open(fileName, 'w+') as f:
-		f.write(var1+'_'+unit1+'\t'+var2+''+unit2+'\n\n')
-		for i in range(len(v1)):
-			f.write('%10.6E' %(v1[i]))
-			f.write('\t')
-			f.write('%10.6E \n' %(v2[i]))
+
 
 
 def countourPrint(odbName, defScale, printFormat):
@@ -1038,16 +1033,17 @@ def xyEnergyPrint(odbName, printFormat):
 
 
 
-def xyAPMcolPrint(odbName, column, printFormat):
+def xyAPMcolPrint(odbName, column, printFormat, stepName):
 	'''
 	Prints U2 at top of removed column in APM.
 
-	odbName = name of odb
-	column  = name of column that is removed in APM
+	odbName     = name of odb
+	column      = name of column that is removed in APM
 	printFormat = TIFF, PS, EPS, PNG, SVG
+	stepName    = name of a step that exist in the model
 	'''
 
-	plotName = 'U2_APMCol'
+	plotName = 'APMcolU2'
 
 	#Open ODB
 	odb = open_odb(odbName)
@@ -1055,22 +1051,21 @@ def xyAPMcolPrint(odbName, column, printFormat):
 	for key in odb.steps[stepName].historyRegions.keys():
 		if key.find('Node '+column) > -1:
 			histName = key
-	histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
 	#Get node number
 	nodeNr = histName[-1]
+	varName ='Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP'
 	#Create XY-curve
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName=
-		'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=varName, 
 		suppressQuery=True)
 	c1 = session.Curve(xyData=xy1)
 	#Plot and Print
 	XYprint(odbName, plotName, printFormat, c1)
 
 	#=========== Data  ============#
-	data = histOpt.data
-	writeData(odbName, data, name='U2topColRmv',
-		var1='Time', var2='Displacement', unit1='s', unit2='mm')
+	#Report data
+	tempFile = '_____temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
+	fixReportFile(tempFile, plotName, odbName)
 
 
 
