@@ -285,7 +285,7 @@ if staticPost:
 	#Energy
 	myFuncs.xyEnergyPrint(modelName, printFormat)
 	#U2 at top of removed column to be removed
-	myFuncs.xyAPMcolPrint(modelName, stepName, APMcol, printFormat)
+	myFuncs.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
 	#=========== Animation  ============#
 	myFuncs.animate(modelName, defScale, frameRate= 1)
@@ -427,7 +427,8 @@ if APM:
 		#Energy
 		myFuncs.xyEnergyPrint(modelName, printFormat)
 		#U2 at top of removed column
-		myFuncs.xyAPMcolPrint(modelName, stepName, APMcol, printFormat)
+		myFuncs.xyAPMcolPrint(modelName, APMcol, printFormat,
+			stepName)
 
 		print '   done'
 
