@@ -863,17 +863,20 @@ def readMsgFile(jobName, fileName):
 	#CPU time
 	cpuTime = lines[-2]
 	with open(fileName, 'a') as f:
-		f.write(jobName + '	' +cpuTime+'\n')
+		f.write(jobName + '	' +cpuTime)
 
 	#Nr of increments
 	inc = lines[-22]
 	with open(fileName, 'a') as f:
-		f.write(jobName + '	' +inc+'\n')	
+		f.write(jobName + '	' +inc)	
 
 
 
 def readStaFile(jobName, fileName):
-	
+	'''
+	Reads cpuTime and last stable time increment from .sta file.
+	Prints result to fileName
+	'''
 	#Print CPU time to file
 	with open(jobName+'.sta') as f:
 		lines = f.readlines()
@@ -972,9 +975,9 @@ def writeData(odbName, data, name, var1, var2, unit1, unit2):
 
 	v1 = [x[0] for x in data]
 	v2 = [x[1] for x in data]
-	fileName = odbName+'_'+name+'.txt'
+	fileName = odbName+'_'+name+'_plot.txt'
 	with open(fileName, 'w+') as f:
-		f.write(var1+'_'+unit1+'\t'+var2+''+unit2+'\n\n')
+		f.write(var1+'_'+unit1+'\t'+var2+'_'+unit2+'\n\n')
 		for i in range(len(v1)):
 			f.write('%10.6E' %(v1[i]))
 			f.write('\t')
@@ -1052,7 +1055,7 @@ def xyEnergyPrint(odbName, printFormat):
 
 
 
-def xyAPMcolPrint(odbName, column, printFormat):
+def xyAPMcolPrint(odbName, stepName, column, printFormat):
 	'''
 	Prints U2 at top of removed column in APM.
 
@@ -1069,7 +1072,6 @@ def xyAPMcolPrint(odbName, column, printFormat):
 	for key in odb.steps[stepName].historyRegions.keys():
 		if key.find('Node '+column) > -1:
 			histName = key
-	histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
 	#Get node number
 	nodeNr = histName[-1]
 	#Create XY-curve
@@ -1082,7 +1084,8 @@ def xyAPMcolPrint(odbName, column, printFormat):
 	XYprint(odbName, plotName, printFormat, c1)
 
 	#=========== Data  ============#
-	data = histOpt.data
+	histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
+	data = histOpt['U2'].data
 	writeData(odbName, data, name='U2topColRmv',
 		var1='Time', var2='Displacement', unit1='s', unit2='mm')
 
@@ -1188,7 +1191,6 @@ def replaceForces(M, column, oldJob, oldStep, stepName, amplitude):
 		region=region, distributionType=UNIFORM, field='', localCsys=None,
 		amplitude=amplitude, 
 		cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
-
 
 
 

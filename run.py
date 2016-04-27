@@ -22,8 +22,8 @@ y            = 1			#nr of stories
 
 
 #=========== Static  ============#
-runStatic    = 0
-staticPost   = 0			#Run post prossesing
+runStatic    = 1
+staticPost   = 1			#Run post prossesing
 
 
 staticType   = 'general' 	#'general' or 'riks'
@@ -34,9 +34,9 @@ maxStaticInc = 50 #Maximum number of increments for static step
 
 
 #=========== APM  ============#
-APM           = 0
-runAPM        = 0
-APMpost 	  = 0
+APM           = 1
+runAPM        = 1
+APMpost 	  = 1
 
 APMcol        = 'COLUMN_B2-1'		#Column to be removed
 histIntervals = 200 		#History output evenly spaced over n increments
@@ -47,7 +47,7 @@ dynStepTime   = 1.0
 
 
 #=========== Blast  ============#
-blast      = 1
+blast      = 0
 runBlast   = 0
 blastPost  = 0
 staticTime = staticTime
@@ -228,6 +228,12 @@ M.HistoryOutputRequest(name='Energy',
 #Section forces at top of column to be removed in APM
 myFuncs.historySectionForces(M, APMcol, stepName)
 
+#U2 at top of column to later be removed
+M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
+		createStepName=stepName, variables=('U2',), 
+		region=M.rootAssembly.allInstances[APMcol].sets['col-top'])
+
+
 #=========== Loads  ============#
 # Gravity
 M.Gravity(comp2=-9800.0, createStepName=stepName, 
@@ -276,7 +282,10 @@ if staticPost:
 	myFuncs.countourPrint(modelName, defScale, printFormat)
 
 	#=========== XY  ============#
+	#Energy
 	myFuncs.xyEnergyPrint(modelName, printFormat)
+	#U2 at top of removed column to be removed
+	myFuncs.xyAPMcolPrint(modelName, stepName, APMcol, printFormat)
 
 	#=========== Animation  ============#
 	myFuncs.animate(modelName, defScale, frameRate= 1)
@@ -415,7 +424,10 @@ if APM:
 		myFuncs.countourPrint(modelName, defScale, printFormat)
 
 		#=========== XY  ============#
+		#Energy
 		myFuncs.xyEnergyPrint(modelName, printFormat)
+		#U2 at top of removed column
+		myFuncs.xyAPMcolPrint(modelName, stepName, APMcol, printFormat)
 
 		print '   done'
 
