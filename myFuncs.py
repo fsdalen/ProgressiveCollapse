@@ -850,20 +850,27 @@ def runJob(jobName):
 
 
 
-def staticCPUtime(jobName, fileName):
+def readMsgFile(jobName, fileName):
 	'''
-	Reads CPU time from .msg file and writes that to file
+	Reads CPU time and nr of increments from .msg file
+	and writes that to fileName
 
 	jobName  = model to read CPU time for
 	fileName = name of file to write result
 	'''
-	#Print CPU time to file
+	#Read .msg file
 	with open(jobName+'.msg') as f:
 		lines = f.readlines()
 
+	#CPU time
 	cpuTime = lines[-2]
 	with open(fileName, 'a') as f:
 		f.write(jobName + '	' +cpuTime+'\n')
+
+	#Nr of increments
+	inc = lines[-22]
+	with open(fileName, 'a') as f:
+		f.write(jobName + '	' +inc+'\n')	
 
 
 #=========== Post proccesing  ============#
@@ -901,7 +908,7 @@ def open_odb(odbPath):
 
 def XYprint(odbName, plotName, printFormat, *args):
 	'''
-	Prints XY curve(s) to file
+	Prints XY plot to file
 
 	odbName     = name of odbFile
 	plotName    = name to give plot
@@ -909,9 +916,12 @@ def XYprint(odbName, plotName, printFormat, *args):
 	*args       = curve(s) to plot
 	'''
 
+	
 	V=session.viewports['Viewport: 1']
 	#Open ODB
 	odb = open_odb(odbName)
+
+	#=========== XP plot  ============#
 	#Create plot
 	if plotName not in session.xyPlots.keys():
 		session.XYPlot(plotName)
@@ -924,8 +934,32 @@ def XYprint(odbName, plotName, printFormat, *args):
 	#Show plot
 	V.setValues(displayedObject=xyp)
 	#Print plot
-	session.printToFile(fileName='XY_'+plotName,format=printFormat,
-		canvasObjects=(V, ))
+	session.printToFile(fileName='XY_'+plotName+'_'+odbName,
+		format=printFormat, canvasObjects=(V, ))
+	
+
+def fixReportFile(reportFile, plotName, odbName):
+	'''
+	Creates a tab file froma stupid report file
+
+	reportFile = name of report file to fix
+	plotName   = what is plottes
+	odbName    = name of job
+	'''
+	
+	fileName = 'xyData_'+plotName+'_'+odbName+'.txt'
+	with open(reportFile, 'r') as f:
+	    lines = f.readlines()
+
+	with open(fileName, 'w') as f:
+	    for line in lines:
+	        lst = line.lstrip().rstrip().split()
+	        if lst:
+		        f.write(lst[0])
+		        f.write('\t')
+		        f.write(lst[1])
+		        f.write('\n')
+
 
 
 
@@ -1001,16 +1035,17 @@ def xyEnergyPrint(odbName, printFormat):
 
 
 
-def xyAPMcolPrint(odbName, column, printFormat):
+def xyAPMcolPrint(odbName, column, printFormat, stepName):
 	'''
 	Prints U2 at top of removed column in APM.
 
-	odbName = name of odb
-	column  = name of column that is removed in APM
+	odbName     = name of odb
+	column      = name of column that is removed in APM
 	printFormat = TIFF, PS, EPS, PNG, SVG
+	stepName    = name of a step that exist in the model
 	'''
 
-	plotName = 'U2_APMCol'
+	plotName = 'U2'
 
 	#Open ODB
 	odb = open_odb(odbName)
@@ -1018,17 +1053,21 @@ def xyAPMcolPrint(odbName, column, printFormat):
 	for key in odb.steps[stepName].historyRegions.keys():
 		if key.find('Node '+column) > -1:
 			histName = key
-	histOpt = odb.steps[stepName].historyRegions[histName].historyOutputs
 	#Get node number
 	nodeNr = histName[-1]
+	varName ='Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP'
 	#Create XY-curve
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName=
-		'Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP', 
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=varName, 
 		suppressQuery=True)
 	c1 = session.Curve(xyData=xy1)
 	#Plot and Print
-	XYprint(jobName, plotName, printFormat, c1)
+	XYprint(odbName, plotName, printFormat, c1)
+
+	#=========== Data  ============#
+	#Report data
+	tempFile = '_____temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
+	fixReportFile(tempFile, plotName, odbName)
 
 
 
