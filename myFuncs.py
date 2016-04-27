@@ -932,8 +932,8 @@ def XYprint(odbName, plotName, printFormat, *args):
 	#Show plot
 	V.setValues(displayedObject=xyp)
 	#Print plot
-	session.printToFile(fileName='XY_'+plotName,format=printFormat,
-		canvasObjects=(V, ))
+	session.printToFile(fileName='XY_'+plotName+'_'+odbName,
+		format=printFormat, canvasObjects=(V, ))
 	
 
 def fixReportFile(reportFile, plotName, odbName):
@@ -1043,7 +1043,7 @@ def xyAPMcolPrint(odbName, column, printFormat, stepName):
 	stepName    = name of a step that exist in the model
 	'''
 
-	plotName = 'APMcolU2'
+	plotName = 'U2'
 
 	#Open ODB
 	odb = open_odb(odbName)
