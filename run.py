@@ -225,8 +225,11 @@ del M.historyOutputRequests['H-Output-1']
 M.HistoryOutputRequest(name='Energy', 
 	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
 
-#Section forces at top of column to be removed in APM
-myFuncs.historySectionForces(M, APMcol, stepName)
+#U2 at top of column to later be removed
+M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
+		createStepName=stepName, variables=('U2',), 
+		region=M.rootAssembly.allInstances[APMcol].sets['col-top'])
+
 
 #=========== Loads  ============#
 # Gravity
@@ -253,8 +256,7 @@ M.rootAssembly.regenerate()
 mdb.saveAs(pathName = mdbName + '.cae')
 
 #Create job
-mdb.Job(model=modelName, name=modelName,
-    numCpus=cpus)
+mdb.Job(model=modelName, name=modelName, numCpus=cpus)
 
 #Run job
 if runStatic:
@@ -275,7 +277,10 @@ if staticPost:
 	myFuncs.countourPrint(modelName, defScale, printFormat)
 
 	#=========== XY  ============#
+	#Energy
 	myFuncs.xyEnergyPrint(modelName, printFormat)
+	#U2 at top of removed column to be removed
+	myFuncs.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
 	#=========== Animation  ============#
 	myFuncs.animate(modelName, defScale, frameRate= 1)
@@ -328,9 +333,7 @@ if APM:
 	mdb.saveAs(pathName = mdbName + '.cae')
 
 	#Create job
-	mdb.Job(model=modelName, name=modelName,
-	    numCpus=cpus, numDomains=cpus,
-	    explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE)
+	mdb.Job(model=modelName, name=modelName, numCpus=cpus)
 
 	#Run job
 	if runAPM:
@@ -352,7 +355,10 @@ if APM:
 		myFuncs.countourPrint(modelName, defScale, printFormat)
 
 		#=========== XY  ============#
+		#Energy
 		myFuncs.xyEnergyPrint(modelName, printFormat)
+		#U2 at top of removed column to be removed
+		myFuncs.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
 		#=========== Animation  ============#
 		myFuncs.animate(modelName, defScale, frameRate= 1)
@@ -414,8 +420,7 @@ if multiAPM:
 			maxNumInc=300)
 
 		#Create job
-		mdb.Job(model=modelName, name=modelName,
-    		numCpus=cpus, numDomains=cpus)
+		mdb.Job(model=modelName, name=modelName, numCpus=cpus,)
 		
 		#Save model
 		mdb.saveAs(pathName = caeName+'.cae')
@@ -424,6 +429,24 @@ if multiAPM:
 		myFuncs.runJob(modelName)
 		#Write CPU time to file
 		myFuncs.staticCPUtime(modelName, 'results.txt')
+
+		#=========== Post  ============#
+		#Clear plots
+		for plot in session.xyPlots.keys():
+			del session.xyPlots[plot]
+
+		#Contour
+		myFuncs.countourPrint(modelName, defScale, printFormat)
+
+		#Energy
+		myFuncs.xyEnergyPrint(modelName, printFormat)
+		#U2 at top of removed column to be removed
+		myFuncs.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+
+		#Animation
+		myFuncs.animate(modelName, defScale, frameRate= 1)
+		mdb.saveAs(pathName = mdbName+'.cae')
+
 
 		#================ Check new ODB ==========================#
 		oldODB = modelName
