@@ -74,7 +74,8 @@ grid on
 %%-----------------------------------------------------------------------%%
 % Export material card
 %%-----------------------------------------------------------------------%%
-fich=fopen(['mat_' num2str(leote) '.inp'],'w');
+%fich=fopen(['mat_' num2str(leote) '.inp'],'w');
+fich=fopen(['steelMat.inp'],'w');
 % Add material
 fprintf(fich,'*Material, name=DOMEX_S355\n');
 % Add Density
