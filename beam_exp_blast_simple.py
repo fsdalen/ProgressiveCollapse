@@ -10,16 +10,13 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'simpleShellBlast'
+mdbName     = 'simpleBeamBlast'
 cpus        = 1			#Number of CPU's
 monitor     = 1
 
 
 run         = 1
 blastTime   = 0.1
-TNT         = 1.0	#tonns of tnt
-
-
 
 
 #Post
@@ -29,7 +26,7 @@ fieldIntervals = 30
 animeFrameRate = 5
 
 
-modelName   = 'simpleBlast'
+modelName   = 'simpleBeamBlast'
 
 #==========================================================#
 #==========================================================#
@@ -38,9 +35,9 @@ modelName   = 'simpleBlast'
 #==========================================================#
 
 import lib.func as func
-import lib.shell as shell
+import lib.beam as beam
 reload(func)
-reload(shell)
+reload(beam)
 
 
 steel = 'DOMEX_S355'
@@ -62,20 +59,19 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-shell.createSingleBeam(modelName, steel)
+beam.createSingleBeam(modelName, steel)
 
 
 #Create setp
-
 oldStep = 'Initial'
 stepName = 'blast'
 M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
     timePeriod=blastTime)
 
 #Create blast
-shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 100.0, 150.0), stepName=stepName)
-
+beam.blast(modelName, stepName, 
+	sourceCo = (-10000.0, 100.0, 0.0),
+	refCo = (-1000.0, 100.0, 0.0))
 
 
 
@@ -88,18 +84,31 @@ shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 #Frequency of field output
 M.fieldOutputRequests['F-Output-1'].setValues(numIntervals=fieldIntervals)
 
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=fieldIntervals)
+
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
-#Create set
-M.parts['Part-1'].Set(elements=
-    M.parts['Part-1'].elements[32:33], name='middle')
 
-#Create U history output
-regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['midNode']
+#History output
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-base']
+M.HistoryOutputRequest(name='load-base', 
+    createStepName=stepName, variables=('RF1', ), region=regionDef, 
+    sectionPoints=DEFAULT, rebar=EXCLUDE)
+
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-top']
+M.HistoryOutputRequest(name='load-top', 
+    createStepName=stepName, variables=('RF1', ), region=regionDef, 
+    sectionPoints=DEFAULT, rebar=EXCLUDE)
+
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-mid']
 M.HistoryOutputRequest(name='displacement', 
     createStepName=stepName, variables=('U1', ), region=regionDef, 
     sectionPoints=DEFAULT, rebar=EXCLUDE)
+
+
 
 #===========================================================#
 #===========================================================#
@@ -110,8 +119,8 @@ M.rootAssembly.regenerate()
 #Save model
 mdb.saveAs(pathName = mdbName + '.cae')
 
-#Create job
 
+#Create job
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
 mdb.Job(model=modelName, name=modelName,
@@ -145,7 +154,7 @@ if run:
 	func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	shell.xySimpleDef(modelName, printFormat)
+	beam.xySimpleDef(modelName, printFormat)
 
 	print '   done'
 

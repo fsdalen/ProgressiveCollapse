@@ -31,6 +31,66 @@ import func
 
 
 
+
+
+
+#====================================================#
+#====================================================#
+#                   Blast                            #
+#====================================================#
+#====================================================#
+
+def conWep(modelName, TNT, blastType, coordinates, stepName):
+	'''
+	blastType = AIR_BLAST SURFACE_BLAST
+	name of surf must be blastSurf
+	'''
+	M=mdb.models[modelName]
+
+	#Create interaction property
+	M.IncidentWaveProperty(definition= blastType,
+	    massTNT=TNT, massFactor=1.0e3,
+	    lengthFactor=1.0e-3, pressureFactor=1.0e6,
+	    name='IntProp-1',)
+
+	#Source Point
+	feature = M.rootAssembly.ReferencePoint(point=coordinates)
+	ID = feature.id
+	sourceRP = M.rootAssembly.referencePoints[ID]
+	M.rootAssembly.Set(name='Source', referencePoints=(sourceRP,))
+	
+	
+
+	#Create ineraction
+	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
+	    detonationTime=0.0, interactionProperty='IntProp-1',
+	 	name='Int-1',
+	    sourcePoint=M.rootAssembly.sets['Source'], 
+	    surface=M.rootAssembly.surfaces['blastSurf'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #===========================================================#
 #===========================================================#
 #                   Simple blast                            #
@@ -165,86 +225,4 @@ def xySimpleDef(modelName, printFormat):
 	func.fixReportFile(tempFile, plotName, modelName)
 
 
-	# '''
-	# Prints U2 at top of removed column in APM.
 
-	# modelName     = name of odb
-	# column      = name of column that is removed in APM
-	# printFormat = TIFF, PS, EPS, PNG, SVG
-	# stepName    = name of a step that exist in the model
-	# '''
-
-
-	
-	# #Find correct historyOutput
-	# for key in odb.steps[stepName].historyRegions.keys():
-	# 	if key.find('Node '+column) > -1:
-	# 		histName = key
-	# #Get node number
-	# nodeNr = histName[-1]
-	# varName ='Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP'
-	# #Create XY-curve
-	
-
-
-
-
-	# odb = session.odbs['C:/Users/frdal/Desktop/Abq-temp/simpleBlast.odb']
-	# session.viewports['Viewport: 1'].setValues(displayedObject=odb)
-	# odb = session.odbs['C:/Users/frdal/Desktop/Abq-temp/simpleBlast.odb']
-	# xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-	#     outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 54 in NSET MIDNODE', 
-	#     )
-	# c1 = session.Curve(xyData=xy1)
-	# xyp = session.XYPlot('XYPlot-1')
-	# chartName = xyp.charts.keys()[0]
-	# chart = xyp.charts[chartName]
-	# chart.setValues(curvesToPlot=(c1, ), )
-	# session.viewports['Viewport: 1'].setValues(displayedObject=xyp)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#====================================================#
-#====================================================#
-#                   Blast                            #
-#====================================================#
-#====================================================#
-
-def conWep(modelName, TNT, blastType, coordinates, stepName):
-	'''
-	blastType = AIR_BLAST SURFACE_BLAST
-	name of surf must be blastSurf
-	'''
-	M=mdb.models[modelName]
-
-	#Create interaction property
-	M.IncidentWaveProperty(definition= blastType,
-	    massTNT=TNT, massFactor=1.0e3,
-	    lengthFactor=1.0e-3, pressureFactor=1.0e6,
-	    name='IntProp-1',)
-
-	#Source Point
-	feature = M.rootAssembly.ReferencePoint(point=coordinates)
-	ID = feature.id
-	sourceRP = M.rootAssembly.referencePoints[ID]
-	M.rootAssembly.Set(name='Source', referencePoints=(sourceRP,))
-	
-	
-
-	#Create ineraction
-	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
-	    detonationTime=0.0, interactionProperty='IntProp-1',
-	 	name='Int-1',
-	    sourcePoint=M.rootAssembly.sets['Source'], 
-	    surface=M.rootAssembly.surfaces['blastSurf'])
