@@ -24,12 +24,80 @@ from datetime import datetime
 
 
 
-
 #===============================================================#
 #===============================================================#
 #                   PERLIMINARY		                            #
 #===============================================================#
 #===============================================================#
+
+
+
+
+def perliminary(monitor, modelName, steel, concrete, rebarSteel):
+	#Makes mouse clicks into physical coordinates
+	session.journalOptions.setValues(replayGeometry=COORDINATE,
+		recoverGeometry=COORDINATE)
+
+	#Print begin script to console
+	print '\n'*6
+	print '###########    NEW SCRIPT    ###########'
+	print str(datetime.now())[:19]
+
+	#Print status to console during analysis
+	if monitor:
+		printStatus(ON)
+
+	#Create text file to write results in
+	with open('results.txt', 'w') as f:
+		None
+
+
+	#=========== Set up model  ============#
+	matFile = 'steelMat.inp'
+
+	#Create model based on input material
+	print '\n'*2
+	mdb.ModelFromInputFile(name=modelName, inputFileName=matFile)
+	print '\n'*2
+
+	#Deletes all other models
+	delModels(modelName)
+
+	#Close and delete old jobs and ODBs
+	delJobs(exeption = matFile)
+
+
+	#=========== Material  ============#
+	#Material names
+	steel = 'DOMEX_S355'
+	concrete = 'Concrete'
+	rebarSteel = 'Rebar Steel'
+
+	M=mdb.models[modelName]
+	createMaterials(M, mat1=steel, mat2=concrete, mat3=rebarSteel,)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #=========== Simple monitor  ============#
@@ -420,6 +488,22 @@ def readMsgFile(jobName, fileName):
 		f.write(jobName + '	' +inc+'\n')	
 
 
+def readStaFile(jobName, fileName):
+	'''
+	Reads cpuTime and last stable time increment from .sta file.
+	Prints result to fileName
+	'''
+	#Print CPU time to file
+	with open(jobName+'.sta') as f:
+		lines = f.readlines()
+
+	cpuTime = lines[-7][32:40]
+	stblInc = lines[-7][41:50]
+	with open(fileName, 'a') as f:
+		f.write(jobName + '	CPUtime ' +cpuTime+'\n')
+		f.write(jobName + '	Stable Time Increment ' +stblInc+'\n')
+
+
 #=========== Post proccesing  ============#
 
 
@@ -453,11 +537,11 @@ def open_odb(odbPath):
 
 
 
-def XYprint(odbName, plotName, printFormat, *args):
+def XYprint(modelName, plotName, printFormat, *args):
 	'''
 	Prints XY plot to file
 
-	odbName     = name of odbFile
+	modelName     = name of odbFile
 	plotName    = name to give plot
 	printFormat = TIFF, PS, EPS, PNG, SVG
 	*args       = curve(s) to plot
@@ -466,7 +550,7 @@ def XYprint(odbName, plotName, printFormat, *args):
 	
 	V=session.viewports['Viewport: 1']
 	#Open ODB
-	odb = open_odb(odbName)
+	odb = open_odb(modelName)
 
 	#=========== XP plot  ============#
 	#Create plot
@@ -481,20 +565,20 @@ def XYprint(odbName, plotName, printFormat, *args):
 	#Show plot
 	V.setValues(displayedObject=xyp)
 	#Print plot
-	session.printToFile(fileName='XY_'+plotName+'_'+odbName,
+	session.printToFile(fileName='XY_'+plotName+'_'+modelName,
 		format=printFormat, canvasObjects=(V, ))
 	
 
-def fixReportFile(reportFile, plotName, odbName):
+def fixReportFile(reportFile, plotName, modelName):
 	'''
 	Creates a tab file froma stupid report file
 
 	reportFile = name of report file to fix
 	plotName   = what is plottes
-	odbName    = name of job
+	modelName    = name of job
 	'''
 	
-	fileName = 'xyData_'+plotName+'_'+odbName+'.txt'
+	fileName = 'xyData_'+plotName+'_'+modelName+'.txt'
 	with open(reportFile, 'r') as f:
 	    lines = f.readlines()
 
@@ -511,17 +595,17 @@ def fixReportFile(reportFile, plotName, odbName):
 
 
 
-def countourPrint(odbName, defScale, printFormat):
+def countourPrint(modelName, defScale, printFormat):
 	'''
 	Plots countour plots to file.
 
-	odbName  =	name of odb
+	modelName  =	name of odb
 	defScale =  Deformation scale
 	printFormat = TIFF, PS, EPS, PNG, SVG
 	'''
 
 	#Open odb
-	odb = open_odb(odbName)
+	odb = open_odb(modelName)
 	#Create object for viewport
 	V=session.viewports['Viewport: 1']
 	#View odb in viewport
@@ -550,19 +634,19 @@ def countourPrint(odbName, defScale, printFormat):
 
 
 
-def xyEnergyPrint(odbName, printFormat):
+def xyEnergyPrint(modelName, printFormat):
 	'''
 	Prints External work, internal energy and kinetic energy for 
 	whole model
 
-	odbName     = name of odb
+	modelName     = name of odb
 	printFormat = TIFF, PS, EPS, PNG, SVG
 	'''
 
 	plotName = 'Energy'
 
 	#Open ODB
-	odb = open_odb(odbName)
+	odb = open_odb(modelName)
 	#Create curves to plot
 	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
 		outputVariableName='External work: ALLWK for Whole Model', 
@@ -577,16 +661,16 @@ def xyEnergyPrint(odbName, printFormat):
 		suppressQuery=True)
 	c3 = session.Curve(xyData=xy3)
 	#Plot and Print
-	XYprint(odbName, plotName, printFormat, c1, c2, c3)
+	XYprint(modelName, plotName, printFormat, c1, c2, c3)
 
 
 
 
-def xyAPMcolPrint(odbName, column, printFormat, stepName):
+def xyAPMcolPrint(modelName, column, printFormat, stepName):
 	'''
 	Prints U2 at top of removed column in APM.
 
-	odbName     = name of odb
+	modelName     = name of odb
 	column      = name of column that is removed in APM
 	printFormat = TIFF, PS, EPS, PNG, SVG
 	stepName    = name of a step that exist in the model
@@ -595,7 +679,7 @@ def xyAPMcolPrint(odbName, column, printFormat, stepName):
 	plotName = 'U2'
 
 	#Open ODB
-	odb = open_odb(odbName)
+	odb = open_odb(modelName)
 	#Find correct historyOutput
 	for key in odb.steps[stepName].historyRegions.keys():
 		if key.find('Node '+column) > -1:
@@ -608,30 +692,30 @@ def xyAPMcolPrint(odbName, column, printFormat, stepName):
 		suppressQuery=True)
 	c1 = session.Curve(xyData=xy1)
 	#Plot and Print
-	XYprint(odbName, plotName, printFormat, c1)
+	XYprint(modelName, plotName, printFormat, c1)
 
 	#=========== Data  ============#
 	#Report data
 	tempFile = '_____temp.txt'
 	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	fixReportFile(tempFile, plotName, odbName)
+	fixReportFile(tempFile, plotName, modelName)
 
 
 
 
-def animate(odbName, defScale, frameRate):
+def animate(modelName, defScale, frameRate):
 	'''
 	Animates the deformation with Von Mises contour plot
 	Each field output frame is a frame in the animation
 	(that means the animation time is not real time)
 
-	odbName = name of job
+	modelName = name of job
 	defScal = deformation scale
 	frameRate = frame rate
 	'''
 	
 	#Open odb
-	odb = open_odb(odbName)
+	odb = open_odb(modelName)
 	#Create object for viewport
 	V=session.viewports['Viewport: 1']
 
@@ -650,7 +734,7 @@ def animate(odbName, defScale, frameRate):
 	session.animationController.play()
 	session.imageAnimationOptions.setValues(frameRate = frameRate,
 		compass = ON, vpBackground=ON)
-	session.writeImageAnimation(fileName=odbName, format=QUICKTIME,
+	session.writeImageAnimation(fileName=modelName, format=QUICKTIME,
 		canvasObjects=(V, )) #format = QUICKTIME or AVI
 
 	#Stop animation
