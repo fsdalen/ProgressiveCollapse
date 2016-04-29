@@ -25,11 +25,11 @@ y                    = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime            = 2.0
+quasiTime            = 0.5
 blastTime            = 0.1
 
 
-TNT                  = 1.0	#tonns of tnt
+TNT                  = 100.0	#tonns of tnt
 
 
 #=========== General  ============#

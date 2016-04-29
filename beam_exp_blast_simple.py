@@ -26,7 +26,7 @@ fieldIntervals = 30
 animeFrameRate = 5
 
 
-modelName   = 'simpleBeamBlast'
+
 
 #==========================================================#
 #==========================================================#
@@ -39,6 +39,7 @@ import lib.beam as beam
 reload(func)
 reload(beam)
 
+modelName   = mdbName
 
 steel = 'DOMEX_S355'
 concrete = 'Concrete'

@@ -10,10 +10,11 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'shellStatic'
+mdbName        = 'beamStatic'
 cpus           = 1			#Number of CPU's
 monitor        = 1
-run            = 0
+
+run            = 1
 
 
 #=========== Geometry  ============#
@@ -52,9 +53,9 @@ animeFrameRate = 5
 #==========================================================#
 
 import lib.func as func
-import lib.shell as shell
+import lib.beam as beam
 reload(func)
-reload(shell)
+reload(beam)
 
 modelName   = mdbName
 
@@ -77,17 +78,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-
-shell.createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
-
-
-
-
-#================================================================#
-#================================================================#
-#                   STEP DEPENDENCIES                            #
-#================================================================#
-#================================================================#
+beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel)
 
 
 #=========== Step  ============#
@@ -111,16 +102,8 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
 #LL
 LL=LL_kN_m * 1.0e-3   #N/mm^2
+beam.addSlabLoad(M, x, z, y, stepName, LL)
 
-M.SurfaceTraction(createStepName=stepName, 
-	directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
-	distributionType=UNIFORM, field='', follower=OFF,
-	localCsys=None, magnitude= LL,
-	name="LL",
-	region=M.rootAssembly.instances['Part-1-1'].surfaces['topSurf'],
-	traction=GENERAL)
-
-M.rootAssembly.regenerate()
 
 
 #=====================================================#
@@ -132,6 +115,9 @@ M.rootAssembly.regenerate()
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
+
+
+#History output
 
 
 
