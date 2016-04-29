@@ -29,6 +29,13 @@ import func
 
 
 
+
+
+
+
+
+
+
 #==============================================================#
 #==============================================================#
 #                   Create geometry                            #
@@ -332,41 +339,8 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 	M.DisplacementBC(amplitude=UNSET, createStepName=
 		'Initial', distributionType=UNIFORM, fieldName='',
 		localCsys=None, name='BC-1', 
-		region=mdb.models['shellStatic'].rootAssembly.sets['Part-1-1.colBot'],
+		region=M.rootAssembly.sets['Part-1-1.colBot'],
 		u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -411,8 +385,10 @@ def conWep(modelName, TNT, blastType, coordinates, stepName):
 
 	#Create interaction property
 	M.IncidentWaveProperty(definition= blastType,
-	    massTNT=TNT, massFactor=1.0e3,
-	    lengthFactor=1.0e-3, pressureFactor=1.0e6,
+	    massTNT=TNT,
+	    massFactor=1.0e3,
+	    lengthFactor=1.0e-3,
+	    pressureFactor=1.0e6,
 	    name='IntProp-1',)
 
 	#Source Point
@@ -429,6 +405,7 @@ def conWep(modelName, TNT, blastType, coordinates, stepName):
 	 	name='Int-1',
 	    sourcePoint=M.rootAssembly.sets['Source'], 
 	    surface=M.rootAssembly.surfaces['blastSurf'])
+
 
 
 
@@ -521,6 +498,7 @@ def createSingleBeam(modelName, steel):
 
 
 	#=========== Assembly  ============#
+	dep = ON
 	M.rootAssembly.Instance(dependent=dep, name='Part-1-1',
 		part=M.parts['Part-1'])
 	M.rootAssembly.rotate(angle=-90.0,
