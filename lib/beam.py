@@ -240,6 +240,15 @@ def blast(modelName, stepName, sourceCo, refCo):
 	M.IncidentWaveProperty(name='Blast', 
 	    definition=SPHERICAL, fluidDensity=airDensity, soundSpeed=soundSpeed)
 
+	#Join surfaces to create blastSurf
+	lst = []
+	for inst in M.rootAssembly.instances.keys():
+		if inst.startswith('BEAM') or inst.startswith('COLUMN'):
+			lst.append(M.rootAssembly.instances[inst].surfaces['surf'])
+		if inst.startswith('SLAB'):
+			lst.append(M.rootAssembly.instances[inst].surfaces['botSurf'])
+	blastSurf = tuple(lst)
+	M.rootAssembly.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
 
 	#Create incident Wave Interaction
 	M.IncidentWave(name='Blast', createStepName=stepName, 
@@ -249,6 +258,14 @@ def blast(modelName, stepName, sourceCo, refCo):
 	    definition=PRESSURE, interactionProperty='Blast', 
 	    referenceMagnitude=1.0, amplitude='Blast')
 
+	#Add beam fluid inertia to beams and columns
+	M.sections['HEB550'].setValues(useFluidInertia=ON,
+		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
+	    lateralMassCoef=1.15)#latteralMassCoef is for rectangle from wikipedia
+
+	M.sections['HUP300x300'].setValues(useFluidInertia=ON,
+		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
+	    lateralMassCoef=1.15)#latteralMassCoef is for rectangle from wikipedia
 
 	#Set model wave formulation (does not matter when fluid is not modeled)
 	M.setValues(waveFormulation=TOTAL)
@@ -560,6 +577,12 @@ def createSurfs(M):
 	circumEdges = M.parts['BEAM'].edges.findAt(((2000.0, 0.0, 0.0), ))
 	M.parts['BEAM'].Surface(circumEdges=circumEdges, name='surf')
 
+
+	#Create circumferential column surfaces
+	circumEdges = M.parts['COLUMN'].edges.findAt(((0.0, 10.0, 0.0), ))
+	M.parts['COLUMN'].Surface(circumEdges=circumEdges, name='surf')
+
+	
 
 
 def createAssembly(M, x, z, y, x_d, z_d, y_d):
@@ -936,7 +959,30 @@ def fixColBase(M, x, z):
 
 
 
-def addSlabLoad(M, x, z, y, step, load):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#======================================================#
+#======================================================#
+#                   LOADING                            #
+#======================================================#
+#======================================================#
+
+
+def addSlabLoad(M, x, z, y, step, load, amplitude=UNSET):
 	'''
 	Adds a surface traction to all slabs
 
@@ -945,6 +991,7 @@ def addSlabLoad(M, x, z, y, step, load):
 	load: 	 Magnitude of load (positive y)
 	x, z, y: Nr of bays
 	Step:	 Which step to add the load
+	Amplitude: default is UNSET
 	'''
 
 	#Create coordinate list
@@ -960,6 +1007,34 @@ def addSlabLoad(M, x, z, y, step, load):
 					directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
 					distributionType=UNIFORM, field='', follower=OFF,
 					localCsys=None, magnitude= load,
-					name="Slab_" + alph[a]+numb[n]+"-"+etg[e],
+					name=inst,
 					region=M.rootAssembly.instances[inst].surfaces['topSurf'],
-					traction=GENERAL)
+					traction=GENERAL, amplitude = amplitude)
+
+
+
+
+
+def changeSlabLoad(M, x, z, y, step, amplitude):
+	'''
+	Change 
+
+	Parameters:
+	M: 		 Model
+	load: 	 Magnitude of load (positive y)
+	x, z, y: Nr of bays
+	Step:	 Which step to add the load
+	Amplitude: default is UNSET
+	'''
+
+	#Create coordinate list
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	etg = map(str,range(1,y+1))
+
+	for a in range(len(alph)-1):
+		for n in range(len(numb)-1):
+			for e in range(len(etg)):
+				inst = 'SLAB_'+ alph[a]+numb[n]+"-"+etg[e]
+				M.loads[inst].setValuesInStep(stepName = step,
+					amplitude = amplitude)
