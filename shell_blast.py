@@ -31,6 +31,9 @@ blastTime            = 0.1
 
 TNT                  = 100.0	#tonns of tnt
 
+precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
+nodalOpt = SINGLE #SINGLE or FULL
+
 
 #=========== General  ============#
 #Live load
@@ -169,7 +172,8 @@ del M.historyOutputRequests['H-Output-1']
 M.rootAssembly.regenerate()
 
 #Create job
-mdb.Job(model=modelName, name=modelName, numCpus=cpus)
+mdb.Job(model=modelName, name=modelName, numCpus=cpus,
+	explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
 
 #Run job
 if run:

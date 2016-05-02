@@ -28,6 +28,9 @@ y              = 1			#nr of stories
 quasiTime	   = 0.5
 blastTime 	   = 0.1
 
+precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
+nodalOpt = SINGLE #SINGLE or FULL
+
 
 #=========== General  ============#
 #Live load
@@ -153,7 +156,8 @@ M.rootAssembly.regenerate()
 
 
 #Create job
-mdb.Job(model=modelName, name=modelName, numCpus=cpus)
+mdb.Job(model=modelName, name=modelName, numCpus=cpus,
+	explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
 
 #Run job
 if run:

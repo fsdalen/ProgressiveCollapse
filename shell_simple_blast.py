@@ -19,7 +19,8 @@ run         = 1
 blastTime   = 0.1
 TNT         = 1.0	#tonns of tnt
 
-
+precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
+nodalOpt = SINGLE #SINGLE or FULL
 
 #Post
 defScale    = 1.0
@@ -110,9 +111,6 @@ M.rootAssembly.regenerate()
 mdb.saveAs(pathName = mdbName + '.cae')
 
 #Create job
-
-precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
-nodalOpt = SINGLE #SINGLE or FULL
 mdb.Job(model=modelName, name=modelName,
 	    numCpus=cpus, numDomains=cpus,
 	    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)

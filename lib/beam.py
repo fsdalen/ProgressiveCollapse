@@ -197,6 +197,136 @@ def xySimple(modelName, printFormat):
 
 
 
+
+#==================================================#
+#==================================================#
+#                   APM                            #
+#==================================================#
+#==================================================#
+
+
+def historySectionForces(M, column, stepName):
+	#Section forces and moments of top element in column to be deleted
+	elmNr = M.rootAssembly.instances[column].elements[-1].label
+	elm = M.rootAssembly.instances[column].elements[elmNr-1:elmNr]
+	M.rootAssembly.Set(elements=elm, name='topColElm')
+
+	M.HistoryOutputRequest(name='SectionForces', createStepName=stepName,
+		variables=('SF1', 'SF2', 'SF3', 'SM1', 'SM2', 
+		'SM3'), region=M.rootAssembly.sets['topColElm'],)
+
+
+
+
+def xyAPMcolPrint(odbName, column, printFormat, stepName):
+	'''
+	Prints U2 at top of removed column in APM.
+	odbName     = name of odb
+	column      = name of column that is removed in APM
+	printFormat = TIFF, PS, EPS, PNG, SVG
+	stepName    = name of first step (will print data from this and out)		
+				  plot it not affected by this as long as the
+				  stepName exists
+	'''
+
+	plotName = 'APMcolU2'
+
+	#Open ODB
+	odb = func.open_odb(odbName)
+	#Find correct historyOutput
+	for key in odb.steps[stepName].historyRegions.keys():
+		if key.find('Node '+column) > -1:
+			histName = key
+	#Get node number
+	nodeNr = histName[-1]
+	varName ='Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP'
+	#Create XY-curve
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=varName, 
+		suppressQuery=True)
+	c1 = session.Curve(xyData=xy1)
+	#Plot and Print
+	func.XYprint(odbName, plotName, printFormat, c1)
+
+	#=========== Data  ============#
+	#Report data
+	tempFile = '_____temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
+	func.fixReportFile(tempFile, plotName, odbName)
+
+
+
+
+
+def replaceForces(M, column, oldJob, oldStep, stepName, amplitude):
+	'''
+	Remove col-base BC or col-col constraint
+	and add forces and moments from static analysis to top of colum
+	M         = Model
+	column    = column to be deleted in APM
+	oldJob    = name of static job
+	oldSte    = name of static step
+	amplitude = name of amplitude to add forces with
+	'''
+
+	#Delete col-base BC or col-col constraint
+	if column[-1] == '1':
+		del M.boundaryConditions[column+'.col-base']
+	else:
+		topColNr = column[-1]
+		botColNr = str(int(topColNr)-1)
+		constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
+		del M.constraints[constName]
+
+	#Open odb with static analysis
+	odb = func.open_odb(oldJob)
+
+	#Find correct historyOutput
+	for key in odb.steps[oldStep].historyRegions.keys():
+		if key.find('Element '+column) > -1:
+			histName = key
+
+	#Create dictionary with forces
+	dict = {}
+	histOpt = odb.steps[oldStep].historyRegions[histName].historyOutputs
+	variables = histOpt.keys()
+	for var in variables:
+		value = histOpt[var].data[-1][1]
+		dict[var] = value
+
+	#Where to add forces
+	region = M.rootAssembly.instances[column].sets['col-top']
+
+	#Create forces
+	M.ConcentratedForce(name='Forces', 
+		createStepName=stepName, region=region, amplitude=amplitude,
+		distributionType=UNIFORM, field='', localCsys=None,
+		cf1=dict['SF3'], cf2=-dict['SF1'], cf3=dict['SF2'])
+
+	#Create moments
+	M.Moment(name='Moments', createStepName=stepName, 
+		region=region, distributionType=UNIFORM, field='', localCsys=None,
+		amplitude=amplitude, 
+		cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #====================================================#
 #====================================================#
 #                   Blast                            #
