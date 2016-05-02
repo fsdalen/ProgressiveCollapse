@@ -25,7 +25,7 @@ nodalOpt = SINGLE #SINGLE or FULL
 #Post
 defScale    = 1.0
 printFormat = PNG 	#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
+fieldIntervals = 100
 animeFrameRate = 5
 
 
@@ -55,7 +55,6 @@ M=mdb.models[modelName]
 
 
 
-
 #==========================================================#
 #==========================================================#
 #                   Build model                            #
@@ -74,7 +73,8 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 #Create blast
 shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 100.0, 150.0), stepName=stepName)
+	coordinates = (-10000.0, 100.0, 150.0),
+	time =0.0, stepName=stepName)
 
 
 

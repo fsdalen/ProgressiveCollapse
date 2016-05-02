@@ -376,10 +376,12 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 #====================================================#
 #====================================================#
 
-def conWep(modelName, TNT, blastType, coordinates, stepName):
+def conWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
 	'''
 	blastType = AIR_BLAST SURFACE_BLAST
 	name of surf must be blastSurf
+
+	time: Time of blast, NB: total time
 	'''
 	M=mdb.models[modelName]
 
@@ -401,7 +403,7 @@ def conWep(modelName, TNT, blastType, coordinates, stepName):
 
 	#Create ineraction
 	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
-	    detonationTime=0.0, interactionProperty='IntProp-1',
+	    detonationTime=time, interactionProperty='IntProp-1',
 	 	name='Int-1',
 	    sourcePoint=M.rootAssembly.sets['Source'], 
 	    surface=M.rootAssembly.surfaces['blastSurf'])

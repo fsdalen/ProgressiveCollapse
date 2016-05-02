@@ -19,17 +19,17 @@ run                  = 1
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x                    = 2			#Nr of columns in x direction
-z                    = 2			#Nr of columns in z direction
-y                    = 1			#nr of stories
+x                    = 4			#Nr of columns in x direction
+z                    = 4			#Nr of columns in z direction
+y                    = 6			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime            = 0.5
-blastTime            = 0.1
+quasiTime            = 1.0
+blastTime            = 0.5
 
 
-TNT                  = 100.0	#tonns of tnt
+TNT                  = 1.0	#tonns of tnt
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
@@ -45,7 +45,7 @@ seed                 = 150.0		#Global seed
 #Post
 defScale             = 1.0
 printFormat          = PNG 		#TIFF, PS, EPS, PNG, SVG
-quasiStaticIntervals = 10
+quasiStaticIntervals = 5
 blastIntervals       = 100
 animeFrameRate       = 10
 
@@ -135,7 +135,8 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 #Create blast
 shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 500, 2000.0), stepName=stepName)
+	coordinates = (-10000.0, 100, 2000.0),
+	timeOfBlast = quasiTime, stepName=stepName)
 
 #Remove smooth step from other loads
 M.loads['LL'].setValuesInStep(stepName=stepName, amplitude=FREED)
