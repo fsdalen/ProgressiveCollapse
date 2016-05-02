@@ -284,23 +284,23 @@ if itterations:
 			del session.xyPlots[plot]
 
 		#Contour
-		myFuncs.countourPrint(modelName, defScale, printFormat)
+		func.countourPrint(modelName, defScale, printFormat)
 
 		#Energy
-		myFuncs.xyEnergyPrint(modelName, printFormat)
+		func.xyEnergyPrint(modelName, printFormat)
 
 		#U2 at top of removed column to be removed
-		myFuncs.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+		beam.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
 		#Animation
-		myFuncs.animate(modelName, defScale, frameRate= 1)
+		func.animate(modelName, defScale, frameRate= 1)
 		mdb.saveAs(pathName = mdbName+'.cae')
 
 
 		#================ Check new ODB ==========================#
 		oldODB = modelName
 		print '\n' + "Getting data from ODB..."
-		elmOverLim = myFuncs.getElmOverLim(modelName, var,
+		elmOverLim = beam.getElmOverLim(modelName, var,
 			originLastStep, var_invariant, limit)
 		print "    done"
 		if len(elmOverLim) == 0:

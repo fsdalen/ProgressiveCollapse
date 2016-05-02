@@ -14,7 +14,7 @@ mdbName        = 'beamStatic'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 
-run            = 1
+run            = 0
 
 
 #=========== Geometry  ============#
@@ -128,14 +128,15 @@ del M.historyOutputRequests['H-Output-1']
 #===========================================================#
 M.rootAssembly.regenerate()
 
-#Save model
-mdb.saveAs(pathName = mdbName + '.cae')
+
 
 #Create job
 mdb.Job(model=modelName, name=modelName, numCpus=cpus)
 
 #Run job
 if run:
+	#Save model
+	mdb.saveAs(pathName = mdbName + '.cae')
 	func.runJob(modelName)
 	#Write CPU time to file
 	func.readMsgFile(modelName, 'results.txt')

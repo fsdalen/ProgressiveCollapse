@@ -53,7 +53,7 @@ def perliminary(monitor, modelName, steel, concrete, rebarSteel):
 
 
 	#=========== Set up model  ============#
-	matFile = 'steelMat.inp'
+	matFile = 'inputData/steelMat.inp'
 
 	#Create model based on input material
 	print '\n'*2
@@ -243,164 +243,6 @@ def createMaterials(M, mat1, mat2, mat3):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- #==============================================================#
- #==============================================================#
- #                   STATIC BEAM ANALYSIS                       #
- #==============================================================#
- #==============================================================#
-
-def staticAnalysis(mdbName, modelName, run, static_Type, static_InInc,
-	static_MinIncr, static_maxInc, LL_kN_m, defScale, printFormat):
-
-	M=mdb.models[modelName]
-
-
-	#=========== Step  ============#
-	oldStep = 'Initial'
-	stepName = 'static'
-
-	if static_Type == 'general':
-		M.StaticStep(name=stepName, previous=oldStep, 
-			nlgeom=ON, initialInc=static_InInc, minInc=static_MinIncr,
-			maxNumInc=static_maxInc)
-	elif static_Type == 'riks':
-		M.StaticRiksStep(name=stepName, previous=oldStep, 
-			nlgeom=ON, initialArcInc=static_InInc, minArcInc=static_MinIncr,
-			maxNumInc=static_maxInc, maxLPF=1.0)
-
-
-	#=========== History output  ============#
-	M.rootAssembly.regenerate()
-
-	#Delete default history output
-	del M.historyOutputRequests['H-Output-1']
-
-	#Create history output for energies
-	M.HistoryOutputRequest(name='Energy', 
-		createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
-
-
-
-	#=========== Loads  ============#
-	# Gravity
-	M.Gravity(comp2=-9800.0, createStepName=stepName, 
-	    distributionType=UNIFORM, field='', name='Gravity')
-
-	#LL
-	LL=LL_kN_m * 1.0e-3   #N/mm^2
-	addSlabLoad(M, x, z, y, stepName, load = LL)
-
-	M.rootAssembly.regenerate()
-
-
-	#=========== Save and run  ============#
-	
-	#Save model
-	mdb.saveAs(pathName = mdbName + '.cae')
-
-	#Create job
-	mdb.Job(model=modelName, name=modelName,
-	    numCpus=cpus)
-
-	#Run job
-	if runStatic:
-		runJob(modelName)
-		#Write CPU time to file
-		readMsgFile(modelName, 'results.txt')
-
-
-	#=========== Post proccesing  ============#
-	if staticPost:
-
-		print 'Post processing...'
-
-		#Clear plots
-		for plot in session.xyPlots.keys():
-			del session.xyPlots[plot]
-
-		#=========== Contour  ============#
-		countourPrint(modelName, defScale, printFormat)
-
-		#=========== XY  ============#
-		xyEnergyPrint(modelName, printFormat)
-
-		#=========== Animation  ============#
-		animate(modelName, defScale, frameRate= 1)
-		
-
-		print '   done'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #===========================================================#
 #===========================================================#
 #                   JOB AND POST                            #
@@ -498,6 +340,7 @@ def readMsgFile(jobName, fileName):
 	inc = lines[-22]
 	with open(fileName, 'a') as f:
 		f.write(jobName + '	' +inc+'\n')	
+
 
 
 def readStaFile(jobName, fileName):

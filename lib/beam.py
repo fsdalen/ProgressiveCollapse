@@ -432,7 +432,7 @@ def blast(modelName, stepName, sourceCo, refCo):
 
 	#Pressure amplitude from file blastAmp.csv
 	table=[]
-	with open('blastAmp.csv', 'r') as f:
+	with open('inputData/blastAmp.csv', 'r') as f:
 		reader = csv.reader(f, delimiter='\t')
 		for row in reader:
 			table.append((float(row[0]), float(row[1])))
