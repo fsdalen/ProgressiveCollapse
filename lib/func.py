@@ -181,14 +181,14 @@ def createMaterials(M, mat1, mat2, mat3):
 	mat2_dens = 2.5e-09		#Density
 	mat2_E = 35000.0		#E-module
 	mat2_v = 0.3			#Poisson
-	mat2_yield = 30.0			#Yield stress
+	mat2_yield = 30.0		#Yield stress
 
 	# Reebar steel
-	mat3_Description = 'Elastic-linear plastic (rather random hardening)'
+	mat3_Description = 'Elastic-perfect plastic)'
 	mat3_dens = 8.0e-09		#Density
 	mat3_E = 210000.0		#E-module
 	mat3_v = 0.3			#Poisson
-	mat3_yield = 355.0		#Yield stress
+	mat3_yield = 500.0		#Yield stress
 
 
 
@@ -209,8 +209,6 @@ def createMaterials(M, mat1, mat2, mat3):
 	M.materials[mat3].Elastic(table=((mat3_E, mat3_v), ))
 	M.materials[mat3].Plastic(table=((mat3_yield, 0.0), ))
 	M.materials[mat3].Damping(alpha=damping)
-	M.materials[mat3].plastic.setValues(table=((355.0, 
-	    0.0), (2000.0, 20.0)))
 	
 
 
