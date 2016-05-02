@@ -11,6 +11,8 @@ sigma0 =    404; %Yield stress
 K      =    772; %hardening modulus
 n      = 0.1733; %hardening exponent
 epspl  =  0.024; %yield plateau strain
+plLim = 0.2;     %Limit for reduces stiffness
+strLim = 10;     % Perfect plastic stress after reduced stiffness
 
 
 %%-----------------------------------------------------------------------%%
@@ -29,7 +31,9 @@ npoints    = npoints+1;
 epsp0      = (sigma0/K)^(1/n)-epspl;
 model(1,1) = sigma0;
 for i=2:npoints
-   if p(i) > epspl
+   if p(i) > plLim
+      model(i,1) = strLim;
+   elseif p(i) > epspl
       model(i,1) = K*(epsp0+p(i))^n;
    else
       model(i,1) = sigma0;
@@ -85,8 +89,7 @@ grid on
 %%-----------------------------------------------------------------------%%
 % Export material card
 %%-----------------------------------------------------------------------%%
-%fich=fopen(['mat_' num2str(leote) '.inp'],'w');
-fich=fopen(['steelMat.inp'],'w');
+fich=fopen(['mat_' num2str(leote) '.inp'],'w');
 % Add material
 fprintf(fich,'*Material, name=DOMEX_S355\n');
 % Add Density

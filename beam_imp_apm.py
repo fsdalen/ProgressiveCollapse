@@ -34,17 +34,14 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 #=========== Implicit step  ============#
 #Single APM
-APM           = 1
-runAPM        = 1
-APMpost       = 1
-multiAPM      = 1	#This includes run and post for multi
 
 APMcol        = 'COLUMN_B2-1'
 rmvStepTime   = 1e-3		#Also used in MuliAPM (Fu uses 20e-3)
 dynStepTime   = 0.1
 
 
-#Data extraction for multiAPM
+#Itterations
+itterations = 0
 elsetName     = None
 var           = 'PEEQ' #'S'
 var_invariant = None #'mises'
@@ -226,6 +223,8 @@ if run:
 #                   ITTERATIONS                            #
 #==========================================================#
 #==========================================================#
+if itterations:
+
 	#Original Names
 	originModel = modelName
 	originLastStep = stepName
@@ -289,7 +288,7 @@ if run:
 
 		#Energy
 		myFuncs.xyEnergyPrint(modelName, printFormat)
-		
+
 		#U2 at top of removed column to be removed
 		myFuncs.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
