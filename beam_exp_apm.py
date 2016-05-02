@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'beamAPM'
+mdbName        = 'beamExpAPM'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 

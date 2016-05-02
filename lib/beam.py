@@ -313,9 +313,99 @@ def replaceForces(M, column, oldJob, oldStep, stepName, amplitude):
 
 
 
+def getElmOverLim(odbName, var, stepName, var_invariant, limit,
+		elsetName=None):
+	"""
+	Returns list with value and object for all elements over limit
+	odbName       = name of odb to read from
+	elsetName     = None, (may be set to limit what part of the model 
+					to read)
+	var           = 'PEEQ' or 'S'
+	stepName      = Last step in odb
+	var_invariant = 'mises' if var='S'
+	limit         = var limit for what elements to return
+	"""
+	elset = elemset = None
+	region = "over the entire model"
+	odb = func.open_odb(odbName)
+	
+	#Check to see if the element set exists in the assembly
+	if elsetName:
+		try:
+			elemset = odb.rootAssembly.elementSets[elsetName]
+			region = " in the element set : " + elsetName;
+		except KeyError:
+			print 'An assembly level elset named %s does' \
+				'not exist in the output database %s' \
+				% (elsetName, odbName)
+			odb.close()
+			exit(0)
+	
+	#Find values over limit
+	step = odb.steps[stepName]
+	result = []
+	for frame in step.frames:
+		allFields = frame.fieldOutputs
+		if (allFields.has_key(var)):
+			varSet = allFields[var]
+			if elemset:
+				varSet = varSet.getSubset(region=elemset)      
+			for varValue in varSet.values:
+				if var_invariant:
+					if hasattr(varValue, var_invariant.lower()):
+						val = getattr(varValue,var_invariant.lower())
+					else:
+						raise ValueError('Field value does not have invariant %s' % (var_invariant,))
+				else:
+					val = varValue.data
+				if ( val >= limit):
+					result.append([val,varValue])
+		else:
+			raise ValueError('Field output does not have field %s' % (results_field,))
+	return (result)
 
 
 
+def delInstance(M, elmOverLim, stepName):
+	'''
+	Takes a list of elements and deletes the corresponding columns and beams.
+	M          = model
+	elmOverLim = list of elements
+	stepname   = In what step to delete instances
+	'''
+
+	instOverLim = []
+	#Create list of all instance names
+	for i in range(len(elmOverLim)):
+		instOverLim.append(elmOverLim[i][1].instance.name)
+
+	#Create list with unique names
+	inst = []
+	for i in instOverLim:
+		if i not in inst:
+			inst.append(i)
+
+	#Remove slabs so they are not deleted
+	instFiltered=[]
+	for i in inst[:]:
+		if not i.startswith('SLAB'):
+			instFiltered.append(i)
+
+	#Merge set of instances to be deleted
+	setList=[]
+	for i in instFiltered:
+		setList.append(M.rootAssembly.allInstances[i].sets['set'])
+
+	setList = tuple(setList)
+	if setList:
+		M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
+	else:
+		print 'No instances exceed criteria'
+		
+	#Remove instances
+	M.ModelChange(activeInStep=False, createStepName=stepName, 
+		includeStrain=False, name='INST_REMOVAL', region=
+		M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
 
 
 
