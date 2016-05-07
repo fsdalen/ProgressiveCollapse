@@ -18,9 +18,9 @@ run            = 0
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x              = 2			#Nr of columns in x direction
-z              = 2			#Nr of columns in z direction
-y              = 1			#nr of stories
+x              = 4			#Nr of columns in x direction
+z              = 4			#Nr of columns in z direction
+y              = 5			#nr of stories
 
 
 #=========== Static analysis  ============#

@@ -24,8 +24,57 @@ import animation
 import func
 
 
-# HUP 300x300
-# HEB 550 beam
+
+
+
+
+
+
+
+#====================================================#
+#====================================================#
+#                   Blast                            #
+#====================================================#
+#====================================================#
+
+def conWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
+	'''
+	blastType = AIR_BLAST SURFACE_BLAST
+	name of surf must be blastSurf
+
+	time: Time of blast, NB: total time
+	'''
+	M=mdb.models[modelName]
+
+	#Create interaction property
+	M.IncidentWaveProperty(definition= blastType,
+	    massTNT=TNT,
+	    massFactor=1.0e3,
+	    lengthFactor=1.0e-3,
+	    pressureFactor=1.0e6,
+	    name='IntProp-1',)
+
+	#Source Point
+	feature = M.rootAssembly.ReferencePoint(point=coordinates)
+	ID = feature.id
+	sourceRP = M.rootAssembly.referencePoints[ID]
+	M.rootAssembly.Set(name='Source', referencePoints=(sourceRP,))
+	
+	
+
+	#Create ineraction
+	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
+	    detonationTime=time, interactionProperty='IntProp-1',
+	 	name='Int-1',
+	    sourcePoint=M.rootAssembly.sets['Source'], 
+	    surface=M.rootAssembly.surfaces['blastSurf'])
+
+
+
+
+
+
+
 
 
 
@@ -46,8 +95,8 @@ import func
 
 def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 
-	col_height = 4200.0
-	beam_len = 8100.0
+	col_height = 7500.0
+	beam_len = 3000.0
 
 	M=mdb.models[modelName]
 
@@ -56,7 +105,7 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 
 	#=========== Sections  ============#
 	# HUP 300x300
-	# HEB 550 beam
+	# HEB 300 beam
 
 	M.HomogeneousShellSection(
 		name='10mm',
@@ -106,7 +155,12 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 	    LayerProperties(barArea=rebarArea, orientationAngle=0.0,
 	    barSpacing=rebarSpacing, layerPosition=rebarPosition,
 	    layerName='Layer 1', material=rebarSteel), ), 
-	    rebarSpacing=CONSTANT)	
+	    rebarSpacing=CONSTANT)
+	M.sections['SLAB'].RebarLayers(layerTable=(
+	    LayerProperties(barArea=rebarArea, orientationAngle=90.0,
+	    barSpacing=rebarSpacing, layerPosition=rebarPosition,
+	    layerName='Layer 2', material=rebarSteel), ), 
+	    rebarSpacing=CONSTANT)
 
 
 
@@ -341,73 +395,6 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 		localCsys=None, name='BC-1', 
 		region=M.rootAssembly.sets['Part-1-1.colBot'],
 		u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#====================================================#
-#====================================================#
-#                   Blast                            #
-#====================================================#
-#====================================================#
-
-def conWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
-	'''
-	blastType = AIR_BLAST SURFACE_BLAST
-	name of surf must be blastSurf
-
-	time: Time of blast, NB: total time
-	'''
-	M=mdb.models[modelName]
-
-	#Create interaction property
-	M.IncidentWaveProperty(definition= blastType,
-	    massTNT=TNT,
-	    massFactor=1.0e3,
-	    lengthFactor=1.0e-3,
-	    pressureFactor=1.0e6,
-	    name='IntProp-1',)
-
-	#Source Point
-	feature = M.rootAssembly.ReferencePoint(point=coordinates)
-	ID = feature.id
-	sourceRP = M.rootAssembly.referencePoints[ID]
-	M.rootAssembly.Set(name='Source', referencePoints=(sourceRP,))
-	
-	
-
-	#Create ineraction
-	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
-	    detonationTime=time, interactionProperty='IntProp-1',
-	 	name='Int-1',
-	    sourcePoint=M.rootAssembly.sets['Source'], 
-	    surface=M.rootAssembly.surfaces['blastSurf'])
-
 
 
 

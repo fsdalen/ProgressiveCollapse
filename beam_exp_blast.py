@@ -80,7 +80,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel)
+beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
 
 
 

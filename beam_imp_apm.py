@@ -82,7 +82,7 @@ concrete = 'Concrete'
 rebarSteel = 'Rebar Steel'
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete, rebarSteel)
+func.perliminary(monitor, modelName, steel, concrete, rebarSteel, seed)
 
 M=mdb.models[modelName]
 

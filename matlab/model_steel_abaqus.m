@@ -7,7 +7,7 @@ clear all
 rho    = 7.8e-9; %Density
 E0     = 210000; %Young's modulus
 nu     =    0.3; %Poisson's ratio
-sigma0 =    404; %Yield stress
+sigma0 =    355; %Yield stress
 K      =    772; %hardening modulus
 n      = 0.1733; %hardening exponent
 epspl  =  0.024; %yield plateau strain
@@ -68,6 +68,7 @@ end
 %%-----------------------------------------------------------------------%%
 % Plot results
 %%-----------------------------------------------------------------------%%
+figure (2)
 subplot(1,2,1)
 plot(p,model)
 axis([0 max(p) 0 max(model)])

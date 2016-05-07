@@ -29,163 +29,83 @@ import func
 
 
 
-#============================================================#
-#============================================================#
-#               	Simple beam models                       #
-#============================================================#
-#============================================================#
-
-def createSingleBeam(modelName, steel):
-
-	M = mdb.models[modelName]
-	#================ Part ==================#
-
-	part1 = "COLUMN"
-	sect1 = "HUP"
-	col1_height = 4200.0
-
-	#Create Section and profile
-	M.BoxProfile(a=300.0, b=300.0, name='Profile-1', t1=10.0,
-		uniformThickness=ON)
-	M.BeamSection(consistentMassMatrix=False, integration=
-	    DURING_ANALYSIS, material=steel, name=sect1, poissonRatio=0.3, 
-	    profile='Profile-1', temperatureVar=LINEAR)
-	#Fluid inertia of section
-	airDensity = 1.225e-12    #1.225 kg/m^3
-	M.sections[sect1].setValues(useFluidInertia=ON,
-		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=1.15)#latteralMassCoef is for rectangle from wikipedia
-
-
-	#Create part
-	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
-	M.sketches['__profile__'].Line(point1=(0.0, 0.0),
-		point2=(0.0, col1_height))
-	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
-	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
-	del M.sketches['__profile__']
-
-	#Assign section
-	M.parts[part1].SectionAssignment(offset=0.0, 
-	    offsetField='', offsetType=MIDDLE_SURFACE, region=Region(
-	    edges=M.parts[part1].edges.findAt(((0.0, 0.0, 
-	    0.0), ), )), sectionName=sect1, thicknessAssignment=FROM_SECTION)
-
-	#Assign beam orientation
-	M.parts[part1].assignBeamSectionOrientation(method=
-	    N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
-	    edges=M.parts[part1].edges.findAt(((0.0, 0.0, 0.0), ), )))
-
-	# Create sets of column base/top
-	M.parts[part1].Set(name='col-base', vertices=
-	    M.parts[part1].vertices.findAt(((0.0, 0.0, 0.0),)))     
-	M.parts[part1].Set(name='col-top', vertices=
-	    M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
-
-	#Partition
-	p = M.parts['COLUMN']
-	e = p.edges
-	pickedRegions = e.findAt(((0.0, 1000.0, 0.0), ))
-	p.deleteMesh(regions=pickedRegions)
-	p = M.parts['COLUMN']
-	e, v, d = p.edges, p.vertices, p.datums
-	p.PartitionEdgeByPoint(edge=e.findAt(coordinates=(0.0, 1000.0, 0.0)), 
-	    point=p.InterestingPoint(edge=e.findAt(
-	    coordinates=(0.0, 1000.0, 0.0)), rule=MIDDLE))
-
-	#Create set at middle
-	p = M.parts['COLUMN']
-	v = p.vertices
-	verts = v.findAt(((0.0, 2100.0, 0.0), ))
-	p.Set(vertices=verts, name='col-mid')
-
-	#================ Mesh ==================#
-	analysisType = STANDARD  #Could be STANDARD or EXPLICIT
-	element1 = B31 #B31 or B32 for linear or quadratic
-
-	#Seed
-	seed=300.0
-	M.parts[part1].seedPart(minSizeFactor=0.1, size=seed)
-
-	#Change element type
-	M.parts[part1].setElementType(elemTypes=(ElemType(
-	    elemCode=element1, elemLibrary=analysisType), ), regions=(
-	    M.parts[part1].edges.findAt((0.0, 0.0, 0.0), ), ))
-
-	#Mesh
-	M.parts[part1].generateMesh()
-
-
-	#================ Instance ==================#
-	M.rootAssembly.Instance(name='COLUMN-1', part=M.parts['COLUMN'],
-		dependent=ON)
-
-
-	#=========== Blast surface  ============#
-	M.rootAssembly
-	c1 = M.rootAssembly.instances['COLUMN-1'].edges
-	circumEdges1 = c1.findAt(((0.0, 525.0, 0.0), ), ((0.0, 2625.0, 0.0), ))
-	M.rootAssembly.Surface(circumEdges=circumEdges1, name='blastSurf')
-	
-
-	#================ BC ==================#
-	region = M.rootAssembly.instances['COLUMN-1'].sets['col-base']
-	M.DisplacementBC(name='BC-1', createStepName='Initial', 
-	    region=region, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
-	    amplitude=UNSET, distributionType=UNIFORM, fieldName='',
-	    localCsys=None)
-
-	region = M.rootAssembly.instances['COLUMN-1'].sets['col-top']
-	M.DisplacementBC(name='BC-2', createStepName='Initial', 
-	    region=region, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
-	    amplitude=UNSET, distributionType=UNIFORM, fieldName='',
-	    localCsys=None)
-
-
-
-def xySimple(modelName, printFormat):
-
-	#Open ODB
-	odb = func.open_odb(modelName)
-
-
-	#=========== Force-displacement  ============#
-	plotName='force-Disp'
-	rf1 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
-	rf2 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
-	u = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
-
-	# rf1 = session.XYDataFromHistory(name='XYData-1', odb=odb,
-	# 	outputVariableName='Reaction force: RF1 at Node 1 in NSET COL-BASE')
-	# rf2 = session.XYDataFromHistory(name='XYData-2', odb=odb, 
-	# 	outputVariableName='Reaction force: RF1 at Node 3 in NSET COL-TOP')
-	# u = session.XYDataFromHistory(name='XYData-3', odb=odb, 
-	# 	outputVariableName='Spatial displacement: U1 at Node 2 in NSET COL-MID')
-	xy = combine(u, -(rf1+rf2))
-	c1 = session.Curve(xyData=xy)
-	func.XYprint(modelName, plotName, printFormat, c1)
-
-
-	#=========== Displacement  ============#
-	plotName = 'midU1'
-
-	c1 = session.Curve(xyData=u)
-
-	#Plot and Print
-	func.XYprint(modelName, plotName, printFormat, c1)
-
-	#Report data
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(u, ))
-	func.fixReportFile(tempFile, plotName, modelName)
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+#======================================================#
+#======================================================#
+#                   LOADING                            #
+#======================================================#
+#======================================================#
+
+
+def addSlabLoad(M, x, z, y, step, load, amplitude=UNSET):
+	'''
+	Adds a surface traction to all slabs
+
+	Parameters:
+	M: 		 Model
+	load: 	 Magnitude of load (positive y)
+	x, z, y: Nr of bays
+	Step:	 Which step to add the load
+	Amplitude: default is UNSET
+	'''
+
+	#Create coordinate list
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	etg = map(str,range(1,y+1))
+
+	for a in range(len(alph)-1):
+		for n in range(len(numb)-1):
+			for e in range(len(etg)):
+				inst = 'SLAB_'+ alph[a]+numb[n]+"-"+etg[e]
+				M.SurfaceTraction(createStepName=step, 
+					directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+					distributionType=UNIFORM, field='', follower=OFF,
+					localCsys=None, magnitude= load,
+					name=inst,
+					region=M.rootAssembly.instances[inst].surfaces['topSurf'],
+					traction=GENERAL, amplitude = amplitude)
+
+
+
+
+
+def changeSlabLoad(M, x, z, y, step, amplitude):
+	'''
+	Change 
+
+	Parameters:
+	M: 		 Model
+	load: 	 Magnitude of load (positive y)
+	x, z, y: Nr of bays
+	Step:	 Which step to add the load
+	Amplitude: default is UNSET
+	'''
+
+	#Create coordinate list
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	etg = map(str,range(1,y+1))
+
+	for a in range(len(alph)-1):
+		for n in range(len(numb)-1):
+			for e in range(len(etg)):
+				inst = 'SLAB_'+ alph[a]+numb[n]+"-"+etg[e]
+				M.loads[inst].setValuesInStep(stepName = step,
+					amplitude = amplitude)
 
 
 
@@ -485,40 +405,10 @@ def blast(modelName, stepName, sourceCo, refCo):
 
 	M.sections['HUP300x300'].setValues(useFluidInertia=ON,
 		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=1.15)#latteralMassCoef is for rectangle from wikipedia
+	    lateralMassCoef=1.2) 
 
 	#Set model wave formulation (does not matter when fluid is not modeled)
 	M.setValues(waveFormulation=TOTAL)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -550,17 +440,17 @@ def blast(modelName, stepName, sourceCo, refCo):
 #===============================================================#
 
 
-def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel):
+def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 	M=mdb.models[modelName]
 
 
 	#=========== Parts  ============#
 	#Create Column
-	col_height = 4000.0
+	col_height = 3000.0
 	createColumn(M, height=col_height, mat=steel, partName='COLUMN')
 
 	#Create Beam
-	beam_len = 8000.0
+	beam_len = 7500.0
 	createBeam(M, length=beam_len, mat=steel, partName='BEAM')
 
 	#Create slab
@@ -580,7 +470,7 @@ def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel):
 
 
 	#=========== Mesh  ============#
-	seed = 800.0
+
 	mesh(M, seed)
 
 	#Write nr of elements to results file
@@ -601,13 +491,6 @@ def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel):
 
 
 
-
-
-#========================================================#
-#========================================================#
-#                   Functions                            #
-#========================================================#
-#========================================================#
 
 
 def createColumn(M, height, mat, partName):
@@ -650,19 +533,19 @@ def createColumn(M, height, mat, partName):
 
 def createBeam(M, length, mat, partName):
 	'''
-	Creates a HEB 550 beam
+	Creates a HEB 300 beam
 
 	M:		 model
 	length:  lenght of beam
 	mat:	 material
 	'''
 	
-	sectName = "HEB550"
+	sectName = "HEB3000"
 
 	#Create Section and profile
 	#HEB 550
-	M.IProfile(b1=300.0, b2=300.0, h=550.0, l=275.0, name=
-	    'Profile-2', t1=29.0, t2=29.0, t3=15.0)	#Now IPE profile, see ABAQUS for geometry definitions
+	M.IProfile(b1=300.0, b2=300.0, h=300.0, l=150.0, name=
+	    'Profile-2', t1=19.0, t2=19.0, t3=11.0)	#Now IPE profile, see ABAQUS for geometry definitions
 
 	M.BeamSection(consistentMassMatrix=False, integration=
 	    DURING_ANALYSIS, material=mat, name=sectName, poissonRatio=0.3, 
@@ -714,12 +597,17 @@ def createSlab(M, t, mat, dim, rebarMat, partName):
 	    temperature=GRADIENT, thickness=t, thicknessField='',
 	    thicknessModulus=None, thicknessType=UNIFORM, useDensity=OFF)
 
-	#Add rebars to section
+	#Add rebars to section (both directions)
 	M.sections[sectName].RebarLayers(layerTable=(
 	    LayerProperties(barArea=rebarArea, orientationAngle=0.0,
 	    barSpacing=rebarSpacing, layerPosition=rebarPosition,
 	    layerName='Layer 1', material=rebarMat), ), 
 	    rebarSpacing=CONSTANT)	
+	M.sections[sectName].RebarLayers(layerTable=(
+		LayerProperties(barArea=rebarArea, orientationAngle=90.0,
+		barSpacing=rebarSpacing, layerPosition=rebarPosition,
+		layerName='Layer 2', material=rebarMat), ), 
+		rebarSpacing=CONSTANT)	
 		
 	#Create part
 	M.ConstrainedSketch(name='__profile__', sheetSize= 10000.0)
@@ -1195,66 +1083,159 @@ def fixColBase(M, x, z):
 
 
 
-#======================================================#
-#======================================================#
-#                   LOADING                            #
-#======================================================#
-#======================================================#
-
-
-def addSlabLoad(M, x, z, y, step, load, amplitude=UNSET):
-	'''
-	Adds a surface traction to all slabs
-
-	Parameters:
-	M: 		 Model
-	load: 	 Magnitude of load (positive y)
-	x, z, y: Nr of bays
-	Step:	 Which step to add the load
-	Amplitude: default is UNSET
-	'''
-
-	#Create coordinate list
-	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
-	numb = map(str,range(1,z+1))
-	etg = map(str,range(1,y+1))
-
-	for a in range(len(alph)-1):
-		for n in range(len(numb)-1):
-			for e in range(len(etg)):
-				inst = 'SLAB_'+ alph[a]+numb[n]+"-"+etg[e]
-				M.SurfaceTraction(createStepName=step, 
-					directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
-					distributionType=UNIFORM, field='', follower=OFF,
-					localCsys=None, magnitude= load,
-					name=inst,
-					region=M.rootAssembly.instances[inst].surfaces['topSurf'],
-					traction=GENERAL, amplitude = amplitude)
 
 
 
 
+#============================================================#
+#============================================================#
+#               	Simple beam models                       #
+#============================================================#
+#============================================================#
 
-def changeSlabLoad(M, x, z, y, step, amplitude):
-	'''
-	Change 
+def createSingleBeam(modelName, steel):
 
-	Parameters:
-	M: 		 Model
-	load: 	 Magnitude of load (positive y)
-	x, z, y: Nr of bays
-	Step:	 Which step to add the load
-	Amplitude: default is UNSET
-	'''
+	M = mdb.models[modelName]
+	#================ Part ==================#
 
-	#Create coordinate list
-	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
-	numb = map(str,range(1,z+1))
-	etg = map(str,range(1,y+1))
+	part1 = "COLUMN"
+	sect1 = "HUP"
+	col1_height = 4200.0
 
-	for a in range(len(alph)-1):
-		for n in range(len(numb)-1):
-			for e in range(len(etg)):
-				inst = 'SLAB_'+ alph[a]+numb[n]+"-"+etg[e]
-				M.loads[inst].setValuesInStep(stepName = step,
-					amplitude = amplitude)
+	#Create Section and profile
+	M.BoxProfile(a=300.0, b=300.0, name='Profile-1', t1=10.0,
+		uniformThickness=ON)
+	M.BeamSection(consistentMassMatrix=False, integration=
+	    DURING_ANALYSIS, material=steel, name=sect1, poissonRatio=0.3, 
+	    profile='Profile-1', temperatureVar=LINEAR)
+	#Fluid inertia of section
+	airDensity = 1.225e-12    #1.225 kg/m^3
+	M.sections[sect1].setValues(useFluidInertia=ON,
+		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
+	    lateralMassCoef=1.15)#latteralMassCoef is for rectangle from wikipedia
+
+
+	#Create part
+	M.ConstrainedSketch(name='__profile__', sheetSize=20.0)
+	M.sketches['__profile__'].Line(point1=(0.0, 0.0),
+		point2=(0.0, col1_height))
+	M.Part(dimensionality=THREE_D, name=part1, type=DEFORMABLE_BODY)
+	M.parts[part1].BaseWire(sketch=M.sketches['__profile__'])
+	del M.sketches['__profile__']
+
+	#Assign section
+	M.parts[part1].SectionAssignment(offset=0.0, 
+	    offsetField='', offsetType=MIDDLE_SURFACE, region=Region(
+	    edges=M.parts[part1].edges.findAt(((0.0, 0.0, 
+	    0.0), ), )), sectionName=sect1, thicknessAssignment=FROM_SECTION)
+
+	#Assign beam orientation
+	M.parts[part1].assignBeamSectionOrientation(method=
+	    N1_COSINES, n1=(0.0, 0.0, -1.0), region=Region(
+	    edges=M.parts[part1].edges.findAt(((0.0, 0.0, 0.0), ), )))
+
+	# Create sets of column base/top
+	M.parts[part1].Set(name='col-base', vertices=
+	    M.parts[part1].vertices.findAt(((0.0, 0.0, 0.0),)))     
+	M.parts[part1].Set(name='col-top', vertices=
+	    M.parts[part1].vertices.findAt(((0.0, col1_height, 0.0),)))
+
+	#Partition
+	p = M.parts['COLUMN']
+	e = p.edges
+	pickedRegions = e.findAt(((0.0, 1000.0, 0.0), ))
+	p.deleteMesh(regions=pickedRegions)
+	p = M.parts['COLUMN']
+	e, v, d = p.edges, p.vertices, p.datums
+	p.PartitionEdgeByPoint(edge=e.findAt(coordinates=(0.0, 1000.0, 0.0)), 
+	    point=p.InterestingPoint(edge=e.findAt(
+	    coordinates=(0.0, 1000.0, 0.0)), rule=MIDDLE))
+
+	#Create set at middle
+	p = M.parts['COLUMN']
+	v = p.vertices
+	verts = v.findAt(((0.0, 2100.0, 0.0), ))
+	p.Set(vertices=verts, name='col-mid')
+
+	#================ Mesh ==================#
+	analysisType = STANDARD  #Could be STANDARD or EXPLICIT
+	element1 = B31 #B31 or B32 for linear or quadratic
+
+	#Seed
+	seed=300.0
+	M.parts[part1].seedPart(minSizeFactor=0.1, size=seed)
+
+	#Change element type
+	M.parts[part1].setElementType(elemTypes=(ElemType(
+	    elemCode=element1, elemLibrary=analysisType), ), regions=(
+	    M.parts[part1].edges.findAt((0.0, 0.0, 0.0), ), ))
+
+	#Mesh
+	M.parts[part1].generateMesh()
+
+
+	#================ Instance ==================#
+	M.rootAssembly.Instance(name='COLUMN-1', part=M.parts['COLUMN'],
+		dependent=ON)
+
+
+	#=========== Blast surface  ============#
+	M.rootAssembly
+	c1 = M.rootAssembly.instances['COLUMN-1'].edges
+	circumEdges1 = c1.findAt(((0.0, 525.0, 0.0), ), ((0.0, 2625.0, 0.0), ))
+	M.rootAssembly.Surface(circumEdges=circumEdges1, name='blastSurf')
+	
+
+	#================ BC ==================#
+	region = M.rootAssembly.instances['COLUMN-1'].sets['col-base']
+	M.DisplacementBC(name='BC-1', createStepName='Initial', 
+	    region=region, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
+	    amplitude=UNSET, distributionType=UNIFORM, fieldName='',
+	    localCsys=None)
+
+	region = M.rootAssembly.instances['COLUMN-1'].sets['col-top']
+	M.DisplacementBC(name='BC-2', createStepName='Initial', 
+	    region=region, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
+	    amplitude=UNSET, distributionType=UNIFORM, fieldName='',
+	    localCsys=None)
+
+
+
+def xySimple(modelName, printFormat):
+
+	#Open ODB
+	odb = func.open_odb(modelName)
+
+
+	#=========== Force-displacement  ============#
+	plotName='force-Disp'
+	rf1 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
+	rf2 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
+	u = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
+
+	# rf1 = session.XYDataFromHistory(name='XYData-1', odb=odb,
+	# 	outputVariableName='Reaction force: RF1 at Node 1 in NSET COL-BASE')
+	# rf2 = session.XYDataFromHistory(name='XYData-2', odb=odb, 
+	# 	outputVariableName='Reaction force: RF1 at Node 3 in NSET COL-TOP')
+	# u = session.XYDataFromHistory(name='XYData-3', odb=odb, 
+	# 	outputVariableName='Spatial displacement: U1 at Node 2 in NSET COL-MID')
+	xy = combine(u, -(rf1+rf2))
+	c1 = session.Curve(xyData=xy)
+	func.XYprint(modelName, plotName, printFormat, c1)
+
+
+	#=========== Displacement  ============#
+	plotName = 'midU1'
+
+	c1 = session.Curve(xyData=u)
+
+	#Plot and Print
+	func.XYprint(modelName, plotName, printFormat, c1)
+
+	#Report data
+	tempFile = 'temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(u, ))
+	func.fixReportFile(tempFile, plotName, modelName)
