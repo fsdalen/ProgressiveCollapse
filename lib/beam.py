@@ -1100,7 +1100,7 @@ def createSingleBeam(modelName, steel):
 
 	part1 = "COLUMN"
 	sect1 = "HUP"
-	col1_height = 4200.0
+	col1_height = 3000.0
 
 	#Create Section and profile
 	M.BoxProfile(a=300.0, b=300.0, name='Profile-1', t1=10.0,
@@ -1158,11 +1158,11 @@ def createSingleBeam(modelName, steel):
 	p.Set(vertices=verts, name='col-mid')
 
 	#================ Mesh ==================#
-	analysisType = STANDARD  #Could be STANDARD or EXPLICIT
+	analysisType = EXPLICIT  #Could be STANDARD or EXPLICIT
 	element1 = B31 #B31 or B32 for linear or quadratic
 
 	#Seed
-	seed=300.0
+	seed=150.0
 	M.parts[part1].seedPart(minSizeFactor=0.1, size=seed)
 
 	#Change element type

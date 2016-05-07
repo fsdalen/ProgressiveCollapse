@@ -43,7 +43,7 @@ def conWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
 	name of surf must be blastSurf
 
 	time: Time of blast, NB: total time
-	'''
+OfBlast	'''
 	M=mdb.models[modelName]
 
 	#Create interaction property
@@ -64,7 +64,7 @@ def conWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
 
 	#Create ineraction
 	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
-	    detonationTime=time, interactionProperty='IntProp-1',
+	    detonationTime=timeOfBlast, interactionProperty='IntProp-1',
 	 	name='Int-1',
 	    sourcePoint=M.rootAssembly.sets['Source'], 
 	    surface=M.rootAssembly.surfaces['blastSurf'])
@@ -432,7 +432,7 @@ def createSingleBeam(modelName, steel):
 
 	thickness=10.0 	#Thickness of section
 	width=300.0-thickness
-	hight= 4200.0
+	hight= 3000.0
 
 
 	#=========== Section  ============#
@@ -478,13 +478,40 @@ def createSingleBeam(modelName, steel):
 
 	M.parts['Part-1'].Set(edges=
 	    M.parts['Part-1'].edges.findAt(
-	    ((-145.0, -72.5, 4200.0), ),
-	    ((-72.5, 145.0, 4200.0), ),
-	    ((145.0, 72.5, 4200.0), ),
-	    ((72.5, -145.0, 4200.0), ), ),
+	    ((-145.0, -72.5, 3000.0), ),
+	    ((-72.5, 145.0, 3000.0), ),
+	    ((145.0, 72.5, 3000.0), ),
+	    ((72.5, -145.0, 3000.0), ), ),
 	    name='top')
 
 
+
+	#=========== Small plate just for pressure output  ============#
+	#Part
+	s = M.ConstrainedSketch(name='__profile__', sheetSize=
+	    200.0)
+	s.rectangle(
+		point1=(-75.0, 75.0),
+		point2=(75.0, -75.0))
+	M.Part(dimensionality=THREE_D, name='Part-2', 
+	    type=DEFORMABLE_BODY)
+	M.parts['Part-2'].BaseShell(sketch=s)
+	del s
+
+	#Set
+	face =M.parts['Part-2'].faces.findAt(((25.0,25.0,0.0),))
+	M.parts['Part-2'].Set(faces=face, name='face')
+
+	#Section
+	M.parts['Part-2'].SectionAssignment(offset=0.0, offsetField=
+		'', offsetType=MIDDLE_SURFACE, region=Region(faces=face), 
+		sectionName='HUP300x300', thicknessAssignment=FROM_SECTION)
+
+	#Mesh
+	seed = 150.0
+	M.parts['Part-2'].seedPart(deviationFactor=0.1, 
+    minSizeFactor=0.1, size=seed)
+	M.parts['Part-2'].generateMesh()
 
 	#=========== Assembly  ============#
 	dep = ON
@@ -494,25 +521,37 @@ def createSingleBeam(modelName, steel):
 		axisDirection=(1.0, 0.0, 0.0), axisPoint=(0.0, 0.0, 0.0),
 		instanceList=('Part-1-1', ))
 
+
+	#Small plate
+	M.rootAssembly.Instance(dependent=ON, name='Part-2-1',
+		part=M.parts['Part-2'])
+	M.rootAssembly.rotate(
+    	angle=90.0,	axisDirection=(0.0, 1.0, 0.0), axisPoint=(0.0, 0.0, 0.0),
+		instanceList=('Part-2-1', ))
+	M.rootAssembly.translate(
+		instanceList=('Part-2-1', ), vector=(-1000.0, 1500.0, 0.0))
+
 	#Create blast surface
 	M.rootAssembly.Surface(name='blastSurf', side1Faces=
 	    M.rootAssembly.instances['Part-1-1'].faces.findAt(((
 	    -145.0, 0.0, 48.333333), ),
 	    ((-48.333333, 0.0, -145.0), ), 
 	    ((145.0, 0.0, -48.333333), ),
-	    ((48.333333, 0.0, 145.0), ), 
-	    ))
-
+	    ((48.333333, 0.0, 145.0), ),  ) +\
+		M.rootAssembly.instances['Part-2-1'].faces.findAt(
+		((-1000.0, 1525.0, -25.0), )))	#Small plate
 
 	#=========== Mesh  ============#
-	seed = 300.0
 	M.parts['Part-1'].seedPart(deviationFactor=0.1, 
     minSizeFactor=0.1, size=seed)
 	M.parts['Part-1'].generateMesh()
 	
-	#Create set for mid node
-	nodes = M.parts['Part-1'].nodes[53:54]
-	M.parts['Part-1'].Set(nodes = nodes, name = 'midNode')
+	#Create set for mid nodes
+	nodes = M.parts['Part-1'].nodes[101:102]+\
+		M.parts['Part-1'].nodes[120:121]+\
+		M.parts['Part-1'].nodes[139:140]+\
+		M.parts['Part-1'].nodes[158:159]
+	M.parts['Part-1'].Set(nodes = nodes, name = 'midNodes')
 
 	#=========== BC  ============#
 	#Fix ends
@@ -525,6 +564,13 @@ def createSingleBeam(modelName, steel):
 	    distributionType=UNIFORM, fieldName='', localCsys=None, name='fix_bot', 
 	    region=M.rootAssembly.instances['Part-1-1'].sets['bot'], 
 	    u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
+
+	#Fix small plate
+	M.DisplacementBC(amplitude=UNSET, createStepName=
+	    'Initial', distributionType=UNIFORM, fieldName='',
+	    localCsys=None, name='fix_Plate', region=
+	    M.rootAssembly.instances['Part-2-1'].sets['face']
+	    , u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
 
 
 
@@ -540,18 +586,67 @@ def xySimpleDef(modelName, printFormat):
 	odb = func.open_odb(modelName)
 
 
-	varName = 'Spatial displacement: U1 PI: PART-1-1 Node 54 in NSET MIDNODE'
 	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-    outputVariableName=varName)
+	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 102 in NSET MIDNODES', 
+	    suppressQuery=True)
 	c1 = session.Curve(xyData=xy1)
+	xy2 = xyPlot.XYDataFromHistory(odb=odb, 
+	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 121 in NSET MIDNODES', 
+	    suppressQuery=True)
+	c2 = session.Curve(xyData=xy2)
+	xy3 = xyPlot.XYDataFromHistory(odb=odb, 
+	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 140 in NSET MIDNODES', 
+	    suppressQuery=True)
+	c3 = session.Curve(xyData=xy3)
+	xy4 = xyPlot.XYDataFromHistory(odb=odb, 
+	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 159 in NSET MIDNODES', 
+	    suppressQuery=False)
+	c4 = session.Curve(xyData=xy4)
 
+	#Plot and Print
+	func.XYprint(modelName, plotName, printFormat, c4)
+
+	#Report data
+	# tempFile = 'temp.txt'
+	# session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
+	# func.fixReportFile(tempFile, 'frontU1', modelName)
+
+	# tempFile = 'temp.txt'
+	# session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy2, ))
+	# func.fixReportFile(tempFile, 'middleU1', modelName)
+
+	# tempFile = 'temp.txt'
+	# session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy3, ))
+	# func.fixReportFile(tempFile, 'backU1', modelName)
+
+	tempFile = 'temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy4, ))
+	func.fixReportFile(tempFile, 'otherMiddleU1', modelName)
+
+def xySimpleIWCONWEP(modelName, printFormat):
+
+	plotName = 'IWCONWEP'
+
+
+	#Open ODB
+	odb = func.open_odb(modelName)
+
+	xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=ELEMENT_FACE, 
+	    variable=(('IWCONWEP', ELEMENT_FACE), ),
+	    elementSets=('PART-2-1.FACE', ))
+	xy1 = xyList[0]
+	# xyp = session.xyPlots['XYPlot-1']
+	# chartName = xyp.charts.keys()[0]
+	# chart = xyp.charts[chartName]
+	# curveList = session.curveSet(xyData=xyList)
+	# chart.setValues(curvesToPlot=curveList)
+	# session.viewports['Viewport: 1'].setValues(displayedObject=xyp)
+	c1 = session.Curve(xyData=xy1)
 	#Plot and Print
 	func.XYprint(modelName, plotName, printFormat, c1)
 
 	#Report data
 	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
+	session.writeXYReport(fileName=tempFile, appendMode=OFF,
+		xyData=(xy1, ))
 	func.fixReportFile(tempFile, plotName, modelName)
-
-
-

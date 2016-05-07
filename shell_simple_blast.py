@@ -10,13 +10,13 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'simpleShellBlast'
+mdbName     = 'shellConwepSingle'
 cpus        = 1			#Number of CPU's
 monitor     = 1
 
 
 run         = 1
-blastTime   = 0.1
+blastTime   = 0.05
 TNT         = 1.0	#tonns of tnt
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
@@ -25,7 +25,8 @@ nodalOpt = SINGLE #SINGLE or FULL
 #Post
 defScale    = 1.0
 printFormat = PNG 	#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 100
+fieldIntervals = 1000
+histIntervals = fieldIntervals
 animeFrameRate = 5
 
 
@@ -73,8 +74,8 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 #Create blast
 shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 100.0, 150.0),
-	time =0.0, stepName=stepName)
+	coordinates = (-10000.0, 1500.0, 0.0),
+	timeOfBlast =0.0, stepName=stepName)
 
 
 
@@ -88,18 +89,22 @@ shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 #Frequency of field output
 M.fieldOutputRequests['F-Output-1'].setValues(numIntervals=fieldIntervals)
 
+#IWCONWEP field output
+M.FieldOutputRequest(createStepName=stepName, name=
+    'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=
+    M.rootAssembly.allInstances['Part-2-1'].sets['face']
+    , sectionPoints=DEFAULT, variables=('IWCONWEP', ))
+
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
-#Create set
-M.parts['Part-1'].Set(elements=
-    M.parts['Part-1'].elements[32:33], name='middle')
 
 #Create U history output
-regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['midNode']
+regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['midNodes']
 M.HistoryOutputRequest(name='displacement', 
     createStepName=stepName, variables=('U1', ), region=regionDef, 
-    sectionPoints=DEFAULT, rebar=EXCLUDE)
+    sectionPoints=DEFAULT, rebar=EXCLUDE, numIntervals=histIntervals)
+
 
 #===========================================================#
 #===========================================================#
@@ -136,14 +141,14 @@ if run:
 		del session.xyPlots[plot]
 
 	#=========== Contour  ============#
-	func.countourPrint(modelName, defScale, printFormat)
+	# func.countourPrint(modelName, defScale, printFormat)
 
 	#=========== Animation  ============#
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
 	shell.xySimpleDef(modelName, printFormat)
-
+	shell.xySimpleIWCONWEP(modelName, printFormat)
 	print '   done'
 
 
