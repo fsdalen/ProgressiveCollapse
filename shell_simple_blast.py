@@ -10,12 +10,12 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'shellConwepSingle'
-cpus        = 1			#Number of CPU's
+mdbName     = 'shellSimple'
+cpus        = 2			#Number of CPU's
 monitor     = 1
 
 
-run         = 1
+run         = 0
 blastTime   = 0.05
 TNT         = 1.0	#tonns of tnt
 
@@ -42,6 +42,7 @@ import lib.func as func
 import lib.shell as shell
 reload(func)
 reload(shell)
+
 
 modelName   = mdbName
 
@@ -74,7 +75,7 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 #Create blast
 shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 1500.0, 0.0),
+	coordinates = (-10000.0, 0.0, 0.0),
 	timeOfBlast =0.0, stepName=stepName)
 
 
@@ -91,9 +92,9 @@ M.fieldOutputRequests['F-Output-1'].setValues(numIntervals=fieldIntervals)
 
 #IWCONWEP field output
 M.FieldOutputRequest(createStepName=stepName, name=
-    'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=
-    M.rootAssembly.allInstances['Part-2-1'].sets['face']
-    , sectionPoints=DEFAULT, variables=('IWCONWEP', ))
+	'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=
+	M.rootAssembly.allInstances['Part-2-1'].sets['face']
+	, sectionPoints=DEFAULT, variables=('IWCONWEP', ))
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']

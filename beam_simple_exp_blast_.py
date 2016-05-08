@@ -15,7 +15,7 @@ cpus        = 1			#Number of CPU's
 monitor     = 1
 
 
-run         = 1
+run         = 0
 blastTime   = 0.1
 
 

@@ -526,10 +526,10 @@ def createSingleBeam(modelName, steel):
 	M.rootAssembly.Instance(dependent=ON, name='Part-2-1',
 		part=M.parts['Part-2'])
 	M.rootAssembly.rotate(
-    	angle=90.0,	axisDirection=(0.0, 1.0, 0.0), axisPoint=(0.0, 0.0, 0.0),
+		angle=90.0,	axisDirection=(0.0, 1.0, 0.0), axisPoint=(0.0, 0.0, 0.0),
 		instanceList=('Part-2-1', ))
 	M.rootAssembly.translate(
-		instanceList=('Part-2-1', ), vector=(-1000.0, 1500.0, 0.0))
+		instanceList=('Part-2-1', ), vector=(-1000.0, 0.0, 0.0))
 
 	#Create blast surface
 	M.rootAssembly.Surface(name='blastSurf', side1Faces=
@@ -537,9 +537,9 @@ def createSingleBeam(modelName, steel):
 	    -145.0, 0.0, 48.333333), ),
 	    ((-48.333333, 0.0, -145.0), ), 
 	    ((145.0, 0.0, -48.333333), ),
-	    ((48.333333, 0.0, 145.0), ),  ) +\
+	    ((48.333333, 0.0, 145.0), ),) +\
 		M.rootAssembly.instances['Part-2-1'].faces.findAt(
-		((-1000.0, 1525.0, -25.0), )))	#Small plate
+		((-1000.0, 25.0, -25.0), )))	#Small plate
 
 	#=========== Mesh  ============#
 	M.parts['Part-1'].seedPart(deviationFactor=0.1, 
@@ -567,10 +567,10 @@ def createSingleBeam(modelName, steel):
 
 	#Fix small plate
 	M.DisplacementBC(amplitude=UNSET, createStepName=
-	    'Initial', distributionType=UNIFORM, fieldName='',
-	    localCsys=None, name='fix_Plate', region=
-	    M.rootAssembly.instances['Part-2-1'].sets['face']
-	    , u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
+		'Initial', distributionType=UNIFORM, fieldName='',
+		localCsys=None, name='fix_Plate', region=
+		M.rootAssembly.instances['Part-2-1'].sets['face']
+		, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
 
 
 
