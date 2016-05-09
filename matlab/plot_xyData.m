@@ -46,6 +46,13 @@ for i = 1:n
     underscore = strfind(field(2),'_');
     name2 = char(field(2));
     data(i).y = eval(['structure.' name2]);
+    
+    %Shift curves to start at 0,0
+    %This removes all the first 0,0 exept one
+    nonZero = find(data(i).y);
+    firstNonZero = nonZero(1);
+    data(i).y = data(i).y(firstNonZero-1:end);
+    data(i).x = data(i).x(1:end-(firstNonZero-2));
 end
 
 
