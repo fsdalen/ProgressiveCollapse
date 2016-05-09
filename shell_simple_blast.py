@@ -18,6 +18,7 @@ monitor     = 1
 run         = 0
 blastTime   = 0.05
 TNT         = 1.0	#tonns of tnt
+seed 		= 150.0
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
@@ -64,7 +65,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-shell.createSingleBeam(modelName, steel)
+shell.createSingleBeam(modelName, steel, seed)
 
 
 #Create setp
@@ -91,17 +92,17 @@ shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 M.fieldOutputRequests['F-Output-1'].setValues(numIntervals=fieldIntervals)
 
 #IWCONWEP field output
-M.FieldOutputRequest(createStepName=stepName, name=
-	'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=
-	M.rootAssembly.allInstances['Part-2-1'].sets['face']
-	, sectionPoints=DEFAULT, variables=('IWCONWEP', ))
+# M.FieldOutputRequest(createStepName=stepName, name=
+# 	'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=
+# 	M.rootAssembly.allInstances['Part-2-1'].sets['face']
+# 	, sectionPoints=DEFAULT, variables=('IWCONWEP', ))
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
 
 #Create U history output
-regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['midNodes']
+regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['mid']
 M.HistoryOutputRequest(name='displacement', 
     createStepName=stepName, variables=('U1', ), region=regionDef, 
     sectionPoints=DEFAULT, rebar=EXCLUDE, numIntervals=histIntervals)
@@ -149,7 +150,7 @@ if run:
 	
 	#=========== XY  ============#
 	shell.xySimpleDef(modelName, printFormat)
-	shell.xySimpleIWCONWEP(modelName, printFormat)
+	# shell.xySimpleIWCONWEP(modelName, printFormat)
 	print '   done'
 
 

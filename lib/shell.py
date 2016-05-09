@@ -425,7 +425,7 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 #===========================================================#
 #===========================================================#
 
-def createSingleBeam(modelName, steel):
+def createSingleBeam(modelName, steel, seed):
 	# HUP 300x300
 	M=mdb.models[modelName]
 
@@ -466,7 +466,6 @@ def createSingleBeam(modelName, steel):
 		'', offsetType=MIDDLE_SURFACE, region=Region(faces=faces), 
 		sectionName='HUP300x300', thicknessAssignment=FROM_SECTION)
 
-
 	#Create sets
 	M.parts['Part-1'].Set(edges=
 	    M.parts['Part-1'].edges.findAt(
@@ -484,34 +483,49 @@ def createSingleBeam(modelName, steel):
 	    ((72.5, -145.0, 3000.0), ), ),
 	    name='top')
 
+	M.parts['Part-1'].DatumPlaneByPrincipalPlane(offset=
+	    1500.0, principalPlane=XYPLANE)
+	M.parts['Part-1'].PartitionFaceByDatumPlane(datumPlane=
+	    M.parts['Part-1'].datums[5], faces=
+	    M.parts['Part-1'].faces.findAt(((-48.333333, 145.0, 
+	    2000.0), )))
+	M.parts['Part-1'].PartitionEdgeByPoint(edge=
+	    M.parts['Part-1'].edges.findAt((72.5, 145.0, 
+	    1500.0), ), point=
+	    M.parts['Part-1'].InterestingPoint(
+	    M.parts['Part-1'].edges.findAt((72.5, 145.0, 
+	    1500.0), ), MIDDLE))
+	M.parts['Part-1'].Set(name='mid', vertices=
+	    M.parts['Part-1'].vertices.findAt(((0.0, 145.0, 
+	    1500.0), )))
 
 
-	#=========== Small plate just for pressure output  ============#
-	#Part
-	s = M.ConstrainedSketch(name='__profile__', sheetSize=
-	    200.0)
-	s.rectangle(
-		point1=(-75.0, 75.0),
-		point2=(75.0, -75.0))
-	M.Part(dimensionality=THREE_D, name='Part-2', 
-	    type=DEFORMABLE_BODY)
-	M.parts['Part-2'].BaseShell(sketch=s)
-	del s
+	# #=========== Small plate just for pressure output  ============#
+	# #Part
+	# s = M.ConstrainedSketch(name='__profile__', sheetSize=
+	#     200.0)
+	# s.rectangle(
+	# 	point1=(-75.0, 75.0),
+	# 	point2=(75.0, -75.0))
+	# M.Part(dimensionality=THREE_D, name='Part-2', 
+	#     type=DEFORMABLE_BODY)
+	# M.parts['Part-2'].BaseShell(sketch=s)
+	# del s
 
-	#Set
-	face =M.parts['Part-2'].faces.findAt(((25.0,25.0,0.0),))
-	M.parts['Part-2'].Set(faces=face, name='face')
+	# #Set
+	# face =M.parts['Part-2'].faces.findAt(((25.0,25.0,0.0),))
+	# M.parts['Part-2'].Set(faces=face, name='face')
 
-	#Section
-	M.parts['Part-2'].SectionAssignment(offset=0.0, offsetField=
-		'', offsetType=MIDDLE_SURFACE, region=Region(faces=face), 
-		sectionName='HUP300x300', thicknessAssignment=FROM_SECTION)
+	# #Section
+	# M.parts['Part-2'].SectionAssignment(offset=0.0, offsetField=
+	# 	'', offsetType=MIDDLE_SURFACE, region=Region(faces=face), 
+	# 	sectionName='HUP300x300', thicknessAssignment=FROM_SECTION)
 
-	#Mesh
-	seed = 150.0
-	M.parts['Part-2'].seedPart(deviationFactor=0.1, 
-    minSizeFactor=0.1, size=seed)
-	M.parts['Part-2'].generateMesh()
+	# #Mesh
+	# seed = 150.0
+	# M.parts['Part-2'].seedPart(deviationFactor=0.1, 
+ #    minSizeFactor=0.1, size=seed)
+	# M.parts['Part-2'].generateMesh()
 
 	#=========== Assembly  ============#
 	dep = ON
@@ -522,14 +536,14 @@ def createSingleBeam(modelName, steel):
 		instanceList=('Part-1-1', ))
 
 
-	#Small plate
-	M.rootAssembly.Instance(dependent=ON, name='Part-2-1',
-		part=M.parts['Part-2'])
-	M.rootAssembly.rotate(
-		angle=90.0,	axisDirection=(0.0, 1.0, 0.0), axisPoint=(0.0, 0.0, 0.0),
-		instanceList=('Part-2-1', ))
-	M.rootAssembly.translate(
-		instanceList=('Part-2-1', ), vector=(-1000.0, 0.0, 0.0))
+	# #Small plate
+	# M.rootAssembly.Instance(dependent=ON, name='Part-2-1',
+	# 	part=M.parts['Part-2'])
+	# M.rootAssembly.rotate(
+	# 	angle=90.0,	axisDirection=(0.0, 1.0, 0.0), axisPoint=(0.0, 0.0, 0.0),
+	# 	instanceList=('Part-2-1', ))
+	# M.rootAssembly.translate(
+	# 	instanceList=('Part-2-1', ), vector=(-1000.0, 0.0, 0.0))
 
 	#Create blast surface
 	M.rootAssembly.Surface(name='blastSurf', side1Faces=
@@ -537,9 +551,9 @@ def createSingleBeam(modelName, steel):
 	    -145.0, 0.0, 48.333333), ),
 	    ((-48.333333, 0.0, -145.0), ), 
 	    ((145.0, 0.0, -48.333333), ),
-	    ((48.333333, 0.0, 145.0), ),) +\
-		M.rootAssembly.instances['Part-2-1'].faces.findAt(
-		((-1000.0, 25.0, -25.0), )))	#Small plate
+	    ((48.333333, 0.0, 145.0), ),))  # +\
+		# M.rootAssembly.instances['Part-2-1'].faces.findAt(
+		# ((-1000.0, 25.0, -25.0), )))	#Small plate
 
 	#=========== Mesh  ============#
 	M.parts['Part-1'].seedPart(deviationFactor=0.1, 
@@ -565,12 +579,12 @@ def createSingleBeam(modelName, steel):
 	    region=M.rootAssembly.instances['Part-1-1'].sets['bot'], 
 	    u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
 
-	#Fix small plate
-	M.DisplacementBC(amplitude=UNSET, createStepName=
-		'Initial', distributionType=UNIFORM, fieldName='',
-		localCsys=None, name='fix_Plate', region=
-		M.rootAssembly.instances['Part-2-1'].sets['face']
-		, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
+	# #Fix small plate
+	# M.DisplacementBC(amplitude=UNSET, createStepName=
+	# 	'Initial', distributionType=UNIFORM, fieldName='',
+	# 	localCsys=None, name='fix_Plate', region=
+	# 	M.rootAssembly.instances['Part-2-1'].sets['face']
+	# 	, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
 
 
 
