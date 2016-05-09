@@ -41,7 +41,6 @@ seed           = 150.0		#Global seed
 #Post
 defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
 animeFrameRate = 5
 
 
@@ -112,6 +111,9 @@ beam.addSlabLoad(M, x, z, y, stepName, LL)
 #=====================================================#
 #=====================================================#
 
+#Damage field output
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']

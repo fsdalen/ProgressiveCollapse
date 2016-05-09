@@ -91,6 +91,10 @@ shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 #Frequency of field output
 M.fieldOutputRequests['F-Output-1'].setValues(numIntervals=fieldIntervals)
 
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=fieldIntervals)
+
 #IWCONWEP field output
 # M.FieldOutputRequest(createStepName=stepName, name=
 # 	'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=

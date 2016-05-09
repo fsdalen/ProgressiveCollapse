@@ -10,19 +10,20 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'simpleBeamBlast'
-cpus        = 1			#Number of CPU's
-monitor     = 1
+mdbName        = 'simpleBeamBlast'
+cpus           = 1			#Number of CPU's
+monitor        = 1
 
 
-run         = 0
-blastTime   = 0.1
+run            = 0
+blastTime      = 0.1
 
 
 #Post
-defScale    = 1.0
-printFormat = PNG 	#TIFF, PS, EPS, PNG, SVG
+defScale       = 1.0
+printFormat    = PNG 	#TIFF, PS, EPS, PNG, SVG
 fieldIntervals = 30
+histIntervals  = 100
 animeFrameRate = 5
 
 
@@ -97,17 +98,17 @@ del M.historyOutputRequests['H-Output-1']
 regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-base']
 M.HistoryOutputRequest(name='load-base', 
     createStepName=stepName, variables=('RF1', ), region=regionDef, 
-    sectionPoints=DEFAULT, rebar=EXCLUDE)
+    numIntervals=histIntervals)
 
 regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-top']
 M.HistoryOutputRequest(name='load-top', 
     createStepName=stepName, variables=('RF1', ), region=regionDef, 
-    sectionPoints=DEFAULT, rebar=EXCLUDE)
+    numIntervals=histIntervals)
 
 regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-mid']
 M.HistoryOutputRequest(name='displacement', 
     createStepName=stepName, variables=('U1', ), region=regionDef, 
-    sectionPoints=DEFAULT, rebar=EXCLUDE)
+    numIntervals=histIntervals)
 
 
 

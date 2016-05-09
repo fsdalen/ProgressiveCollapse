@@ -398,14 +398,6 @@ def blast(modelName, stepName, sourceCo, refCo):
 	    definition=PRESSURE, interactionProperty='Blast', 
 	    referenceMagnitude=1.0, amplitude='Blast')
 
-	#Add beam fluid inertia to beams and columns
-	M.sections['HEB550'].setValues(useFluidInertia=ON,
-		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=1.15)#latteralMassCoef is for rectangle from wikipedia
-
-	M.sections['HUP300x300'].setValues(useFluidInertia=ON,
-		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=1.2) 
 
 	#Set model wave formulation (does not matter when fluid is not modeled)
 	M.setValues(waveFormulation=TOTAL)
@@ -457,6 +449,15 @@ def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 	createSlab(M, t=200.0, mat=concrete, dim=beam_len,
 		rebarMat=rebarSteel, partName='SLAB')
 
+	#Add beam fluid inertia to beams and columns
+	airDensity = 1.225e-12    #1.225 kg/m^3
+	M.sections['HEB300'].setValues(useFluidInertia=ON,
+		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
+	    lateralMassCoef=1.2)
+
+	M.sections['HUP300x300'].setValues(useFluidInertia=ON,
+		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
+	    lateralMassCoef=1.2) 
 
 	#=========== Sets and surfaces  ============#
 	#A lot of surfaces are created with the joints
@@ -540,7 +541,7 @@ def createBeam(M, length, mat, partName):
 	mat:	 material
 	'''
 	
-	sectName = "HEB3000"
+	sectName = "HEB300"
 
 	#Create Section and profile
 	#HEB 550

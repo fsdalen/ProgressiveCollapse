@@ -158,6 +158,10 @@ M.fieldOutputRequests['F-Output-1'].setValues(
 M.fieldOutputRequests['F-Output-1'].setValuesInStep(
     stepName='blast', numIntervals=blastIntervals)
 
+#Damage field output
+M.FieldOutputRequest(name='damage', 
+    createStepName='blast', variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=blastIntervals)
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']

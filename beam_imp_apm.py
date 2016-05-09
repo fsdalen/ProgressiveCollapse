@@ -14,7 +14,7 @@ mdbName        = 'beamImpAPM'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 
-run            = 1
+run            = 0
 
 
 #=========== Geometry  ============#
@@ -59,7 +59,6 @@ seed           = 150.0		#Global seed
 #Post
 defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
 animeFrameRate = 5
 
 
@@ -82,7 +81,7 @@ concrete = 'Concrete'
 rebarSteel = 'Rebar Steel'
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete, rebarSteel, seed)
+func.perliminary(monitor, modelName, steel, concrete, rebarSteel)
 
 M=mdb.models[modelName]
 
@@ -96,7 +95,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel)
+beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
 
 
 
@@ -132,6 +131,10 @@ del M.historyOutputRequests['H-Output-1']
 #Create history output for energies
 M.HistoryOutputRequest(name='Energy', 
 	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
+
+#Field output: damage
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
 
 #Section forces at top of column to be removed in APM
 beam.historySectionForces(M, APMcol, stepName)

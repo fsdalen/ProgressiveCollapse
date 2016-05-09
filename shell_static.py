@@ -40,7 +40,6 @@ seed           = 150.0		#Global seed
 #Post
 defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
 animeFrameRate = 5
 
 
@@ -128,6 +127,11 @@ M.rootAssembly.regenerate()
 #                   Output                            #
 #=====================================================#
 #=====================================================#
+
+#Damage field output
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=fieldIntervals)
 
 
 #Delete default history output

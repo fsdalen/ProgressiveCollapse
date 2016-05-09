@@ -14,7 +14,7 @@ mdbName        = 'beamExpAPM'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 
-run            = 1
+run            = 0
 
 
 #=========== Geometry  ============#
@@ -31,9 +31,10 @@ static_MinIncr = 1e-9
 static_maxInc  = 50 		#Maximum number of increments for static step
 
 
-#=========== Explicit model  ============#
+#=========== Explicit APM model  ============#
 APMcol        = 'COLUMN_B2-1'		#Column to be removed
 histIntervals = 200 		#History output evenly spaced over n increments
+fieldIntervals= 30			
 staticTime    = 0.1				
 rmvStepTime   = 1e-3
 dynStepTime   = 0.1	
@@ -51,7 +52,6 @@ seed           = 150.0		#Global seed
 #Post
 defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
 animeFrameRate = 5
 
 
@@ -245,11 +245,12 @@ M.HistoryOutputRequest(name='Energy',
 M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
 	createStepName=stepName, variables=('U2',), 
 	region=M.rootAssembly.allInstances[APMcol].sets['col-top'],
-	sectionPoints=DEFAULT, rebar=EXCLUDE, numIntervals=histIntervals)
+	numIntervals=histIntervals)
 
 #Field output: damage
 M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=fieldIntervals)
 
 
 
