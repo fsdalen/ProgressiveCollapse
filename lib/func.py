@@ -312,7 +312,7 @@ def runJob(jobName):
 	V.odbDisplay.display.setValues(plotState=(
 		CONTOURS_ON_DEF, ))
 	V.odbDisplay.commonOptions.setValues(
-		deformationScaling=UNIFORM, uniformScaleFactor=10)
+		deformationScaling=UNIFORM, uniformScaleFactor=1)
 
 
 
@@ -469,7 +469,7 @@ def countourPrint(modelName, defScale, printFormat):
 		deformationScaling=UNIFORM, uniformScaleFactor=defScale)
 
 	#Print plots at the last frame in each step
-	session.printOptions.setValues(vpBackground=ON, compass=ON)
+	session.printOptions.setValues(vpBackground=OFF, compass=ON)
 	for step in odb.steps.keys():
 		V.odbDisplay.setFrame(step=step, frame=-1)
 		#VonMises

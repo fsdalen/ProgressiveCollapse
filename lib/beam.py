@@ -380,15 +380,6 @@ def blast(modelName, stepName, sourceCo, refCo):
 	M.IncidentWaveProperty(name='Blast', 
 	    definition=SPHERICAL, fluidDensity=airDensity, soundSpeed=soundSpeed)
 
-	#Join surfaces to create blastSurf
-	lst = []
-	for inst in M.rootAssembly.instances.keys():
-		if inst.startswith('BEAM') or inst.startswith('COLUMN'):
-			lst.append(M.rootAssembly.instances[inst].surfaces['surf'])
-		if inst.startswith('SLAB'):
-			lst.append(M.rootAssembly.instances[inst].surfaces['botSurf'])
-	blastSurf = tuple(lst)
-	M.rootAssembly.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
 
 	#Create incident Wave Interaction
 	M.IncidentWave(name='Blast', createStepName=stepName, 
@@ -1155,7 +1146,7 @@ def createSingleBeam(modelName, steel):
 	#Create set at middle
 	p = M.parts['COLUMN']
 	v = p.vertices
-	verts = v.findAt(((0.0, 2100.0, 0.0), ))
+	verts = v.findAt(((0.0, 1500.0, 0.0), ))
 	p.Set(vertices=verts, name='col-mid')
 
 	#================ Mesh ==================#
@@ -1210,31 +1201,37 @@ def xySimple(modelName, printFormat):
 
 	#=========== Force-displacement  ============#
 	plotName='force-Disp'
-	rf1 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
-	rf2 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
-	u = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
+	
+	# rf1 = xyPlot.XYDataFromHistory(odb=odb, 
+	# 	outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
+	# rf2 = xyPlot.XYDataFromHistory(odb=odb, 
+	# 	outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
+	# u = xyPlot.XYDataFromHistory(odb=odb, 
+	# 	outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
 
-	# rf1 = session.XYDataFromHistory(name='XYData-1', odb=odb,
-	# 	outputVariableName='Reaction force: RF1 at Node 1 in NSET COL-BASE')
-	# rf2 = session.XYDataFromHistory(name='XYData-2', odb=odb, 
-	# 	outputVariableName='Reaction force: RF1 at Node 3 in NSET COL-TOP')
-	# u = session.XYDataFromHistory(name='XYData-3', odb=odb, 
-	# 	outputVariableName='Spatial displacement: U1 at Node 2 in NSET COL-MID')
-	xy = combine(u, -(rf1+rf2))
-	c1 = session.Curve(xyData=xy)
-	func.XYprint(modelName, plotName, printFormat, c1)
+	rf1 = session.XYDataFromHistory(name='XYData-1', odb=odb,
+		outputVariableName='Reaction force: RF1 at Node 1 in NSET COL-BASE')
+	rf2 = session.XYDataFromHistory(name='XYData-2', odb=odb, 
+		outputVariableName='Reaction force: RF1 at Node 3 in NSET COL-TOP')
+	u = session.XYDataFromHistory(name='XYData-3', odb=odb, 
+		outputVariableName='Spatial displacement: U1 at Node 2 in NSET COL-MID')
+	fdData = combine(u, -(rf1+rf2))
+	fdCurve = session.Curve(xyData=fdData)
+	func.XYprint(modelName, plotName, printFormat, fdCurve)
+
+	#Report data
+	tempFile = 'temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(fdData, ))
+	func.fixReportFile(tempFile, plotName, modelName)
 
 
 	#=========== Displacement  ============#
 	plotName = 'midU1'
 
-	c1 = session.Curve(xyData=u)
+	dCurve = session.Curve(xyData=u)
 
 	#Plot and Print
-	func.XYprint(modelName, plotName, printFormat, c1)
+	func.XYprint(modelName, plotName, printFormat, dCurve)
 
 	#Report data
 	tempFile = 'temp.txt'
