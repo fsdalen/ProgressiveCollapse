@@ -33,7 +33,7 @@ from datetime import datetime
 
 
 
-def perliminary(monitor, modelName, steel, concrete, rebarSteel):
+def perliminary(monitor, modelName, steel, concrete):
 	#Makes mouse clicks into physical coordinates
 	session.journalOptions.setValues(replayGeometry=COORDINATE,
 		recoverGeometry=COORDINATE)
@@ -71,10 +71,10 @@ def perliminary(monitor, modelName, steel, concrete, rebarSteel):
 	#Material names
 	steel = 'DOMEX_S355'
 	concrete = 'Concrete'
-	rebarSteel = 'Rebar Steel'
+
 
 	M=mdb.models[modelName]
-	createMaterials(M, mat1=steel, mat2=concrete, mat3=rebarSteel,)
+	createMaterials(M, mat1=steel, mat2=concrete)
 
 
 
@@ -165,7 +165,7 @@ def delJobs(exeption):
 #=========== Materials  ============#
 
 
-def createMaterials(M, mat1, mat2, mat3):
+def createMaterials(M, mat1, mat2):
 	'''
 	Adds damping to imported steel model
 	Creates concrete and rebar steel
@@ -183,13 +183,7 @@ def createMaterials(M, mat1, mat2, mat3):
 	mat2_v = 0.3			#Poisson
 	mat2_yield = 30.0		#Yield stress
 
-	# Reebar steel
-	mat3_Description = 'Elastic-perfect plastic)'
-	mat3_dens = 8.0e-09		#Density
-	mat3_E = 210000.0		#E-module
-	mat3_v = 0.3			#Poisson
-	mat3_yield = 500.0		#Yield stress
-
+	
 
 
 	#=========== Steel  ============#
@@ -202,15 +196,6 @@ def createMaterials(M, mat1, mat2, mat3):
 	M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
 	M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 	M.materials[mat2].Damping(alpha=damping)
-
-	#================ Rebar Steel ==================#
-	M.Material(description=mat3_Description, name=mat3)
-	M.materials[mat3].Density(table=((mat3_dens, ), ))
-	M.materials[mat3].Elastic(table=((mat3_E, mat3_v), ))
-	M.materials[mat3].Plastic(table=((mat3_yield, 0.0), ))
-	M.materials[mat3].Damping(alpha=damping)
-	
-
 
 
 

@@ -59,10 +59,10 @@ modelName   = mdbName
 
 steel = 'DOMEX_S355'
 concrete = 'Concrete'
-rebarSteel = 'Rebar Steel'
+rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete, rebarSteel)
+func.perliminary(monitor, modelName, steel, concrete)
 
 M=mdb.models[modelName]
 

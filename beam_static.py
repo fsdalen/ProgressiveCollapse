@@ -60,10 +60,10 @@ modelName   = mdbName
 
 steel = 'DOMEX_S355'
 concrete = 'Concrete'
-rebarSteel = 'Rebar Steel'
+rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete, rebarSteel, seed)
+func.perliminary(monitor, modelName, steel, concrete)
 
 M=mdb.models[modelName]
 
@@ -77,7 +77,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel)
+beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
 
 
 #=========== Step  ============#
