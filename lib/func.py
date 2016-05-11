@@ -181,7 +181,8 @@ def createMaterials(M, mat1, mat2):
 	mat2_dens = 2.5e-09		#Density
 	mat2_E = 35000.0		#E-module
 	mat2_v = 0.3			#Poisson
-	mat2_yield = 30.0		#Yield stress
+	mat2_yield = 30.0		#Yield stress in compression
+	mat2_yieldTension = 2.0 #Yield stress in compression
 
 	
 
@@ -194,8 +195,15 @@ def createMaterials(M, mat1, mat2):
 	M.Material(description=mat2_Description, name=mat2)
 	M.materials[mat2].Density(table=((mat2_dens, ), ))
 	M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
-	M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
+	# M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 	M.materials[mat2].Damping(alpha=damping)
+	M.materials[mat2].ConcreteDamagedPlasticity(
+	    table=((30.0, 0.1, 1.16, 0.0, 0.0), ))
+	    #Dilatation angle, Eccentricity, fb0/fc0, K, Viscosity parameter
+	M.materials[mat2].concreteDamagedPlasticity.ConcreteCompressionHardening(
+	    table=((mat2_yield, 0.0), ))
+	M.materials[mat2].concreteDamagedPlasticity.ConcreteTensionStiffening(
+	    table=((mat2_yieldTension, 0.0), ))
 
 
 
