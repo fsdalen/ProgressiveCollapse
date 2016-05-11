@@ -10,24 +10,20 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'shellSimple'
-cpus        = 2			#Number of CPU's
-monitor     = 1
+mdbName        = 'simpleBeamBlast'
+cpus           = 1			#Number of CPU's
+monitor        = 1
 
 
-run         = 0
-blastTime   = 0.05
-TNT         = 1.0	#tonns of tnt
-seed 		= 150.0
+run            = 0
+blastTime      = 0.1
 
-precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
-nodalOpt = SINGLE #SINGLE or FULL
 
 #Post
-defScale    = 1.0
-printFormat = PNG 	#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 1000
-histIntervals = fieldIntervals
+defScale       = 1.0
+printFormat    = PNG 	#TIFF, PS, EPS, PNG, SVG
+fieldIntervals = 30
+histIntervals  = 100
 animeFrameRate = 5
 
 
@@ -40,10 +36,11 @@ animeFrameRate = 5
 #==========================================================#
 
 import lib.func as func
-import lib.shell as shell
+import lib.beam as beam
+import lib.singleCol as singleCol
 reload(func)
-reload(shell)
-
+reload(beam)
+reload(singleCol)
 
 modelName   = mdbName
 
@@ -58,6 +55,7 @@ M=mdb.models[modelName]
 
 
 
+
 #==========================================================#
 #==========================================================#
 #                   Build model                            #
@@ -65,7 +63,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-shell.createSingleBeam(modelName, steel, seed)
+singleCol.createSingleBeam(modelName, steel)
 
 
 #Create setp
@@ -75,10 +73,9 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
     timePeriod=blastTime)
 
 #Create blast
-shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 0.0, 0.0),
-	timeOfBlast =0.0, stepName=stepName)
-
+func.blast(modelName, stepName, 
+	sourceCo = (-10000.0, 100.0, 0.0),
+	refCo = (-1000.0, 100.0, 0.0))
 
 
 
@@ -95,21 +92,26 @@ M.FieldOutputRequest(name='damage',
     createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
     numIntervals=fieldIntervals)
 
-#IWCONWEP field output
-# M.FieldOutputRequest(createStepName=stepName, name=
-# 	'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=
-# 	M.rootAssembly.allInstances['Part-2-1'].sets['face']
-# 	, sectionPoints=DEFAULT, variables=('IWCONWEP', ))
-
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
 
-#Create U history output
-regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['mid']
+#History output
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-base']
+M.HistoryOutputRequest(name='load-base', 
+    createStepName=stepName, variables=('RF1', ), region=regionDef, 
+    numIntervals=histIntervals)
+
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-top']
+M.HistoryOutputRequest(name='load-top', 
+    createStepName=stepName, variables=('RF1', ), region=regionDef, 
+    numIntervals=histIntervals)
+
+regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-mid']
 M.HistoryOutputRequest(name='displacement', 
     createStepName=stepName, variables=('U1', ), region=regionDef, 
-    sectionPoints=DEFAULT, rebar=EXCLUDE, numIntervals=histIntervals)
+    numIntervals=histIntervals)
+
 
 
 #===========================================================#
@@ -121,7 +123,10 @@ M.rootAssembly.regenerate()
 #Save model
 mdb.saveAs(pathName = mdbName + '.cae')
 
+
 #Create job
+precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
+nodalOpt = SINGLE #SINGLE or FULL
 mdb.Job(model=modelName, name=modelName,
 	    numCpus=cpus, numDomains=cpus,
 	    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
@@ -147,14 +152,14 @@ if run:
 		del session.xyPlots[plot]
 
 	#=========== Contour  ============#
-	# func.countourPrint(modelName, defScale, printFormat)
+	func.countourPrint(modelName, defScale, printFormat)
 
 	#=========== Animation  ============#
-	# func.animate(modelName, defScale, frameRate= animeFrameRate)
+	func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	shell.xySimpleDef(modelName, printFormat)
-	# shell.xySimpleIWCONWEP(modelName, printFormat)
+	singleCol.xySimpleDef(modelName, printFormat)
+
 	print '   done'
 
 

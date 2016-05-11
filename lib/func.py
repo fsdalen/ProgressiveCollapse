@@ -24,6 +24,9 @@ from datetime import datetime
 
 
 
+
+
+
 #===============================================================#
 #===============================================================#
 #                   PERLIMINARY		                            #
@@ -225,6 +228,382 @@ def createMaterials(M, mat1, mat2):
 
 
 
+#======================================================#
+#======================================================#
+#                   LOADING                            #
+#======================================================#
+#======================================================#
+
+#=========== Slab load functions for beam model  ============#
+
+
+def addSlabLoad(M, x, z, y, step, load, amplitude=UNSET):
+	'''
+	Adds a surface traction to all slabs
+
+	Parameters:
+	M: 		 Model
+	load: 	 Magnitude of load (positive y)
+	x, z, y: Nr of bays
+	Step:	 Which step to add the load
+	Amplitude: default is UNSET
+	'''
+
+	#Create coordinate list
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	etg = map(str,range(1,y+1))
+
+	for a in range(len(alph)-1):
+		for n in range(len(numb)-1):
+			for e in range(len(etg)):
+				inst = 'SLAB_'+ alph[a]+numb[n]+"-"+etg[e]
+				M.SurfaceTraction(createStepName=step, 
+					directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+					distributionType=UNIFORM, field='', follower=OFF,
+					localCsys=None, magnitude= load,
+					name=inst,
+					region=M.rootAssembly.instances[inst].surfaces['topSurf'],
+					traction=GENERAL, amplitude = amplitude)
+
+
+def changeSlabLoad(M, x, z, y, step, amplitude):
+	'''
+	Change 
+
+	Parameters:
+	M: 		 Model
+	load: 	 Magnitude of load (positive y)
+	x, z, y: Nr of bays
+	Step:	 Which step to add the load
+	Amplitude: default is UNSET
+	'''
+
+	#Create coordinate list
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	etg = map(str,range(1,y+1))
+
+	for a in range(len(alph)-1):
+		for n in range(len(numb)-1):
+			for e in range(len(etg)):
+				inst = 'SLAB_'+ alph[a]+numb[n]+"-"+etg[e]
+				M.loads[inst].setValuesInStep(stepName = step,
+					amplitude = amplitude)
+
+
+
+#=========== Blast functions  ============#
+
+
+def addIncidentWave(modelName, stepName, sourceCo, refCo):
+	airDensity = 1.225e-12    #1.225 kg/m^3
+	soundSpeed =340.29e3    # 340.29 m/s
+
+	M=mdb.models[modelName]
+
+	#Pressure amplitude from file blastAmp.csv
+	table=[]
+	with open('inputData/blastAmp.csv', 'r') as f:
+		reader = csv.reader(f, delimiter='\t')
+		for row in reader:
+			table.append((float(row[0]), float(row[1])))
+			blastTime = float(row[0])
+
+	tpl = tuple(table)
+	M.TabularAmplitude(name='Blast', timeSpan=STEP, 
+	   	smooth=SOLVER_DEFAULT, data=(tpl))
+
+
+	#Source Point
+	feature = M.rootAssembly.ReferencePoint(point=sourceCo)
+	ID = feature.id
+	sourceRP = M.rootAssembly.referencePoints[ID]
+	M.rootAssembly.Set(name='Source', referencePoints=(sourceRP,))
+
+	#Standoff Point
+	feature = M.rootAssembly.ReferencePoint(point=refCo)
+	ID = feature.id
+	standoffRP = M.rootAssembly.referencePoints[ID]
+	M.rootAssembly.Set(name='Standoff', referencePoints=(standoffRP,))
+
+
+	#Create interaction property
+	M.IncidentWaveProperty(name='Blast', 
+	    definition=SPHERICAL, fluidDensity=airDensity, soundSpeed=soundSpeed)
+
+
+	#Create incident Wave Interaction
+	M.IncidentWave(name='Blast', createStepName=stepName, 
+	    sourcePoint=M.rootAssembly.sets['Source'],
+	    standoffPoint=M.rootAssembly.sets['Standoff'],
+	    surface=M.rootAssembly.surfaces['blastSurf'],
+	    definition=PRESSURE, interactionProperty='Blast', 
+	    referenceMagnitude=1.0, amplitude='Blast')
+
+
+	#Set model wave formulation (does not matter when fluid is not modeled)
+	M.setValues(waveFormulation=TOTAL)
+
+
+
+def addConWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
+	'''
+	blastType = AIR_BLAST SURFACE_BLAST
+	name of surf must be blastSurf
+
+	time: Time of blast, NB: total time
+	OfBlast	'''
+	M=mdb.models[modelName]
+
+	#Create interaction property
+	M.IncidentWaveProperty(definition= blastType,
+	    massTNT=TNT,
+	    massFactor=1.0e3,
+	    lengthFactor=1.0e-3,
+	    pressureFactor=1.0e6,
+	    name='IntProp-1',)
+
+	#Source Point
+	feature = M.rootAssembly.ReferencePoint(point=coordinates)
+	ID = feature.id
+	sourceRP = M.rootAssembly.referencePoints[ID]
+	M.rootAssembly.Set(name='Source', referencePoints=(sourceRP,))
+	
+	
+
+	#Create ineraction
+	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
+	    detonationTime=timeOfBlast, interactionProperty='IntProp-1',
+	 	name='Int-1',
+	    sourcePoint=M.rootAssembly.sets['Source'], 
+	    surface=M.rootAssembly.surfaces['blastSurf'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#==================================================#
+#==================================================#
+#                   APM                            #
+#==================================================#
+#==================================================#
+
+
+def historySectionForces(M, column, stepName):
+	#Section forces and moments of top element in column to be deleted
+	elmNr = M.rootAssembly.instances[column].elements[-1].label
+	elm = M.rootAssembly.instances[column].elements[elmNr-1:elmNr]
+	M.rootAssembly.Set(elements=elm, name='topColElm')
+
+	M.HistoryOutputRequest(name='SectionForces', createStepName=stepName,
+		variables=('SF1', 'SF2', 'SF3', 'SM1', 'SM2', 
+		'SM3'), region=M.rootAssembly.sets['topColElm'],)
+
+
+
+
+def xyAPMcolPrint(odbName, column, printFormat, stepName):
+	'''
+	Prints U2 at top of removed column in APM.
+	odbName     = name of odb
+	column      = name of column that is removed in APM
+	printFormat = TIFF, PS, EPS, PNG, SVG
+	stepName    = name of first step (will print data from this and out)		
+				  plot it not affected by this as long as the
+				  stepName exists
+	'''
+
+	plotName = 'APMcolU2'
+
+	#Open ODB
+	odb = func.open_odb(odbName)
+	#Find correct historyOutput
+	for key in odb.steps[stepName].historyRegions.keys():
+		if key.find('Node '+column) > -1:
+			histName = key
+	#Get node number
+	nodeNr = histName[-1]
+	varName ='Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP'
+	#Create XY-curve
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=varName, 
+		suppressQuery=True)
+	c1 = session.Curve(xyData=xy1)
+	#Plot and Print
+	func.XYprint(odbName, plotName, printFormat, c1)
+
+	#=========== Data  ============#
+	#Report data
+	tempFile = '_____temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
+	func.fixReportFile(tempFile, plotName, odbName)
+
+
+
+
+
+def replaceForces(M, column, oldJob, oldStep, stepName, amplitude):
+	'''
+	Remove col-base BC or col-col constraint
+	and add forces and moments from static analysis to top of colum
+	M         = Model
+	column    = column to be deleted in APM
+	oldJob    = name of static job
+	oldSte    = name of static step
+	amplitude = name of amplitude to add forces with
+	'''
+
+	#Delete col-base BC or col-col constraint
+	if column[-1] == '1':
+		del M.boundaryConditions[column+'.col-base']
+	else:
+		topColNr = column[-1]
+		botColNr = str(int(topColNr)-1)
+		constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
+		del M.constraints[constName]
+
+	#Open odb with static analysis
+	odb = func.open_odb(oldJob)
+
+	#Find correct historyOutput
+	for key in odb.steps[oldStep].historyRegions.keys():
+		if key.find('Element '+column) > -1:
+			histName = key
+
+	#Create dictionary with forces
+	dict = {}
+	histOpt = odb.steps[oldStep].historyRegions[histName].historyOutputs
+	variables = histOpt.keys()
+	for var in variables:
+		value = histOpt[var].data[-1][1]
+		dict[var] = value
+
+	#Where to add forces
+	region = M.rootAssembly.instances[column].sets['col-top']
+
+	#Create forces
+	M.ConcentratedForce(name='Forces', 
+		createStepName=stepName, region=region, amplitude=amplitude,
+		distributionType=UNIFORM, field='', localCsys=None,
+		cf1=dict['SF3'], cf2=-dict['SF1'], cf3=dict['SF2'])
+
+	#Create moments
+	M.Moment(name='Moments', createStepName=stepName, 
+		region=region, distributionType=UNIFORM, field='', localCsys=None,
+		amplitude=amplitude, 
+		cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
+
+
+
+
+
+
+def getElmOverLim(odbName, var, stepName, var_invariant, limit,
+		elsetName=None):
+	"""
+	Returns list with value and object for all elements over limit
+	odbName       = name of odb to read from
+	elsetName     = None, (may be set to limit what part of the model 
+					to read)
+	var           = 'PEEQ' or 'S'
+	stepName      = Last step in odb
+	var_invariant = 'mises' if var='S'
+	limit         = var limit for what elements to return
+	"""
+	elset = elemset = None
+	region = "over the entire model"
+	odb = func.open_odb(odbName)
+	
+	#Check to see if the element set exists in the assembly
+	if elsetName:
+		try:
+			elemset = odb.rootAssembly.elementSets[elsetName]
+			region = " in the element set : " + elsetName;
+		except KeyError:
+			print 'An assembly level elset named %s does' \
+				'not exist in the output database %s' \
+				% (elsetName, odbName)
+			odb.close()
+			exit(0)
+	
+	#Find values over limit
+	step = odb.steps[stepName]
+	result = []
+	for frame in step.frames:
+		allFields = frame.fieldOutputs
+		if (allFields.has_key(var)):
+			varSet = allFields[var]
+			if elemset:
+				varSet = varSet.getSubset(region=elemset)      
+			for varValue in varSet.values:
+				if var_invariant:
+					if hasattr(varValue, var_invariant.lower()):
+						val = getattr(varValue,var_invariant.lower())
+					else:
+						raise ValueError('Field value does not have invariant %s' % (var_invariant,))
+				else:
+					val = varValue.data
+				if ( val >= limit):
+					result.append([val,varValue])
+		else:
+			raise ValueError('Field output does not have field %s' % (results_field,))
+	return (result)
+
+
+
+def delInstance(M, elmOverLim, stepName):
+	'''
+	Takes a list of elements and deletes the corresponding columns and beams.
+	M          = model
+	elmOverLim = list of elements
+	stepname   = In what step to delete instances
+	'''
+
+	instOverLim = []
+	#Create list of all instance names
+	for i in range(len(elmOverLim)):
+		instOverLim.append(elmOverLim[i][1].instance.name)
+
+	#Create list with unique names
+	inst = []
+	for i in instOverLim:
+		if i not in inst:
+			inst.append(i)
+
+	#Remove slabs so they are not deleted
+	instFiltered=[]
+	for i in inst[:]:
+		if not i.startswith('SLAB'):
+			instFiltered.append(i)
+
+	#Merge set of instances to be deleted
+	setList=[]
+	for i in instFiltered:
+		setList.append(M.rootAssembly.allInstances[i].sets['set'])
+
+	setList = tuple(setList)
+	if setList:
+		M.rootAssembly.SetByBoolean(name='rmvSet', sets=setList)
+	else:
+		print 'No instances exceed criteria'
+		
+	#Remove instances
+	M.ModelChange(activeInStep=False, createStepName=stepName, 
+		includeStrain=False, name='INST_REMOVAL', region=
+		M.rootAssembly.sets['rmvSet'], regionType=GEOMETRY)
 
 
 

@@ -11,16 +11,13 @@ from regionToolset import *
 #=======================================================#
 
 
-mdbName        = 'imp2'
+mdbName        = 'exp2'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 
 
 run            = 1
 stepTime       = 1.0
-inInc          = 1e-1
-minInc         = 1e-6
-maxNrInc	   = 500
 
 load = 2.0e3 #N/mm
 
@@ -28,8 +25,8 @@ load = 2.0e3 #N/mm
 #Post
 defScale       = 1.0
 printFormat    = PNG 	#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
-histIntervals  = 1000
+fieldIntervals = 100
+histIntervals  = 100
 animeFrameRate = 5
 
 
@@ -43,8 +40,10 @@ animeFrameRate = 5
 
 import lib.func as func
 import lib.beam as beam
+import lib.singleCol as singleCol
 reload(func)
 reload(beam)
+reload(singleCol)
 
 modelName   = mdbName
 
@@ -67,15 +66,14 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.createSingleBeam(modelName, steel)
+singleCol.createSingleBeam(modelName, steel)
 
 
 #Create setp
 oldStep = 'Initial'
 stepName = 'load'
-M.ImplicitDynamicsStep(initialInc=inInc, minInc=minInc,
-	name=stepName, nlgeom=ON, previous=oldStep, timePeriod=stepTime,
-	maxNumInc=maxNrInc)
+M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+    timePeriod=stepTime) 
 
 #Create smooth step
 M.SmoothStepAmplitude(name='smooth', timeSpan=STEP, data=(
@@ -94,8 +92,12 @@ M.LineLoad(comp1=load, createStepName=stepName, name=
 #=====================================================#
 #=====================================================#
 
+#Frequency of field output
+M.fieldOutputRequests['F-Output-1'].setValues(numIntervals=fieldIntervals)
+
 M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=fieldIntervals)
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
@@ -104,15 +106,18 @@ del M.historyOutputRequests['H-Output-1']
 #History output
 regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-base']
 M.HistoryOutputRequest(name='load-base', 
-    createStepName=stepName, variables=('RF1', ), region=regionDef)
+    createStepName=stepName, variables=('RF1', ), region=regionDef, 
+    numIntervals=histIntervals)
 
 regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-top']
 M.HistoryOutputRequest(name='load-top', 
-    createStepName=stepName, variables=('RF1', ), region=regionDef)
+    createStepName=stepName, variables=('RF1', ), region=regionDef, 
+    numIntervals=histIntervals)
 
 regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-mid']
 M.HistoryOutputRequest(name='displacement', 
-    createStepName=stepName, variables=('U1', ), region=regionDef)
+    createStepName=stepName, variables=('U1', ), region=regionDef, 
+    numIntervals=histIntervals)
 
 
 
@@ -160,7 +165,7 @@ if run:
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	beam.xySimple(modelName, printFormat)
+	singleCol.xySimple(modelName, printFormat)
 
 	print '   done'
 

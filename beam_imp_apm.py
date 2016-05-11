@@ -119,7 +119,7 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
 #LL
 LL=LL_kN_m * 1.0e-3   #N/mm^2
-beam.addSlabLoad(M, x, z, y, stepName, LL)
+func.addSlabLoad(M, x, z, y, stepName, LL)
 
 
 
@@ -137,7 +137,7 @@ M.FieldOutputRequest(name='damage',
     createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
 
 #Section forces at top of column to be removed in APM
-beam.historySectionForces(M, APMcol, stepName)
+func.historySectionForces(M, APMcol, stepName)
 
 #U2 at top of column to later be removed
 M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
@@ -212,7 +212,7 @@ if run:
 	func.xyEnergyPrint(modelName, printFormat)
 
 	#U2 at top of column to be removed
-	beam.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+	func.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
 	
 	print '   done'
@@ -234,7 +234,7 @@ if itterations:
 
 	#Check original ODB
 	print '\n' + "Getting data from ODB..."
-	elmOverLim = beam.getElmOverLim(originModel, var,
+	elmOverLim = func.getElmOverLim(originModel, var,
 	originLastStep, var_invariant, limit)
 	print "    done"
 	if not elmOverLim: print 'No element over limit'
@@ -259,7 +259,7 @@ if itterations:
 			stepName, noStop=OFF, nohaf=OFF, previous=originLastStep, 
 			timeIncrementationMethod=FIXED, timePeriod=rmvStepTime, nlgeom=nlg)
 
-		beam.delInstance(M, elmOverLim, stepName)
+		func.delInstance(M, elmOverLim, stepName)
 
 		#================ Create new step and job =============#
 		#Create dynamic APM step
@@ -293,7 +293,7 @@ if itterations:
 		func.xyEnergyPrint(modelName, printFormat)
 
 		#U2 at top of removed column to be removed
-		beam.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+		func.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
 		#Animation
 		func.animate(modelName, defScale, frameRate= 1)
@@ -303,7 +303,7 @@ if itterations:
 		#================ Check new ODB ==========================#
 		oldODB = modelName
 		print '\n' + "Getting data from ODB..."
-		elmOverLim = beam.getElmOverLim(modelName, var,
+		elmOverLim = func.getElmOverLim(modelName, var,
 			originLastStep, var_invariant, limit)
 		print "    done"
 		if len(elmOverLim) == 0:

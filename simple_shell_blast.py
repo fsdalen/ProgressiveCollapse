@@ -10,20 +10,24 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'simpleBeamBlast'
-cpus           = 1			#Number of CPU's
-monitor        = 1
+mdbName     = 'shellSimple'
+cpus        = 2			#Number of CPU's
+monitor     = 1
 
 
-run            = 0
-blastTime      = 0.1
+run         = 0
+blastTime   = 0.05
+TNT         = 1.0	#tonns of tnt
+seed 		= 150.0
 
+precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
+nodalOpt = SINGLE #SINGLE or FULL
 
 #Post
-defScale       = 1.0
-printFormat    = PNG 	#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
-histIntervals  = 100
+defScale    = 1.0
+printFormat = PNG 	#TIFF, PS, EPS, PNG, SVG
+fieldIntervals = 1000
+histIntervals = fieldIntervals
 animeFrameRate = 5
 
 
@@ -37,8 +41,11 @@ animeFrameRate = 5
 
 import lib.func as func
 import lib.beam as beam
+import lib.singleCol as singleCol
 reload(func)
 reload(beam)
+reload(singleCol)
+
 
 modelName   = mdbName
 
@@ -53,7 +60,6 @@ M=mdb.models[modelName]
 
 
 
-
 #==========================================================#
 #==========================================================#
 #                   Build model                            #
@@ -61,7 +67,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.createSingleBeam(modelName, steel)
+singleCol.createSingleBeam(modelName, steel, seed)
 
 
 #Create setp
@@ -71,9 +77,10 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
     timePeriod=blastTime)
 
 #Create blast
-beam.blast(modelName, stepName, 
-	sourceCo = (-10000.0, 100.0, 0.0),
-	refCo = (-1000.0, 100.0, 0.0))
+func.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
+	coordinates = (-10000.0, 0.0, 0.0),
+	timeOfBlast =0.0, stepName=stepName)
+
 
 
 
@@ -90,26 +97,21 @@ M.FieldOutputRequest(name='damage',
     createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
     numIntervals=fieldIntervals)
 
+#IWCONWEP field output
+# M.FieldOutputRequest(createStepName=stepName, name=
+# 	'IWCONWEP', numIntervals=fieldIntervals, rebar=EXCLUDE, region=
+# 	M.rootAssembly.allInstances['Part-2-1'].sets['face']
+# 	, sectionPoints=DEFAULT, variables=('IWCONWEP', ))
+
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
 
-#History output
-regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-base']
-M.HistoryOutputRequest(name='load-base', 
-    createStepName=stepName, variables=('RF1', ), region=regionDef, 
-    numIntervals=histIntervals)
-
-regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-top']
-M.HistoryOutputRequest(name='load-top', 
-    createStepName=stepName, variables=('RF1', ), region=regionDef, 
-    numIntervals=histIntervals)
-
-regionDef=M.rootAssembly.allInstances['COLUMN-1'].sets['col-mid']
+#Create U history output
+regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['mid']
 M.HistoryOutputRequest(name='displacement', 
     createStepName=stepName, variables=('U1', ), region=regionDef, 
-    numIntervals=histIntervals)
-
+    sectionPoints=DEFAULT, rebar=EXCLUDE, numIntervals=histIntervals)
 
 
 #===========================================================#
@@ -121,10 +123,7 @@ M.rootAssembly.regenerate()
 #Save model
 mdb.saveAs(pathName = mdbName + '.cae')
 
-
 #Create job
-precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
-nodalOpt = SINGLE #SINGLE or FULL
 mdb.Job(model=modelName, name=modelName,
 	    numCpus=cpus, numDomains=cpus,
 	    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
@@ -150,14 +149,14 @@ if run:
 		del session.xyPlots[plot]
 
 	#=========== Contour  ============#
-	func.countourPrint(modelName, defScale, printFormat)
+	# func.countourPrint(modelName, defScale, printFormat)
 
 	#=========== Animation  ============#
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	beam.xySimpleDef(modelName, printFormat)
-
+	singleCol.xySimpleDef(modelName, printFormat)
+	# singleCol.xySimpleIWCONWEP(modelName, printFormat)
 	print '   done'
 
 

@@ -128,7 +128,7 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
 #LL
 LL=LL_kN_m * 1.0e-3   #N/mm^2
-beam.addSlabLoad(M, x, z, y, stepName, LL)
+func.addSlabLoad(M, x, z, y, stepName, LL)
 
 
 #=========== Output  ============#
@@ -137,7 +137,7 @@ del M.historyOutputRequests['H-Output-1']
 
 
 #Section forces at top of column to be removed in APM
-beam.historySectionForces(M, APMcol, stepName)
+func.historySectionForces(M, APMcol, stepName)
 
 #U2 at top of column to later be removed
 M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
@@ -177,7 +177,7 @@ if run:
 	func.animate(modelName, defScale, frameRate= animeFrameRate)
 
 	#U2 at top of column to be removed
-	beam.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+	func.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
 
 	
 	print '   done'
@@ -226,7 +226,7 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
     distributionType=UNIFORM, field='', name='Gravity', amplitude='Smooth')
 
 #Add live load
-beam.addSlabLoad(M, x, z, y, stepName, load = LL, 
+func.addSlabLoad(M, x, z, y, stepName, load = LL, 
 	amplitude = 'Smooth')
 
 
@@ -257,7 +257,7 @@ M.FieldOutputRequest(name='damage',
 
 
 #Delete BC and add fores for column to be removed
-beam.replaceForces(M, APMcol, oldJob=oldMod,
+func.replaceForces(M, APMcol, oldJob=oldMod,
 	oldStep = 'static', stepName =stepName, amplitude='Smooth')
 
 
@@ -334,7 +334,7 @@ if run:
 	func.xyEnergyPrint(modelName, printFormat)
 
 	#U2 at top of removed column
-	beam.xyAPMcolPrint(modelName, APMcol, printFormat,
+	func.xyAPMcolPrint(modelName, APMcol, printFormat,
 		stepName)
 
 	print '   done'

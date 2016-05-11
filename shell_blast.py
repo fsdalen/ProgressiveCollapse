@@ -134,7 +134,7 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 
 #Create blast
-shell.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
+func.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 	coordinates = (-10000.0, 100, 2000.0),
 	timeOfBlast = quasiTime, stepName=stepName)
 

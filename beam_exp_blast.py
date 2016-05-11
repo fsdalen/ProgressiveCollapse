@@ -103,7 +103,7 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
 #LL
 LL=LL_kN_m * 1.0e-3   #N/mm^2
-beam.addSlabLoad(M, x, z, y, stepName, LL, amplitude = 'smooth')
+func.addSlabLoad(M, x, z, y, stepName, LL, amplitude = 'smooth')
 
 
 
@@ -125,14 +125,14 @@ blastSurf = tuple(lst)
 M.rootAssembly.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
 
 #Create blast
-beam.blast(modelName, stepName,
+func.blast(modelName, stepName,
 	sourceCo = (-10000.0, 500.0, 2000.0),
 	refCo = (-1000.0, 500.0, 2000.0))
 
 
 #Remove smooth step from other loads
 M.loads['Gravity'].setValuesInStep(stepName=stepName, amplitude=FREED)
-beam.changeSlabLoad(M, x, z, y, stepName, amplitude=FREED)
+func.changeSlabLoad(M, x, z, y, stepName, amplitude=FREED)
 
 
 #=====================================================#
