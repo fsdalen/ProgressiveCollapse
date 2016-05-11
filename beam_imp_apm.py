@@ -213,8 +213,23 @@ if run:
 
 	#U2 at top of column to be removed
 	func.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+ 
 
-	
+	#Check largest peeq against criteria
+	print '\n' + "Getting data from ODB..."
+	elmOverLim = func.getElmOverLim(modelName, var,
+	stepName, var_invariant, limit)
+	print "    done"
+	with open('results.txt','a') as f:
+		if elmOverLim:
+			num = len(elmOverLim)
+			f.write('%s	Nr of elements over lim: %s' %(modelName, num))
+		else: 
+			f.write('%s	No element over limit' %(modelName))
+
+
+
+
 	print '   done'
 
 
