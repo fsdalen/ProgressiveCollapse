@@ -10,13 +10,13 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'shellSimple'
+mdbName     = 'shellPressureLoad'
 cpus        = 2			#Number of CPU's
 monitor     = 1
 
 
-run         = 0
-blastTime   = 0.05
+run         = 1
+blastTime   = 0.02
 TNT         = 1.0	#tonns of tnt
 seed 		= 150.0
 
@@ -26,7 +26,7 @@ nodalOpt = SINGLE #SINGLE or FULL
 #Post
 defScale    = 1.0
 printFormat = PNG 	#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 1000
+fieldIntervals = 500
 histIntervals = fieldIntervals
 animeFrameRate = 5
 
@@ -54,7 +54,7 @@ concrete = 'Concrete'
 rebarSteel = 'Rebar Steel'
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete, rebarSteel)
+func.perliminary(monitor, modelName, steel, concrete)
 
 M=mdb.models[modelName]
 
@@ -67,7 +67,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-singleCol.createSingleBeam(modelName, steel, seed)
+singleCol.createSimpleShellGeom(modelName, steel, seed)
 
 
 #Create setp
@@ -77,9 +77,11 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
     timePeriod=blastTime)
 
 #Create blast
-func.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 0.0, 0.0),
-	timeOfBlast =0.0, stepName=stepName)
+# func.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
+# 	coordinates = (-10000.0, 0.0, 0.0),
+# 	timeOfBlast =0.0, stepName=stepName)
+
+singleCol.pressureLoad(modelName, stepName, surf = 'front')
 
 
 
@@ -155,7 +157,7 @@ if run:
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	singleCol.xySimpleDef(modelName, printFormat)
+	singleCol.xySimpleShell(modelName, printFormat)
 	# singleCol.xySimpleIWCONWEP(modelName, printFormat)
 	print '   done'
 

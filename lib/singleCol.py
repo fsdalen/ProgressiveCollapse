@@ -1,3 +1,16 @@
+#Abaqus modules
+from abaqus import *
+from abaqusConstants import *
+import xyPlot
+from regionToolset import *
+
+#Python modules
+import csv
+
+#Own modules
+from lib import func as func
+
+
 #=========================================================#
 #=========================================================#
 #                   BEAM MODEL                            #
@@ -308,15 +321,22 @@ def createSimpleShellGeom(modelName, steel, seed):
 	# M.rootAssembly.translate(
 	# 	instanceList=('Part-2-1', ), vector=(-1000.0, 0.0, 0.0))
 
-	#Create blast surface
-	M.rootAssembly.Surface(name='blastSurf', side1Faces=
-	    M.rootAssembly.instances['Part-1-1'].faces.findAt(((
-	    -145.0, 0.0, 48.333333), ),
+	#Create surfaces
+	M.rootAssembly.Surface(name='front', side1Faces=
+	    M.rootAssembly.instances['Part-1-1'].faces.findAt(
+	    ((-145.0, 0.0, 48.333333), ),))
+	M.rootAssembly.Surface(name='back', side1Faces=
+	    M.rootAssembly.instances['Part-1-1'].faces.findAt(
+	    ((145.0, 0.0, -48.333333), ),))
+	M.rootAssembly.Surface(name='sides', side1Faces=
+	    M.rootAssembly.instances['Part-1-1'].faces.findAt(
 	    ((-48.333333, 0.0, -145.0), ), 
-	    ((145.0, 0.0, -48.333333), ),
-	    ((48.333333, 0.0, 145.0), ),))  # +\
-		# M.rootAssembly.instances['Part-2-1'].faces.findAt(
-		# ((-1000.0, 25.0, -25.0), )))	#Small plate
+	    ((48.333333, 0.0, 145.0), ),
+	    ((-48.333333, 2000.0, -145.0), ),))
+	# M.rootAssembly.Surface(name='smallPlate', side1Faces=
+	# 	M.rootAssembly.instances['Part-2-1'].faces.findAt(
+	# 	((-1000.0, 25.0, -25.0), )))
+	
 
 	#=========== Mesh  ============#
 	M.parts['Part-1'].seedPart(deviationFactor=0.1, 
@@ -354,6 +374,43 @@ def createSimpleShellGeom(modelName, steel, seed):
 
 
 
+
+
+
+
+
+#=========== Loading  ============#
+
+
+
+def pressureLoad(modelName, stepName, surf):
+	M=mdb.models[modelName]
+
+	#Pressure amplitude from file blastAmp.csv
+	table=[]
+	with open('inputData/blastAmp.csv', 'r') as f:
+		reader = csv.reader(f, delimiter='\t')
+		for row in reader:
+			table.append((float(row[0]), float(row[1])))
+			blastTime = float(row[0])
+
+	tpl = tuple(table)
+	M.TabularAmplitude(name='Blast', timeSpan=STEP, 
+	   	smooth=SOLVER_DEFAULT, data=(tpl))
+
+	#Pressure load
+	M.Pressure(name='Load-1', createStepName=stepName, 
+	    region=M.rootAssembly.surfaces[surf], distributionType=UNIFORM,
+	    field='', magnitude=1.0, amplitude='blast')
+
+
+
+
+
+
+
+
+
 #=========== Post  ============#
 
 
@@ -367,24 +424,24 @@ def xySimpleShell(modelName, printFormat):
 
 
 	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 102 in NSET MIDNODES', 
+	    outputVariableName='Spatial displacement: U1 at Node 4 in NSET MID', 
 	    suppressQuery=True)
 	c1 = session.Curve(xyData=xy1)
-	xy2 = xyPlot.XYDataFromHistory(odb=odb, 
-	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 121 in NSET MIDNODES', 
-	    suppressQuery=True)
-	c2 = session.Curve(xyData=xy2)
-	xy3 = xyPlot.XYDataFromHistory(odb=odb, 
-	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 140 in NSET MIDNODES', 
-	    suppressQuery=True)
-	c3 = session.Curve(xyData=xy3)
-	xy4 = xyPlot.XYDataFromHistory(odb=odb, 
-	    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 159 in NSET MIDNODES', 
-	    suppressQuery=False)
-	c4 = session.Curve(xyData=xy4)
+	# xy2 = xyPlot.XYDataFromHistory(odb=odb, 
+	#     outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 121 in NSET MIDNODES', 
+	#     suppressQuery=True)
+	# c2 = session.Curve(xyData=xy2)
+	# xy3 = xyPlot.XYDataFromHistory(odb=odb, 
+	#     outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 140 in NSET MIDNODES', 
+	#     suppressQuery=True)
+	# c3 = session.Curve(xyData=xy3)
+	# xy4 = xyPlot.XYDataFromHistory(odb=odb, 
+	#     outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 159 in NSET MIDNODES', 
+	#     suppressQuery=False)
+	# c4 = session.Curve(xyData=xy4)
 
 	#Plot and Print
-	func.XYprint(modelName, plotName, printFormat, c4)
+	func.XYprint(modelName, plotName, printFormat, c1)
 
 	#Report data
 	# tempFile = 'temp.txt'
@@ -400,7 +457,7 @@ def xySimpleShell(modelName, printFormat):
 	# func.fixReportFile(tempFile, 'backU1', modelName)
 
 	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy4, ))
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
 	func.fixReportFile(tempFile, 'otherMiddleU1', modelName)
 
 def xySimpleIWCONWEP(modelName, printFormat):

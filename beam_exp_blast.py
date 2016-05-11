@@ -10,41 +10,45 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'beamBlast'
-cpus           = 1			#Number of CPU's
-monitor        = 1
+mdbName     = 'beamBlast'
+cpus        = 1			#Number of CPU's
+monitor     = 1
 
-run            = 0
+run         = 1
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x              = 2			#Nr of columns in x direction
-z              = 2			#Nr of columns in z direction
-y              = 1			#nr of stories
+x           = 2			#Nr of columns in x direction
+z           = 2			#Nr of columns in z direction
+y           = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime	   = 0.5
-blastTime 	   = 0.1
+quasiTime   = 1.0
+blastTime   = 0.1
+freeTime    = 2.0
 
-precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
-nodalOpt = SINGLE #SINGLE or FULL
+precision   = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
+nodalOpt    = SINGLE #SINGLE or FULL
 
 
 #=========== General  ============#
 #Live load
-LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
+LL_kN_m     = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 150.0		#Global seed
+seed        = 750.0		#Global seed
 
 #Post
-defScale       = 1.0
-printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
+defScale    = 1.0
+printFormat = PNG 		#TIFF, PS, EPS, PNG, SVG
+animeFrameRate       = 5
+
 quasiStaticIntervals = 10
-blastIntervals       = 100
-animeFrameRate = 5
+blastIntervals       = 1000
+freeIntervals        = 100
+
 
 
 
@@ -125,7 +129,7 @@ blastSurf = tuple(lst)
 M.rootAssembly.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
 
 #Create blast
-func.blast(modelName, stepName,
+func.addIncidentWave(modelName, stepName,
 	sourceCo = (-10000.0, 500.0, 2000.0),
 	refCo = (-1000.0, 500.0, 2000.0))
 
@@ -133,6 +137,14 @@ func.blast(modelName, stepName,
 #Remove smooth step from other loads
 M.loads['Gravity'].setValuesInStep(stepName=stepName, amplitude=FREED)
 func.changeSlabLoad(M, x, z, y, stepName, amplitude=FREED)
+
+
+#=========== Blast step  ============#
+#Create step
+oldStep = stepName
+stepName = 'free'
+M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+    timePeriod=freeTime)
 
 
 #=====================================================#
@@ -146,11 +158,16 @@ M.fieldOutputRequests['F-Output-1'].setValues(
 	numIntervals=quasiStaticIntervals)
 M.fieldOutputRequests['F-Output-1'].setValuesInStep(
     stepName='blast', numIntervals=blastIntervals)
+M.fieldOutputRequests['F-Output-1'].setValuesInStep(
+    stepName='free', numIntervals=freeIntervals)
 
 #Field output: damage
 M.FieldOutputRequest(name='damage', 
     createStepName='blast', variables=('SDEG', 'DMICRT', 'STATUS'),
     numIntervals=blastIntervals)
+#Field output: damage
+M.fieldOutputRequests['damage'].setValuesInStep(
+    stepName='free', numIntervals=freeIntervals)
 
 
 #Delete default history output
