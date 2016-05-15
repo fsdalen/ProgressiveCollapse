@@ -795,7 +795,7 @@ def XYprint(modelName, plotName, printFormat, *args):
 		format=printFormat, canvasObjects=(V, ))
 	
 
-def fixReportFile(reportFile, plotName, modelName):
+def fixReportFile(reportFile, plotName, modelName, x, y):
 	'''
 	Creates a tab file froma stupid report file
 
@@ -803,19 +803,29 @@ def fixReportFile(reportFile, plotName, modelName):
 	plotName   = what is plottes
 	modelName    = name of job
 	'''
-	
+
+	a=None
+	b=None
+
 	fileName = 'xyData_'+plotName+'_'+modelName+'.txt'
 	with open(reportFile, 'r') as f:
 	    lines = f.readlines()
 
 	with open(fileName, 'w') as f:
-	    for line in lines:
-	        lst = line.lstrip().rstrip().split()
-	        if lst:
-		        f.write(lst[0])
-		        f.write('\t')
-		        f.write(lst[1])
-		        f.write('\n')
+		f.write('%s\t%s\n' %(x,y))
+		for line in lines:
+			lst = line.lstrip().rstrip().split()
+			if lst:
+				try:
+					a = float(lst[0])
+					b = float(lst[1])
+				except:
+					pass
+				if type(a) and type(b) is float:
+					f.write(lst[0])
+					f.write('\t')
+					f.write(lst[1])
+					f.write('\n')
 
 
 
