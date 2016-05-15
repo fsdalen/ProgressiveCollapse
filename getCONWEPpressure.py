@@ -141,7 +141,7 @@ M.DisplacementBC(amplitude=UNSET, createStepName=
 #=========== Step  ============#
 stepName = 'blast'
 M.ExplicitDynamicsStep(name=stepName, previous=
-    'Initial', timePeriod=0.01)
+    'Initial', timePeriod=0.02)
 
 
 
@@ -214,6 +214,7 @@ printFormat = PNG
 session.writeXYReport(fileName='temp.txt', appendMode=OFF, xyData=(xy1, ))
 func.fixReportFile(reportFile = 'temp.txt',
 	plotName = modelName, modelName=plotName)
+
 
 
 plotName = 'reflectedPressure'
