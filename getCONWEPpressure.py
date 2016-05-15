@@ -15,6 +15,8 @@ from sketch import *
 from visualization import *
 from connectorBehavior import *
 
+import xyPlot
+
 #My modules
 from lib import func as func
 
@@ -67,6 +69,7 @@ session.journalOptions.setValues(replayGeometry=COORDINATE,
 M.Material(name='Mat')
 M.materials['Mat'].Elastic(table=((200000.0, 
     0.3), ))
+M.materials['Mat'].Density(table=((7.8e-9, ), ))
 
 
 #Dummp part
@@ -129,6 +132,12 @@ M.DisplacementBC(amplitude=UNSET, createStepName=
     ur2=SET, ur3=SET)
 
 
+#===================================================#
+#===================================================#
+#                   ANALYSIS                        #
+#===================================================#
+#===================================================#
+
 #=========== Step  ============#
 stepName = 'blast'
 M.ExplicitDynamicsStep(name=stepName, previous=
@@ -137,8 +146,10 @@ M.ExplicitDynamicsStep(name=stepName, previous=
 
 
 #=========== Output  ============#
+#Delete default history output
 del M.historyOutputRequests['H-Output-1']
-del M.fieldOutputRequests['F-Output-1']
+
+#IWCONWEP field output
 M.FieldOutputRequest(createStepName=stepName, name=
     'F-Output-1', numIntervals=intervals, region=
     M.rootAssembly.sets['front'],
@@ -153,18 +164,61 @@ M.FieldOutputRequest(createStepName=stepName, name=
 func.addConWep(modelName, TNT, blastType,
 	coordinates=(standoff,0,0), timeOfBlast=0, stepName=stepName)
 
+
+
 #=========== Run  ============#
 M.rootAssembly.regenerate()
 #Save model
+mdbName = modelName
 mdb.saveAs(pathName = mdbName + '.cae')
 
 #Create job
-mdb.Job(model=modelName, name=modelName,
-	    numCpus=cpus, numDomains=cpus,
-	    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
+mdb.Job(model=modelName, name=modelName)
 
 #Run job
 if run:
 	func.runJob(modelName)
 
-#=========== Post  ============#
+
+
+#===================================================#
+#===================================================#
+#                   POST                            #
+#===================================================#
+#===================================================#
+
+#Clear plots
+for plot in session.xyPlots.keys():
+	del session.xyPlots[plot]
+
+#Open ODB
+odb = func.open_odb(modelName)
+
+#Get xy data
+xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=ELEMENT_FACE, 
+    variable=(('IWCONWEP', ELEMENT_FACE), ), elementSets=('FRONT', 'SIDE' ))
+xy1 = xyList[0]
+c1 = session.Curve(xyData=xy1)
+xy2 = xyList[1]
+c2 = session.Curve(xyData=xy2)
+# xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=ELEMENT_FACE, 
+#     variable=(('IWCONWEP', ELEMENT_FACE), ), elementSets=('SIDE', ))
+# xy2 = xyList[0]
+# c2 = session.Curve(xyData=xy2)
+
+#Plot incident- and reflected pressure
+
+plotName= 'incidentPressure'
+printFormat = PNG
+# func.XYprint(modelName, plotName, printFormat, c1)
+session.writeXYReport(fileName='temp.txt', appendMode=OFF, xyData=(xy1, ))
+func.fixReportFile(reportFile = 'temp.txt',
+	plotName = modelName, modelName=plotName)
+
+
+plotName = 'reflectedPressure'
+# func.XYprint(modelName, plotName, printFormat, c2)
+session.writeXYReport(fileName='temp.txt', appendMode=OFF, xyData=(xy2, ))
+func.fixReportFile(reportFile = 'temp.txt',
+	plotName = modelName, modelName=plotName)
+
