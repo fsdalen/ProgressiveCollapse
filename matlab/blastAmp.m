@@ -46,8 +46,8 @@ ylabel('Pressure [Mpa]')
 %axis([0 max(p) 0 max(model)])
 
 %% Wrtie to file
-fich=fopen(['blast.csv'],'w');
-%fprintf(fich, 'Time [s] Pressure [MPa]\n');
+fich=fopen(['blastAmp.txt'],'w');
+fprintf(fich, 'Time [s]\tPressure [MPa]\n');
 for i=1:length(P)
     fprintf(fich,'%6d\t%6d\n',t(i),P(i));
 end
