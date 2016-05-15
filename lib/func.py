@@ -294,6 +294,11 @@ def changeSlabLoad(M, x, z, y, step, amplitude):
 
 
 
+
+
+
+
+
 #=========== Blast functions  ============#
 
 
@@ -304,13 +309,16 @@ def addIncidentWave(modelName, stepName, sourceCo, refCo):
 	M=mdb.models[modelName]
 
 	#Pressure amplitude from file blastAmp.csv
+	firstRow=1
 	table=[]
-	with open('inputData/blastAmp.csv', 'r') as f:
+	with open('inputData/CONWEP.txt', 'r') as f:
 		reader = csv.reader(f, delimiter='\t')
 		for row in reader:
-			table.append((float(row[0]), float(row[1])))
-			blastTime = float(row[0])
-
+			if firstRow: 
+				firstRow=0
+			else:
+				table.append((float(row[0]), float(row[1])))
+				blastTime = float(row[0])
 	tpl = tuple(table)
 	M.TabularAmplitude(name='Blast', timeSpan=STEP, 
 	   	smooth=SOLVER_DEFAULT, data=(tpl))
