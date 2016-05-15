@@ -10,8 +10,8 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'shellPressureLoad'
-cpus        = 2			#Number of CPU's
+mdbName     = 'shellIncidentWaveConWepAmpReflected'
+cpus        = 1			#Number of CPU's
 monitor     = 1
 
 
@@ -76,12 +76,20 @@ stepName = 'blast'
 M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
     timePeriod=blastTime)
 
-#Create blast
+#CONWEP blast
 # func.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 # 	coordinates = (-10000.0, 0.0, 0.0),
 # 	timeOfBlast =0.0, stepName=stepName)
 
-singleCol.pressureLoad(modelName, stepName, surf = 'front')
+#Incident wave
+# func.addIncidentWave(modelName, stepName,
+# 	AmpFile = 'conwepReflected.txt',
+# 	sourceCo = (-10000.0, 0.0, 0.0),
+# 	refCo = (-1000.0, 0.0, 0.0))
+	
+#Pressure load
+singleCol.pressureLoad(modelName, stepName,
+	ampFile='conwepReflected.txt', surf = 'front')
 
 
 

@@ -302,7 +302,7 @@ def changeSlabLoad(M, x, z, y, step, amplitude):
 #=========== Blast functions  ============#
 
 
-def addIncidentWave(modelName, stepName, sourceCo, refCo):
+def addIncidentWave(modelName, stepName, AmpFile, sourceCo, refCo):
 	airDensity = 1.225e-12    #1.225 kg/m^3
 	soundSpeed =340.29e3    # 340.29 m/s
 
@@ -311,7 +311,7 @@ def addIncidentWave(modelName, stepName, sourceCo, refCo):
 	#Pressure amplitude from file blastAmp.csv
 	firstRow=1
 	table=[]
-	with open('inputData/CONWEP.txt', 'r') as f:
+	with open('inputData/'+AmpFile, 'r') as f:
 		reader = csv.reader(f, delimiter='\t')
 		for row in reader:
 			if firstRow: 

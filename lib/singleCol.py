@@ -336,6 +336,12 @@ def createSimpleShellGeom(modelName, steel, seed):
 	# M.rootAssembly.Surface(name='smallPlate', side1Faces=
 	# 	M.rootAssembly.instances['Part-2-1'].faces.findAt(
 	# 	((-1000.0, 25.0, -25.0), )))
+
+	#Join surfaces to blast surface
+	M.rootAssembly.SurfaceByBoolean(name='blastSurf', 
+	    surfaces=(M.rootAssembly.surfaces['back'], 
+	    M.rootAssembly.surfaces['front'], 
+	    M.rootAssembly.surfaces['sides']))
 	
 
 	#=========== Mesh  ============#
@@ -383,20 +389,24 @@ def createSimpleShellGeom(modelName, steel, seed):
 
 
 
-def pressureLoad(modelName, stepName, surf):
+def pressureLoad(modelName, stepName, ampFile, surf):
 	M=mdb.models[modelName]
 
-	#Pressure amplitude from file blastAmp.csv
+	#Pressure amplitude from ampFile
+	firstRow=1
 	table=[]
-	with open('inputData/blastAmp.csv', 'r') as f:
+	with open('inputData/'+ampFile, 'r') as f:
 		reader = csv.reader(f, delimiter='\t')
 		for row in reader:
-			table.append((float(row[0]), float(row[1])))
-			blastTime = float(row[0])
-
+			if firstRow: 
+				firstRow=0
+			else:
+				table.append((float(row[0]), float(row[1])))
+				blastTime = float(row[0])
 	tpl = tuple(table)
 	M.TabularAmplitude(name='Blast', timeSpan=STEP, 
 	   	smooth=SOLVER_DEFAULT, data=(tpl))
+
 
 	#Pressure load
 	M.Pressure(name='Load-1', createStepName=stepName, 
@@ -422,43 +432,24 @@ def xySimpleShell(modelName, printFormat):
 	#Open ODB
 	odb = func.open_odb(modelName)
 
-
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-	    outputVariableName='Spatial displacement: U1 at Node 4 in NSET MID', 
-	    suppressQuery=True)
+	try:
+		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+		    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 4 in NSET MID', 
+		    )
+	except:
+		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+	    	outputVariableName='Spatial displacement: U1 at Node 4 in NSET MID', )
 	c1 = session.Curve(xyData=xy1)
-	# xy2 = xyPlot.XYDataFromHistory(odb=odb, 
-	#     outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 121 in NSET MIDNODES', 
-	#     suppressQuery=True)
-	# c2 = session.Curve(xyData=xy2)
-	# xy3 = xyPlot.XYDataFromHistory(odb=odb, 
-	#     outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 140 in NSET MIDNODES', 
-	#     suppressQuery=True)
-	# c3 = session.Curve(xyData=xy3)
-	# xy4 = xyPlot.XYDataFromHistory(odb=odb, 
-	#     outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 159 in NSET MIDNODES', 
-	#     suppressQuery=False)
-	# c4 = session.Curve(xyData=xy4)
 
 	#Plot and Print
 	func.XYprint(modelName, plotName, printFormat, c1)
-
-	#Report data
-	# tempFile = 'temp.txt'
-	# session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	# func.fixReportFile(tempFile, 'frontU1', modelName)
-
-	# tempFile = 'temp.txt'
-	# session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy2, ))
-	# func.fixReportFile(tempFile, 'middleU1', modelName)
-
-	# tempFile = 'temp.txt'
-	# session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy3, ))
-	# func.fixReportFile(tempFile, 'backU1', modelName)
-
+	#Report
 	tempFile = 'temp.txt'
 	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	func.fixReportFile(tempFile, 'otherMiddleU1', modelName)
+	func.fixReportFile(tempFile, 'otherMiddleU1', modelName,
+		x='Time [s]', y='Displacement [mm]')
+
+
 
 def xySimpleIWCONWEP(modelName, printFormat):
 
@@ -486,4 +477,5 @@ def xySimpleIWCONWEP(modelName, printFormat):
 	tempFile = 'temp.txt'
 	session.writeXYReport(fileName=tempFile, appendMode=OFF,
 		xyData=(xy1, ))
-	func.fixReportFile(tempFile, plotName, modelName)
+	func.fixReportFile(tempFile, plotName, modelName,
+		x='Time [s]', y='Displacement [mm]')

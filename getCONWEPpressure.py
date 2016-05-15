@@ -213,7 +213,8 @@ printFormat = PNG
 # func.XYprint(modelName, plotName, printFormat, c1)
 session.writeXYReport(fileName='temp.txt', appendMode=OFF, xyData=(xy1, ))
 func.fixReportFile(reportFile = 'temp.txt',
-	plotName = modelName, modelName=plotName)
+	plotName = modelName, modelName=plotName,
+	x='Time [s]', y = 'Pressure [MPa]')
 
 
 
@@ -221,5 +222,6 @@ plotName = 'reflectedPressure'
 # func.XYprint(modelName, plotName, printFormat, c2)
 session.writeXYReport(fileName='temp.txt', appendMode=OFF, xyData=(xy2, ))
 func.fixReportFile(reportFile = 'temp.txt',
-	plotName = modelName, modelName=plotName)
+	plotName = modelName, modelName=plotName, 
+	x='Time [s]', y = 'Pressure [MPa]')
 
