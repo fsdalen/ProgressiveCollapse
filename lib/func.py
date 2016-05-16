@@ -118,7 +118,7 @@ def printStatus(start=ON):
 
 
 
-#=========== Model functions  ============#
+#=========== Model ions  ============#
 
 def delModels(modelName):    
 	"""
@@ -235,7 +235,7 @@ def createMaterials(M, mat1, mat2):
 #======================================================#
 #======================================================#
 
-#=========== Slab load functions for beam model  ============#
+#=========== Slab load ions for beam model  ============#
 
 
 def addSlabLoad(M, x, z, y, step, load, amplitude=UNSET):
@@ -299,7 +299,7 @@ def changeSlabLoad(M, x, z, y, step, amplitude):
 
 
 
-#=========== Blast functions  ============#
+#=========== Blast ions  ============#
 
 
 def addIncidentWave(modelName, stepName, AmpFile, sourceCo, refCo):
@@ -439,7 +439,7 @@ def xyAPMcolPrint(odbName, column, printFormat, stepName):
 	plotName = 'APMcolU2'
 
 	#Open ODB
-	odb = func.open_odb(odbName)
+	odb = open_odb(odbName)
 	#Find correct historyOutput
 	for key in odb.steps[stepName].historyRegions.keys():
 		if key.find('Node '+column) > -1:
@@ -452,13 +452,13 @@ def xyAPMcolPrint(odbName, column, printFormat, stepName):
 		suppressQuery=True)
 	c1 = session.Curve(xyData=xy1)
 	#Plot and Print
-	func.XYprint(odbName, plotName, printFormat, c1)
+	XYprint(odbName, plotName, printFormat, c1)
 
 	#=========== Data  ============#
 	#Report data
 	tempFile = '_____temp.txt'
 	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	func.fixReportFile(tempFile, plotName, odbName)
+	fixReportFile(tempFile, plotName, odbName)
 
 
 
@@ -485,7 +485,7 @@ def replaceForces(M, column, oldJob, oldStep, stepName, amplitude):
 		del M.constraints[constName]
 
 	#Open odb with static analysis
-	odb = func.open_odb(oldJob)
+	odb = open_odb(oldJob)
 
 	#Find correct historyOutput
 	for key in odb.steps[oldStep].historyRegions.keys():
@@ -534,7 +534,7 @@ def getElmOverLim(odbName, var, stepName, var_invariant, limit,
 	"""
 	elset = elemset = None
 	region = "over the entire model"
-	odb = func.open_odb(odbName)
+	odb = open_odb(odbName)
 	
 	#Check to see if the element set exists in the assembly
 	if elsetName:
@@ -622,6 +622,14 @@ def delInstance(M, elmOverLim, stepName):
 
 
 
+
+
+
+
+
+
+
+
 #===========================================================#
 #===========================================================#
 #                   JOB AND POST                            #
@@ -632,7 +640,7 @@ def delInstance(M, elmOverLim, stepName):
 class clockTimer(object):
 	"""
 	Class for taking the wallclocktime of an analysis.
-	Uses the python function datetime to calculate the elapsed time.
+	Uses the python ion datetime to calculate the elapsed time.
 	"""
 	def __init__(self):
 		self.model = None
@@ -907,6 +915,25 @@ def xyEnergyPrint(modelName, printFormat):
 	#Plot and Print
 	XYprint(modelName, plotName, printFormat, c1, c2, c3)
 
+	#Save xyData
+	tempFile = 'temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF,
+		xyData=(xy1, ))
+	plotName='externalWork'
+	fixReportFile(tempFile, plotName, modelName,
+		x='Time [s]', y='External work [mJ]')
+
+	session.writeXYReport(fileName=tempFile, appendMode=OFF,
+		xyData=(xy2, ))
+	plotName='internalEnergy'
+	fixReportFile(tempFile, plotName, modelName,
+		x='Time [s]', y='Internal Energy [mJ]')
+
+	session.writeXYReport(fileName=tempFile, appendMode=OFF,
+		xyData=(xy3, ))
+	plotName='kineticEnergy'
+	fixReportFile(tempFile, plotName, modelName,
+		x='Time [s]', y='Kinetic Energy [mJ]')
 
 
 

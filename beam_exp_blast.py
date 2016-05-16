@@ -14,7 +14,7 @@ mdbName     = 'beamBlast'
 cpus        = 1			#Number of CPU's
 monitor     = 1
 
-run         = 1
+run         = 0
 
 
 #=========== Geometry  ============#
@@ -25,9 +25,9 @@ y           = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime   = 1.0
+quasiTime   = 0.5
 blastTime   = 0.1
-freeTime    = 2.0
+freeTime    = 0.5
 
 precision   = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt    = SINGLE #SINGLE or FULL
@@ -39,13 +39,14 @@ LL_kN_m     = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
 seed        = 750.0		#Global seed
+slabSeedFactor = 2			#Change seed of slab
 
 #Post
 defScale    = 1.0
 printFormat = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate       = 5
 
-quasiStaticIntervals = 10
+quasiStaticIntervals = 100
 blastIntervals       = 1000
 freeIntervals        = 100
 
@@ -84,7 +85,8 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
+beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel,
+	seed, slabSeedFactor)
 
 
 
@@ -139,7 +141,7 @@ M.loads['Gravity'].setValuesInStep(stepName=stepName, amplitude=FREED)
 func.changeSlabLoad(M, x, z, y, stepName, amplitude=FREED)
 
 
-#=========== Blast step  ============#
+# #=========== Free step  ============#
 #Create step
 oldStep = stepName
 stepName = 'free'
@@ -152,6 +154,7 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 #                   Output                            #
 #=====================================================#
 #=====================================================#
+
 
 #Frequency of field output
 M.fieldOutputRequests['F-Output-1'].setValues(
@@ -174,7 +177,10 @@ M.fieldOutputRequests['damage'].setValuesInStep(
 del M.historyOutputRequests['H-Output-1']
 
 
-#History output
+#History output: energy
+M.HistoryOutputRequest(name='Energy', 
+	createStepName=oldStep, variables=('ALLIE', 'ALLKE', 'ALLWK'),
+	numIntervals = quasiStaticIntervals)
 
 
 
@@ -213,12 +219,16 @@ if run:
 	for plot in session.xyPlots.keys():
 		del session.xyPlots[plot]
 
-	#=========== Contour  ============#
-	func.countourPrint(modelName, defScale, printFormat)
+	# #=========== Contour  ============#
+	# func.countourPrint(modelName, defScale, printFormat)
 
-	#=========== Animation  ============#
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	# #=========== Animation  ============#
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
+
+	#=========== Energy  ============#
+	func.xyEnergyPrint(modelName, printFormat)
 	
+
 	print '   done'
 
 

@@ -1,6 +1,7 @@
 #Abaqus modules
 from abaqus import *
 from abaqusConstants import *
+import xyPlot
 
 
 #=======================================================#
@@ -37,7 +38,7 @@ LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 750.0		#Global seed
-slabSeedFactor = 2
+slabSeedFactor = 2			#Change seed of slab
 
 #Post
 defScale       = 1.0
@@ -121,8 +122,6 @@ M.FieldOutputRequest(name='damage',
 del M.historyOutputRequests['H-Output-1']
 
 
-#History output
-
 
 
 #===========================================================#
@@ -159,11 +158,12 @@ if run:
 	for plot in session.xyPlots.keys():
 		del session.xyPlots[plot]
 
-	#=========== Contour  ============#
-	func.countourPrint(modelName, defScale, printFormat)
+	# #=========== Contour  ============#
+	# func.countourPrint(modelName, defScale, printFormat)
 
-	#=========== Animation  ============#
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	# #=========== Animation  ============#
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
+
 	
 	print '   done'
 
