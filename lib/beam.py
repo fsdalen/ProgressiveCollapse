@@ -36,17 +36,25 @@ import func
 #===============================================================#
 
 
-def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
+def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel,
+	seed, slabSeedFactor):
+	'''
+	Builds a beam model without step
+	'''
+
+	col_height = 3000.0
+	beam_len   = 7500.0
+
+
+
 	M=mdb.models[modelName]
 
-
+	
 	#=========== Parts  ============#
 	#Create Column
-	col_height = 3000.0
 	createColumn(M, height=col_height, mat=steel, partName='COLUMN')
 
 	#Create Beam
-	beam_len = 7500.0
 	createBeam(M, length=beam_len, mat=steel, partName='BEAM')
 
 	#Create slab
@@ -76,7 +84,7 @@ def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 
 	#=========== Mesh  ============#
 
-	mesh(M, seed)
+	mesh(M, seed, slabSeedFactor)
 
 	#Write nr of elements to results file
 	M.rootAssembly.regenerate()
@@ -389,17 +397,21 @@ def createAssembly(M, x, z, y, x_d, z_d, y_d):
 
 
 
-def mesh(M, seed):
+def mesh(M, seed, slabSeedFactor):
 	'''
-	Meshes all parts with a global seed
+	Meshes all parts with a global seed.
+	Seed of slab may be different with a factor slabSeedFactor
+
 
 	Parameters.
 	M:		Model
 	seed:	Global seed
+	slabSeedFactor: Factor for having a different slab seed
 	'''
 
-	#Same seed for all parts
-	seed1 = seed2 = seed3 = seed
+	#Same seed for beam and column
+	seed1 = seed2 = seed
+	seed3 = seed*slabSeedFactor
 
 	analysisType = STANDARD  #Could be STANDARD or EXPLICIT
 		#This only controls what elements are available to choose from

@@ -37,6 +37,7 @@ LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 750.0		#Global seed
+slabSeedFactor = 2
 
 #Post
 defScale       = 1.0
@@ -77,7 +78,8 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
+beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel,
+	 seed, slabSeedFactor)
 
 
 #=========== Step  ============#

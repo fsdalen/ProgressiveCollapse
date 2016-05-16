@@ -33,9 +33,12 @@ import func
 
 def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
 	slabSeedFactor):
+	'''
+	Builds a shell model without step
+	'''
 
 	col_height = 3000.0
-	beam_len = 7500.0
+	beam_len   = 7500.0
 
 	M=mdb.models[modelName]
 
