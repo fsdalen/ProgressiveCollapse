@@ -54,7 +54,7 @@ concrete = 'Concrete'
 rebarSteel = 'Rebar Steel'
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete)
+func.perliminary(monitor, modelName)
 
 M=mdb.models[modelName]
 
@@ -67,7 +67,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-singleCol.createSimpleShellGeom(modelName, steel, seed)
+singleCol.createSimpleShellGeom(modelName, seed)
 
 
 #Create setp

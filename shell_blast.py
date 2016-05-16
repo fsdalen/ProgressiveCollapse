@@ -41,6 +41,7 @@ LL_kN_m              = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
 seed                 = 150.0		#Global seed
+slabSeedFactor 		 = 8			#Change seed of slab
 
 #Post
 defScale             = 1.0
@@ -69,7 +70,7 @@ concrete = 'Concrete'
 rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete)
+func.perliminary(monitor, modelName)
 
 M=mdb.models[modelName]
 
@@ -83,8 +84,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #=========== Geometry  ============#
-shell.createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
-	slabSeedFactor)
+shell.createShellmod(modelName, x, z, y,seed, slabSeedFactor)
 
 
 

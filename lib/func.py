@@ -37,7 +37,7 @@ from datetime import datetime
 
 
 
-def perliminary(monitor, modelName, steel, concrete):
+def perliminary(monitor, modelName):
 	#Makes mouse clicks into physical coordinates
 	session.journalOptions.setValues(replayGeometry=COORDINATE,
 		recoverGeometry=COORDINATE)

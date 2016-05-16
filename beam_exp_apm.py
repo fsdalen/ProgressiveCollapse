@@ -48,6 +48,7 @@ LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 150.0		#Global seed
+slabSeedFactor = 2			#Change seed of slab
 
 #Post
 defScale       = 1.0
@@ -69,12 +70,10 @@ reload(beam)
 
 modelName   = 'beamStatic'
 
-steel = 'DOMEX_S355'
-concrete = 'Concrete'
-rebarSteel = steel
+
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete)
+func.perliminary(monitor, modelName)
 
 M=mdb.models[modelName]
 
@@ -88,7 +87,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
+beam.buildBeamMod(modelName, x, z, y, seed, slabSeedFactor)
 
 
 

@@ -31,8 +31,7 @@ import func
 #==============================================================#
 
 
-def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
-	slabSeedFactor):
+def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
 	'''
 	Builds a shell model without step
 	'''
@@ -42,7 +41,9 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
 
 	M=mdb.models[modelName]
 
-
+	steel = 'DOMEX_S355'
+	concrete = 'Concrete'
+	rebarSteel = steel
 
 
 	#=========== Sections  ============#

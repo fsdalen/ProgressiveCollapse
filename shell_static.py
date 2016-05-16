@@ -63,7 +63,7 @@ concrete = 'Concrete'
 rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete)
+func.perliminary(monitor, modelName)
 
 M=mdb.models[modelName]
 
@@ -78,8 +78,7 @@ M=mdb.models[modelName]
 
 #Build geometry
 
-shell.createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
-	slabSeedFactor)
+shell.createShellmod(modelName, x, z, y, seed, slabSeedFactor)
 
 
 

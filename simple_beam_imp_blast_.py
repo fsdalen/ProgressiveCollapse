@@ -50,7 +50,7 @@ concrete = 'Concrete'
 rebarSteel = 'Rebar Steel'
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete, rebarSteel)
+func.perliminary(monitor, modelName)
 
 M=mdb.models[modelName]
 
@@ -64,7 +64,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-singleCol.createSingleBeam(modelName, steel)
+singleCol.createSingleBeam(modelName)
 
 
 #Create setp

@@ -30,7 +30,7 @@ y              = 1			#nr of stories
 #=========== General  ============#
 #Mesh
 seed           = 150.0		#Global seed
-
+slabSeedFactor = 2			#Change seed of slab
 
 
 
@@ -47,12 +47,9 @@ reload(beam)
 
 modelName   = mdbName
 
-steel = 'DOMEX_S355'
-concrete = 'Concrete'
-rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName, steel, concrete, rebarSteel)
+func.perliminary(monitor, modelName)
 
 M=mdb.models[modelName]
 
@@ -66,7 +63,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel)
+beam.buildBeamMod(modelName, x, z, y, seed, slabSeedFactor)
 
 
 #Create Frequency step

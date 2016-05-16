@@ -36,8 +36,7 @@ import func
 #===============================================================#
 
 
-def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel,
-	seed, slabSeedFactor):
+def buildBeamMod(modelName, x, z, y, seed, slabSeedFactor):
 	'''
 	Builds a beam model without step
 	'''
@@ -45,7 +44,9 @@ def buildBeamMod(modelName, x, z, y, steel, concrete, rebarSteel,
 	col_height = 3000.0
 	beam_len   = 7500.0
 
-
+	steel = 'DOMEX_S355'
+	concrete = 'Concrete'
+	rebarSteel = steel
 
 	M=mdb.models[modelName]
 
