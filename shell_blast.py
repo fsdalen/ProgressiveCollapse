@@ -14,14 +14,14 @@ mdbName              = 'shellBlast'
 cpus                 = 1			#Number of CPU's
 monitor              = 1
 
-run                  = 1
+run                  = 0
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x                    = 4			#Nr of columns in x direction
-z                    = 4			#Nr of columns in z direction
-y                    = 6			#nr of stories
+x                    = 2			#Nr of columns in x direction
+z                    = 2			#Nr of columns in z direction
+y                    = 1			#nr of stories
 
 
 #=========== Step  ============#
@@ -83,16 +83,8 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #=========== Geometry  ============#
-shell.createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
-
-#Create blast surf
-lst=[]
-for i in M.rootAssembly.allInstances['Part-1-1'].surfaces.items():
-	lst.append(i[1])
-tup=tuple(lst)
-M.rootAssembly.SurfaceByBoolean(name='blastSurf', 
-    surfaces=tup)
-
+shell.createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
+	slabSeedFactor)
 
 
 
@@ -115,14 +107,7 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
 #LL
 LL=LL_kN_m * 1.0e-3   #N/mm^2
-
-M.SurfaceTraction(createStepName=stepName, 
-	directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
-	distributionType=UNIFORM,
-	magnitude= LL, name="LL",
-	region=M.rootAssembly.instances['Part-1-1'].surfaces['topSurf'],
-	traction=GENERAL, amplitude = 'smooth')
-
+shell.surfaceTraction(modelName,stepName, x, z, y, load=LL, amp='smooth')
 
 
 #=========== Blast step  ============#
@@ -134,13 +119,14 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 
 #Create blast
-func.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 100, 2000.0),
+func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
+	coordinates = (-10000.0, 0.0, 2000.0),
 	timeOfBlast = quasiTime, stepName=stepName)
 
 #Remove smooth step from other loads
-M.loads['LL'].setValuesInStep(stepName=stepName, amplitude=FREED)
-M.loads['Gravity'].setValuesInStep(stepName=stepName, amplitude=FREED)
+loads = M.loads.keys()
+for load in loads:
+	M.loads[load].setValuesInStep(stepName=stepName, amplitude=FREED)
 
 
 

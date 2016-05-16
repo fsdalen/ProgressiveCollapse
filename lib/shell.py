@@ -31,10 +31,11 @@ import func
 #==============================================================#
 
 
-def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
+def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
+	slabSeedFactor):
 
-	col_height = 7500.0
-	beam_len = 3000.0
+	col_height = 3000.0
+	beam_len = 7500.0
 
 	M=mdb.models[modelName]
 
@@ -139,7 +140,7 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 		((   0.0, -150.0,  0.0),), ))
 
 	#Create surface
-	M.parts['COLUMN'].Surface(name='column', side12Faces=
+	M.parts['COLUMN'].Surface(name='column', side1Faces=
 	    M.parts['COLUMN'].faces.findAt(
 		(( 150.0,   50.0, 100.0), ),
 		((  50.0, -150.0, 100.0), ),
@@ -192,7 +193,7 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 
 	#=========== Slab part  ============#		
 	#Create part
-	gap = seed
+	gap = 0
 	s = M.ConstrainedSketch(name='__profile__', sheetSize= 10000.0)
 	s.rectangle(point1=(0.0, 0.0), point2=(beam_len-b-2*gap, beam_len))
 
@@ -302,28 +303,107 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 
 
 
+
 	#=========== Merge instances  ============#
 	instLst = []
 	for key in M.rootAssembly.instances.keys():
-		instLst.append(M.rootAssembly.instances[key])
+		if not key.startswith('SLAB'):
+			instLst.append(M.rootAssembly.instances[key])
 	instTup	= tuple(instLst)
 	M.rootAssembly.InstanceFromBooleanMerge(domain=GEOMETRY
-	    , instances=instTup, name='Part-1'
+	    , instances=instTup, name='FRAME'
 	    , originalInstances=DELETE,
 	    keepIntersections=ON)
 
 
 
+	#=========== Connect slabs to beams  ============#
+
+	#Beam s
+	frame = M.rootAssembly.instances['FRAME-1']
+	count=0
+	for a in range(x-1):
+		for n in range(z-1):
+			for etg in range(y):
+				count = count+1
+				setName = 'beamEdges-'+str(count)
+
+				edge1 = frame.edges.findAt(((
+					beam_len  *     a  + 200,
+					col_height*(etg+1) + 150,
+					beam_len  *     n  +   0),),)
+				edge2 = frame.edges.findAt(((
+					beam_len  *     a  + 200,
+					col_height*(etg+1) + 150,
+					beam_len  *  (n+1) +   0),),)
+
+				M.rootAssembly.Set(edges=
+					edge1 + edge2, name=setName)
+
+
+	count=0
+	for a in range(x-1):
+		for n in range(z-1):
+			for etg in range(y):
+				count = count+1
+				instName = 'SLAB-'+str(count)
+				inst=M.rootAssembly.instances[instName]
+				setName = 'slabEdges-'+str(count)
+
+				edge1 = inst.edges.findAt(((
+					beam_len  *     a  + 200,
+					col_height*(etg+1) + 150,
+					beam_len  *     n  +   0),),)
+				edge2 = inst.edges.findAt(((
+					beam_len  *     a  + 200,
+					col_height*(etg+1) + 150,
+					beam_len  *  (n+1) +   0),),)
+
+				M.rootAssembly.Surface(side1Edges=
+					edge1 + edge2, name=setName)
+
+	
+	for num in range(count):
+		M.Tie(adjust=ON, name='tie-'+str(num+1), tieRotations=OFF,
+			master= M.rootAssembly.sets['beamEdges-'+str(num+1)],
+			slave= M.rootAssembly.surfaces['slabEdges-'+str(num+1)], 
+			positionToleranceMethod=COMPUTED,  thickness=OFF)
+
+
+
+
+
+	#=========== Create blast surface  ============#
+	#Create blast surf
+	lst=[]
+	lst.append(M.rootAssembly.allInstances['FRAME-1'].surfaces['beam'])
+	lst.append(M.rootAssembly.allInstances['FRAME-1'].surfaces['column'])
+	for num in range((x-1)*(z-1)*y):
+		lst.append(
+			M.rootAssembly.instances['SLAB-'+str(num+1)].surfaces['topSurf'])
+		lst.append(
+			M.rootAssembly.instances['SLAB-'+str(num+1)].surfaces['botSurf'])
+	tup=tuple(lst)
+	M.rootAssembly.SurfaceByBoolean(name='blastSurf', 
+	    surfaces=tup)
+	
+
+
+
 	#=========== Mesh  ============#
-	seed = 150
-	M.parts['Part-1'].seedPart(deviationFactor=0.1, 
+	M.parts['FRAME'].seedPart(deviationFactor=0.1, 
 	    minSizeFactor=0.1, size=seed)
-	M.parts['Part-1'].generateMesh()
+	M.parts['FRAME'].generateMesh()
+	M.parts['SLAB'].seedPart(deviationFactor=0.1, 
+	    minSizeFactor=0.1, size=seed*slabSeedFactor)
+	M.parts['SLAB'].generateMesh()
 
 	#Write nr of elements to results file
-	nrElm = len(M.parts['Part-1'].elements)
+	nrElm = len(M.parts['FRAME'].elements)
 	with open('results.txt', 'a') as f:
 		f.write("%s	Elements: %s \n" %(modelName, nrElm))
+
+
 
 
 	#=========== BC  ============#
@@ -331,6 +411,35 @@ def createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed):
 	M.DisplacementBC(amplitude=UNSET, createStepName=
 		'Initial', distributionType=UNIFORM, fieldName='',
 		localCsys=None, name='BC-1', 
-		region=M.rootAssembly.sets['Part-1-1.colBot'],
+		region=M.rootAssembly.sets['FRAME-1.colBot'],
 		u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET)
 
+
+
+
+
+
+
+
+#======================================================#
+#======================================================#
+#                   LOADING                            #
+#======================================================#
+#======================================================#
+
+#=========== Live load  ============#
+def surfaceTraction(modelName, stepName, x,z,y, load, amp=UNSET):
+	'''
+	Adds a surface traction to all slabs in the shell model
+
+	ModelName = name of model
+	Load      = magnitude of traciton
+	x,z,y     = size of building
+	'''
+	M =mdb.models[modelName]
+	for num in range((x-1)*(z-1)*y):
+		reg = M.rootAssembly.instances['SLAB-'+str(num+1)].surfaces['topSurf']
+		M.SurfaceTraction(createStepName=stepName, 
+			directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+			distributionType=UNIFORM, follower=OFF, magnitude= load,
+			name="LL-"+str(num+1), region=reg, traction=GENERAL, amplitude=amp)

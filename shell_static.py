@@ -18,9 +18,9 @@ run            = 0
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x              = 4			#Nr of columns in x direction
-z              = 4			#Nr of columns in z direction
-y              = 5			#nr of stories
+x              = 2			#Nr of columns in x direction
+z              = 2			#Nr of columns in z direction
+y              = 1			#nr of stories
 
 
 #=========== Static analysis  ============#
@@ -36,6 +36,7 @@ LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 150.0		#Global seed
+slabSeedFactor = 8			#Factor to scale slab seed
 
 #Post
 defScale       = 1.0
@@ -77,7 +78,8 @@ M=mdb.models[modelName]
 
 #Build geometry
 
-shell.createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed)
+shell.createShellmod(modelName, x, z, y, steel, concrete, rebarSteel, seed,
+	slabSeedFactor)
 
 
 
@@ -110,14 +112,8 @@ M.Gravity(comp2=-9800.0, createStepName=stepName,
 
 #LL
 LL=LL_kN_m * 1.0e-3   #N/mm^2
+shell.surfaceTraction(modelName,stepName, x, z, y, load=LL)
 
-M.SurfaceTraction(createStepName=stepName, 
-	directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
-	distributionType=UNIFORM, field='', follower=OFF,
-	localCsys=None, magnitude= LL,
-	name="LL",
-	region=M.rootAssembly.instances['Part-1-1'].surfaces['topSurf'],
-	traction=GENERAL)
 
 M.rootAssembly.regenerate()
 
@@ -130,8 +126,7 @@ M.rootAssembly.regenerate()
 
 #Damage field output
 M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
-    numIntervals=fieldIntervals)
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),)
 
 
 #Delete default history output
