@@ -27,6 +27,7 @@ yLabel =   'Displacement [mm]';
 fontSize =  12;   %Font width of axis, legend 90%, axis title 110% of this
 linWidth =  1.0;     
 figSize =  [700 700];   %[width height]
+xLimit = [0 0.02];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -101,5 +102,8 @@ grid on
 xlabel(xLabel)
 ylabel(yLabel)
 legend(legendPlot,data.name,'location','best');
+if exist('xLimit');
+    xlim(xLimit);
+end
 
 print(plotName, '-dpdf')
