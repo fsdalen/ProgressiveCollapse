@@ -18,6 +18,19 @@ X and Y labels are manual at the end of the script
 
 clear all; close all; clc; 
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Modify apparance of plot
+fontSize = 12;   %Font width of axis, legend 90%, axis title 110% of this
+linWidth = 1.0;     
+xLabel = 'Time [s]' ;
+yLabel = 'Displacement [mm]';
+winSize = [200 400 700 700]; % position and size [x y width height]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
 %Get files
 files = dir('xyData*');
 n = size(files,1);
@@ -59,13 +72,21 @@ end
 
 %% Plot
 
+
 colors = distinguishable_colors(n);
 legendPlot = [];
 
-figure(1)
 ax = gca;
-ax.FontSize = 12;       %Changes font size of the axes (default = 10). Legend font size is by default 90% of axes
-set(gca,'DefaultLineLineWidth',1)  %Change line width. Default = 0.5
+ax.FontSize = fontSize;       
+set(gca,'DefaultLineLineWidth',linWidth)
+
+
+figure(1)
+hFig = figure(1);
+set(hFig, 'Position', winSize)  % position and size of window [x y width height]
+ax = gca;
+ax.FontSize = fontSize;       %Changes font size of the axes (default = 10). Legend font size is by default 90% of axes
+set(gca,'DefaultLineLineWidth',linWidth)  %Change line width. Default = 0.5
 
 hold on
 for i = 1:n
@@ -73,7 +94,8 @@ for i = 1:n
     eval(['h' num2str(i) ' = h;'])                           %Number the handle, e.g. h1
     eval(['legendPlot(' num2str(i) ') = h' num2str(i) ';']) %Put the handle into the legendPlot vector, which we will later relate lengendText
 end
+
 grid on
-legend(legendPlot,data.name)
-xlabel('Time [s]')
-ylabel('Displacement [mm]')
+xlabel(xLabel)
+ylabel(yLabel)
+legend(legendPlot,data.name,'location','best');
