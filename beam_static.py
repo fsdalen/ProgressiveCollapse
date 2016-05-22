@@ -15,7 +15,7 @@ mdbName        = 'beamStatic'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 
-run            = 0
+run            = 1
 
 
 #=========== Geometry  ============#
@@ -38,7 +38,7 @@ LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 750.0		#Global seed
-slabSeedFactor = 2			#Change seed of slab
+slabSeedFactor = 1			#Change seed of slab
 
 #Post
 defScale       = 1.0
@@ -120,7 +120,19 @@ M.FieldOutputRequest(name='damage',
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
+#Energies
+M.HistoryOutputRequest(name='Energy', 
+	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
 
+#R2 at all col-bases
+M.HistoryOutputRequest(createStepName='static', name='R2',
+	region=M.rootAssembly.sets['col-bases'], variables=('RF2', ))
+
+#U2 at middle (seed750 slabfactor1)
+M.rootAssembly.Set(name='centerSlab', nodes=
+    M.rootAssembly.instances['SLAB_A1-1'].nodes[60:61])
+M.HistoryOutputRequest(createStepName=stepName, name='U2', 
+	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
 
 
 #===========================================================#
@@ -163,7 +175,24 @@ if run:
 	# #=========== Animation  ============#
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 
+	#R2 at column base
+	beam.xyR2colBase(modelName, x,z, printFormat)
 	
+	#Energy
+	func.xyEnergyPrint(modelName, printFormat)
+
+	#U2 at center slab
+	plotName='U2centerSlab'
+	odb=func.open_odb(modelName)
+	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=
+    	'Spatial displacement: U2 PI: SLAB_A1-1 Node 61 in NSET CENTERSLAB')
+	c1 = session.Curve(xyData=xy1)
+	func.XYprint(modelName, plotName, printFormat, c1)
+	tempFile = 'temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
+	func.fixReportFile(tempFile, plotName, modelName,
+		xVar='Displacement [mm]', yVar ='Time [s]')
+
 	print '   done'
 
 

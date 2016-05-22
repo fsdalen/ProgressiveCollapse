@@ -18,6 +18,7 @@ import odbAccess
 import xyPlot
 from jobMessage import ANY_JOB, ANY_MESSAGE_TYPE
 import animation
+import xyPlot
 
 #Python modules
 from datetime import datetime
@@ -682,3 +683,47 @@ def mergeColBase(M,x,z):
 
 
 
+
+
+
+#=====================================================#
+#=====================================================#
+#                   Output                            #
+#=====================================================#
+#=====================================================#
+
+
+
+
+def xyR2colBase(modelName, x,z, printFormat):
+	plotName = 'R2colBase'
+	M=mdb.models[modelName]
+	odb = func.open_odb(modelName)
+
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+
+	count = 0
+	lst=[]
+	for a in alph:
+		for n in numb:
+			count = count + 1
+			inst = 'COLUMN_' + a + n + "-1"
+			name='Reaction force: RF2 PI: '+inst+' Node 1'
+			lst.append(xyPlot.XYDataFromHistory(odb=odb,
+				outputVariableName=name))
+
+	tpl=tuple(lst)
+	xyR2 = sum(tpl)
+
+	c1 = session.Curve(xyData=xyR2)
+	
+	#Plot and Print
+	func.XYprint(modelName, plotName, printFormat, c1)
+
+	#=========== Data  ============#
+	#Report data
+	tempFile = 'temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xyR2, ))
+	func.fixReportFile(tempFile, plotName, modelName,
+		xVar='Force [N]', yVar ='Time [s]')

@@ -811,7 +811,7 @@ def XYprint(modelName, plotName, printFormat, *args):
 		format=printFormat, canvasObjects=(V, ))
 	
 
-def fixReportFile(reportFile, plotName, modelName, x, y):
+def fixReportFile(reportFile, plotName, modelName, xVar, yVar):
 	'''
 	Creates a tab file froma stupid report file
 
@@ -828,7 +828,7 @@ def fixReportFile(reportFile, plotName, modelName, x, y):
 	    lines = f.readlines()
 
 	with open(fileName, 'w') as f:
-		f.write('%s\t%s\n' %(x,y))
+		f.write('%s\t%s\n' %(xVar,yVar))
 		for line in lines:
 			lst = line.lstrip().rstrip().split()
 			if lst:
@@ -921,19 +921,19 @@ def xyEnergyPrint(modelName, printFormat):
 		xyData=(xy1, ))
 	plotName='externalWork'
 	fixReportFile(tempFile, plotName, modelName,
-		x='Time [s]', y='External work [mJ]')
+		xVar='Time [s]', yVar='External work [mJ]')
 
 	session.writeXYReport(fileName=tempFile, appendMode=OFF,
 		xyData=(xy2, ))
 	plotName='internalEnergy'
 	fixReportFile(tempFile, plotName, modelName,
-		x='Time [s]', y='Internal Energy [mJ]')
+		xVar='Time [s]', yVar='Internal Energy [mJ]')
 
 	session.writeXYReport(fileName=tempFile, appendMode=OFF,
 		xyData=(xy3, ))
 	plotName='kineticEnergy'
 	fixReportFile(tempFile, plotName, modelName,
-		x='Time [s]', y='Kinetic Energy [mJ]')
+		xVar='Time [s]', yVar='Kinetic Energy [mJ]')
 
 
 
