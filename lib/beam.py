@@ -100,7 +100,10 @@ def buildBeamMod(modelName, x, z, y, seed, slabSeedFactor):
 
 
 	#=========== Fix column base  ============#
-	fixColBase(M, x, z)
+	mergeColBase(M,x,z)
+	M.DisplacementBC( createStepName='Initial',
+		name='fixColBases', region= M.rootAssembly.sets['col-bases'],
+		u1=0.0, u2=0.0, u3=0.0, ur1=0.0, ur2=0.0, ur3=0.0)
 
 
 
@@ -659,28 +662,20 @@ def createJoints(M, x, z, y, x_d, z_d, y_d):
 					, thickness=OFF, tieRotations=OFF)
 
 
-def fixColBase(M, x, z):
-	'''
-	Fixes all column bases
 
-	Parameters:
-	M: 		Model
-	x, z 	Nr of bays
-	'''
-
-	#Create coordinate list
+def mergeColBase(M,x,z):
+	
 	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
 	numb = map(str,range(1,z+1))
 
+	lst=[]
 	for a in alph:
 		for n in numb:
-			colSet = 'COLUMN_' + a + n + "-" + "1.col-base"
-			M.DisplacementBC(amplitude=UNSET, createStepName=
-				'Initial', distributionType=UNIFORM, fieldName='', fixed=OFF,
-				localCsys=None, name=colSet, region=
-				M.rootAssembly.sets[colSet], u1=0.0, u2=0.0, u3=0.0
-				, ur1=0.0, ur2=0.0, ur3=0.0)
+			inst = 'COLUMN_' + a + n + "-1"
+			lst.append(M.rootAssembly.allInstances[inst].sets['col-base'])
 
+	tpl = tuple(lst)
+	M.rootAssembly.SetByBoolean(name='col-bases', sets=tpl)
 
 
 
