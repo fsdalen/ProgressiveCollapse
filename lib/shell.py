@@ -94,19 +94,16 @@ def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
 	rebarSpacing = 120.0		#mm
 	rebarPosition = -80.0		#mm distance from center of section
 
+	# Add rebars to section (both directions)
 	M.sections['SLAB'].RebarLayers(layerTable=(
 	    LayerProperties(barArea=rebarArea, orientationAngle=0.0,
 	    barSpacing=rebarSpacing, layerPosition=rebarPosition,
-	    layerName='Layer 1', material=rebarSteel), ), 
-	    rebarSpacing=CONSTANT)
-	M.sections['SLAB'].RebarLayers(layerTable=(
+	    layerName='Layer 1', material=rebarSteel),
 	    LayerProperties(barArea=rebarArea, orientationAngle=90.0,
 	    barSpacing=rebarSpacing, layerPosition=rebarPosition,
-	    layerName='Layer 2', material=rebarSteel), ), 
+	    layerName='Layer 2', material=rebarSteel)
+	    ),  
 	    rebarSpacing=CONSTANT)
-
-
-
 
 	#=========== Column part  ============#
 	dep=ON
@@ -447,3 +444,55 @@ def surfaceTraction(modelName, stepName, x,z,y, load, amp=UNSET):
 			directionVector=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
 			distributionType=UNIFORM, follower=OFF, magnitude= load,
 			name="LL-"+str(num+1), region=reg, traction=GENERAL, amplitude=amp)
+
+
+
+
+
+
+
+
+
+
+#===================================================#
+#===================================================#
+#                   POST                            #
+#===================================================#
+#===================================================#
+
+
+
+def xyR2colBase(modelName, x,z, printFormat):
+	plotName = 'R2colBase'
+	M=mdb.models[modelName]
+	odb=func.open_odb(modelName)
+	 	
+	steps = tuple(odb.steps.keys())
+	lst=[]
+
+
+	nodeLst = []
+	for node in odb.rootAssembly.instances['FRAME-1'].nodeSets['COLBOT'].nodes:
+		nodeLst.append(node.label)
+
+	for nodeNr in nodeLst:
+		varName='Reaction force: RF2 PI: FRAME-1 Node '+str(nodeNr)+\
+			' in NSET COLBOT'
+		lst.append(xyPlot.XYDataFromHistory(odb=odb, 
+		    outputVariableName=varName, steps=steps, ))
+
+
+	tpl=tuple(lst)
+	xyR2 = sum(tpl)
+
+	c1 = session.Curve(xyData=xyR2)
+	
+	#Plot and Print
+	func.XYprint(modelName, plotName, printFormat, c1)
+
+	#=========== Data  ============#
+	#Report data
+	tempFile = 'temp.txt'
+	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xyR2, ))
+	func.fixReportFile(tempFile, plotName, modelName,
+		xVar='Force [N]', yVar ='Time [s]')

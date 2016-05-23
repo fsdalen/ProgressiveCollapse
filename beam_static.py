@@ -26,7 +26,7 @@ y              = 1			#nr of stories
 
 
 #=========== Static analysis  ============#
-static_Type    = 'general' 	#'general' or 'riks'
+static_Type    = 'riks' 	#'general' or 'riks'
 static_InInc   = 0.1		# Initial increment
 static_MinIncr = 1e-9
 static_maxInc  = 50 		#Maximum number of increments for static step

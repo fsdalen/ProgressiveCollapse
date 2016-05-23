@@ -215,17 +215,15 @@ def createSlab(M, t, mat, dim, rebarMat, partName):
 	    temperature=GRADIENT, thickness=t, thicknessField='',
 	    thicknessModulus=None, thicknessType=UNIFORM, useDensity=OFF)
 
-	#Add rebars to section (both directions)
+	# Add rebars to section (both directions)
 	M.sections[sectName].RebarLayers(layerTable=(
 	    LayerProperties(barArea=rebarArea, orientationAngle=0.0,
 	    barSpacing=rebarSpacing, layerPosition=rebarPosition,
-	    layerName='Layer 1', material=rebarMat), ), 
-	    rebarSpacing=CONSTANT)	
-	M.sections[sectName].RebarLayers(layerTable=(
-		LayerProperties(barArea=rebarArea, orientationAngle=90.0,
+	    layerName='Layer 1', material=rebarMat), 
+	    LayerProperties(barArea=rebarArea, orientationAngle=90.0,
 		barSpacing=rebarSpacing, layerPosition=rebarPosition,
-		layerName='Layer 2', material=rebarMat), ), 
-		rebarSpacing=CONSTANT)	
+		layerName='Layer 2', material=rebarMat)), 
+	    rebarSpacing=CONSTANT)	
 		
 	#Create part
 	M.ConstrainedSketch(name='__profile__', sheetSize= 10000.0)
@@ -293,9 +291,9 @@ def createSurfs(M):
 	'''
 
 	#Slab top and bottom
-	M.parts['SLAB'].Surface(name='topSurf', side1Faces=
+	M.parts['SLAB'].Surface(name='botSurf', side1Faces=
 	    M.parts['SLAB'].faces.findAt(((0.0, 0.0, 0.0), )))
-	M.parts['SLAB'].Surface(name='botSurf', side2Faces=
+	M.parts['SLAB'].Surface(name='topSurf', side2Faces=
 	    M.parts['SLAB'].faces.findAt(((0.0, 0.0, 0.0), )))
 
 
@@ -394,11 +392,12 @@ def createAssembly(M, x, z, y, x_d, z_d, y_d):
 				slabList.append(inst)
 				M.rootAssembly.Instance(dependent=ON,name=inst,
 					part=M.parts['SLAB'])
-				M.rootAssembly.rotate(angle=-90.0, axisDirection=(
-					1.0,0.0, 0.0), axisPoint=(0.0, 0.0, 0.0),
+				M.rootAssembly.rotate(angle=90.0,
+					axisDirection=(1.0,0.0, 0.0),
+					axisPoint=(0.0, 0.0, 0.0),
 					instanceList=(inst, ))
 				M.rootAssembly.translate(instanceList=(inst, ),
-					vector=(x_d*a,y_d*(e+1),z_d*(n+1)))
+					vector=(x_d*a,y_d*(e+1),z_d*(n)))
 
 
 
