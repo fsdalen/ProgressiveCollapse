@@ -693,6 +693,7 @@ def mergeColBase(M,x,z):
 
 
 def xyColBaseR2(modelName,x,z):
+	odb = func.open_odb(modelName)
 	#Create xy data for each col base
 	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
 	numb = map(str,range(1,z+1))
@@ -761,3 +762,35 @@ def xyCenterU2_colBaseR2(modelName,x,z):
 		plotName='forceDisp',
 		xHead='Displacement [mm]', yHead='Force [N]', 
 		xyDat=xyRD)	
+
+
+
+
+def xyAPMcolPrint(modelName, column):
+	'''
+	Prints U2 at top of removed column in APM.
+
+	modelName     = name of odb
+	column      = name of column that is removed in APM
+	printFormat = TIFF, PS, EPS, PNG, SVG
+	stepName    = name of a step that exist in the model
+	'''
+
+	
+	#Open ODB
+	odb = func.open_odb(modelName)
+	
+
+	nodeSet = odb.rootAssembly.instances['COLUMN_B2-1'].nodeSets['COL-TOP']
+	nodeNr = nodeSet.nodes[0].label
+	varName ='Spatial displacement: U2 PI: '+column+' Node '+str(nodeNr)+\
+		' in NSET COL-TOP'
+
+	#Create XY-curve
+	xyU2colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=varName, 
+		suppressQuery=True, name='U2colTop')
+	
+	func.XYplot(modelName, plotName='U2colTop',
+		xHead ='Time [s]',
+		yHead = 'Displacement [mm]',
+		xyDat=xyU2colTop)

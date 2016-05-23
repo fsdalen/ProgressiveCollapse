@@ -19,7 +19,7 @@ run            = 1
 
 
 #=========== Geometry  ============#
-#Size 	4x4  x10(5)
+#Size 	4x4  x5(10)
 x              = 2			#Nr of columns in x direction
 z              = 2			#Nr of columns in z direction
 y              = 1			#nr of stories
@@ -45,7 +45,7 @@ defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate = 5
 
-
+APMcol        = 'COLUMN_B2-1'		#Column to be removed
 
 #==========================================================#
 #==========================================================#
@@ -135,6 +135,11 @@ M.HistoryOutputRequest(createStepName=stepName, name='U2',
 	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
 
 
+#U2 at top of column to later be removed
+M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
+		createStepName=stepName, variables=('U2',), 
+		region=M.rootAssembly.allInstances[APMcol].sets['col-top'])
+
 #===========================================================#
 #===========================================================#
 #                   Save and run                            #
@@ -175,13 +180,14 @@ if run:
 	#Energy
 	func.xyEnergyPlot(modelName)
 
-	# #R2 at col base
-	# beamxyColBaseR2(modelName,x,z)
+	#R2 at col base
+	beam.xyColBaseR2(modelName,x,z)
 
 	#Force and displacement
 	beam.xyCenterU2_colBaseR2(modelName,x,z)
 
-	
+	#Displacement at colTop
+	beam.xyAPMcolPrint(modelName, APMcol)
 
 	print '   done'
 

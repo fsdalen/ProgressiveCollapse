@@ -978,39 +978,6 @@ def xyEnergyPlot(modelName):
 
 
 
-def xyAPMcolPrint(modelName, column, printFormat, stepName):
-	'''
-	Prints U2 at top of removed column in APM.
-
-	modelName     = name of odb
-	column      = name of column that is removed in APM
-	printFormat = TIFF, PS, EPS, PNG, SVG
-	stepName    = name of a step that exist in the model
-	'''
-
-	plotName = 'U2'
-
-	#Open ODB
-	odb = open_odb(modelName)
-	#Find correct historyOutput
-	for key in odb.steps[stepName].historyRegions.keys():
-		if key.find('Node '+column) > -1:
-			histName = key
-	#Get node number
-	nodeNr = histName[-1]
-	varName ='Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP'
-	#Create XY-curve
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=varName, 
-		suppressQuery=True)
-	c1 = session.Curve(xyData=xy1)
-	#Plot and Print
-	XYprint(modelName, plotName, printFormat, c1)
-
-	#=========== Data  ============#
-	#Report data
-	tempFile = '_____temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	fixReportFile(tempFile, plotName, modelName)
 
 
 
