@@ -165,9 +165,11 @@ if run:
 
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
+	#Open ODB
+	odb = func.open_odb(modelName)
+	#Clear xy plots and data
+	#func.clearXY()
+
 
 	# #=========== Contour  ============#
 	# func.countourPrint(modelName, defScale, printFormat)
@@ -175,23 +177,52 @@ if run:
 	# #=========== Animation  ============#
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 
-	#R2 at column base
-	beam.xyR2colBase(modelName, x,z, printFormat)
-	
-	#Energy
-	func.xyEnergyPrint(modelName, printFormat)
 
-	#U2 at center slab
-	plotName='U2centerSlab'
+	#=========== Energy  ============#
+	func.xyEnergyPlot(modelName)
+
+
+	#=========== R2 at column base  ============#
+	#Create xy data for each col base
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	count = 0
+	lst=[]
+	for a in alph:
+		for n in numb:
+			count = count + 1
+			inst = 'COLUMN_' + a + n + "-1"
+			name='Reaction force: RF2 PI: '+inst+' Node 1'
+			lst.append(xyPlot.XYDataFromHistory(odb=odb,
+				outputVariableName=name))
+	tpl=tuple(lst)
+	#Compine all to one xyData
+	xyR2 = sum(tpl)
+	#Plot
+	func.XYplot(modelName,
+		plotName='R2colBase',
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat=xyR2)
+	
+	
+	#=========== U2 at center slab  ============#
 	odb=func.open_odb(modelName)
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=
-    	'Spatial displacement: U2 PI: SLAB_A1-1 Node 61 in NSET CENTERSLAB')
-	c1 = session.Curve(xyData=xy1)
-	func.XYprint(modelName, plotName, printFormat, c1)
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	func.fixReportFile(tempFile, plotName, modelName,
-		xVar='Displacement [mm]', yVar ='Time [s]')
+	xyU2 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=
+    	'Spatial displacement: U2 PI: SLAB_A1-1 Node 61 in NSET CENTERSLAB',
+    	name='xyU2')
+	func.XYplot(modelName,
+		plotName='U2centerSlab',
+		xHead='Time [s]', yHead='Displacement [mm]',
+		xyDat=xyU2)
+
+
+	#=========== Force-Displacement  ============#
+	xyRD = combine(-xyU2,xyR2)
+	func.XYplot(modelName,
+		plotName='forceDisp',
+		xHead='Displacement [mm]', yHead='Force [N]', 
+		xyDat=xyRD)	
+	
 
 	print '   done'
 

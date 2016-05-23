@@ -630,9 +630,11 @@ def delInstance(M, elmOverLim, stepName):
 
 
 
+
+
 #===========================================================#
 #===========================================================#
-#                   JOB AND POST                            #
+#                   JOB                                     #
 #===========================================================#
 #===========================================================#
 
@@ -746,7 +748,26 @@ def readStaFile(jobName, fileName):
 		f.write(jobName + '	Stable Time Increment ' +stblInc+'\n')
 
 
-#=========== Post proccesing  ============#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#===================================================#
+#===================================================#
+#                   POST                            #
+#===================================================#
+#===================================================#
 
 
 def open_odb(odbPath):
@@ -776,59 +797,53 @@ def open_odb(odbPath):
 	return odb
 
 
-
-
-
-def XYprint(modelName, plotName, printFormat, *args):
+def clearXY():
 	'''
-	Prints XY plot to file
+	Clears xy plots and data in session
+	'''
+	#Clear plots
+	for plot in session.xyPlots.keys():
+		del session.xyPlots[plot]
 
-	modelName     = name of odbFile
+	#Clear xyData
+	for data in session.xyDataObjects.keys():
+		del session.xyDataObjects[data]
+
+
+def XYplot(modelName, plotName, xHead, yHead, xyDat):
+	'''
+	Saves xy data to a tab separated .txt file with headers
+
+	modelName   = name of odbFile
 	plotName    = name to give plot
-	printFormat = TIFF, PS, EPS, PNG, SVG
-	*args       = curve(s) to plot
+	xHead       = x header
+	yHead       = y header
+	xyDat       = xy data to plot
 	'''
 
 	
-	V=session.viewports['Viewport: 1']
-	#Open ODB
 	odb = open_odb(modelName)
 
-	#=========== XP plot  ============#
-	#Create plot
-	if plotName not in session.xyPlots.keys():
-		session.XYPlot(plotName)
-	#Set some variables
-	xyp = session.xyPlots[plotName]
-	chartName = xyp.charts.keys()[0]
-	chart = xyp.charts[chartName]
-	#Create plot
-	chart.setValues(curvesToPlot=args)
-	#Show plot
-	V.setValues(displayedObject=xyp)
-	#Print plot
-	session.printToFile(fileName='XY_'+plotName+'_'+modelName,
-		format=printFormat, canvasObjects=(V, ))
-	
 
-def fixReportFile(reportFile, plotName, modelName, xVar, yVar):
-	'''
-	Creates a tab file froma stupid report file
+	#=========== Report using Abaqus function  ============#
+	reportFile = 'temp.txt'
+	session.writeXYReport(fileName=reportFile, appendMode=OFF, xyData=(xyDat, ))
 
-	reportFile = name of report file to fix
-	plotName   = what is plottes
-	modelName    = name of job
-	'''
+	#=========== Fix report file  ============#
+	#Create new better file than the strange Abaqus  output
 
-	a=None
-	b=None
-
+	#Create fileName for output
 	fileName = 'xyData_'+plotName+'_'+modelName+'.txt'
+
+	#Read abaqus report file
 	with open(reportFile, 'r') as f:
 	    lines = f.readlines()
 
+	#Write formated data to new file
+	a=None
+	b=None
 	with open(fileName, 'w') as f:
-		f.write('%s\t%s\n' %(xVar,yVar))
+		f.write('%s\t%s\n' %(xHead, yHead))
 		for line in lines:
 			lst = line.lstrip().rstrip().split()
 			if lst:
@@ -842,6 +857,8 @@ def fixReportFile(reportFile, plotName, modelName, xVar, yVar):
 					f.write('\t')
 					f.write(lst[1])
 					f.write('\n')
+					a=None
+					b=None
 
 
 
@@ -886,54 +903,78 @@ def countourPrint(modelName, defScale, printFormat):
 
 
 
-def xyEnergyPrint(modelName, printFormat):
+def animate(modelName, defScale, frameRate):
+	'''
+	Animates the deformation with Von Mises contour plot
+	Each field output frame is a frame in the animation
+	(that means the animation time is not real time)
+
+	modelName = name of job
+	defScal = deformation scale
+	frameRate = frame rate
+	'''
+	
+	#Open odb
+	odb = open_odb(modelName)
+	#Create object for viewport
+	V=session.viewports['Viewport: 1']
+
+	#View odb in viewport
+	V.setValues(displayedObject=odb)
+	V.odbDisplay.display.setValues(plotState=(CONTOURS_ON_DEF, ))
+	V.odbDisplay.commonOptions.setValues(
+		deformationScaling=UNIFORM, uniformScaleFactor=defScale)
+	V.odbDisplay.setPrimaryVariable(
+		variableLabel='S', outputPosition=INTEGRATION_POINT,
+		refinement=(INVARIANT, 'Mises'), )
+
+	#Create and save animation
+	session.animationController.setValues(animationType=TIME_HISTORY,
+		viewports=(V.name,))
+	session.animationController.play()
+	session.imageAnimationOptions.setValues(frameRate = frameRate,
+		compass = ON, vpBackground=ON)
+	session.writeImageAnimation(fileName=modelName, format=QUICKTIME,
+		canvasObjects=(V, )) #format = QUICKTIME or AVI
+
+	#Stop animation
+	session.animationController.stop()
+
+
+
+def xyEnergyPlot(modelName):
 	'''
 	Prints External work, internal energy and kinetic energy for 
 	whole model
 
 	modelName     = name of odb
-	printFormat = TIFF, PS, EPS, PNG, SVG
 	'''
-
-	plotName = 'Energy'
 
 	#Open ODB
 	odb = open_odb(modelName)
-	#Create curves to plot
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
+
+	#External Work
+	xyEW = xyPlot.XYDataFromHistory(odb=odb, 
 		outputVariableName='External work: ALLWK for Whole Model', 
-		suppressQuery=True)
-	c1 = session.Curve(xyData=xy1)
-	xy2 = xyPlot.XYDataFromHistory(odb=odb, 
+		suppressQuery=True, name='xyEW')
+	XYplot(modelName, plotName='ExternalWork',
+		xHead='Time [s]', yHead='Work [mJ]', xyDat=xyEW)
+
+	#Internal Work
+	xyIW = xyPlot.XYDataFromHistory(odb=odb, 
 		outputVariableName='Internal energy: ALLIE for Whole Model', 
-		suppressQuery=True)
-	c2 = session.Curve(xyData=xy2)
-	xy3 = xyPlot.XYDataFromHistory(odb=odb, 
+		suppressQuery=True, name='xyIW')
+	XYplot(modelName, plotName='InternalWork',
+		xHead='Time [s]', yHead='Work [mJ]', xyDat=xyIW)
+
+	#Kinetic Energy
+	xyKE = xyPlot.XYDataFromHistory(odb=odb, 
 		outputVariableName='Kinetic energy: ALLKE for Whole Model', 
-		suppressQuery=True)
-	c3 = session.Curve(xyData=xy3)
-	#Plot and Print
-	XYprint(modelName, plotName, printFormat, c1, c2, c3)
+		suppressQuery=True, name='xyKE')
+	XYplot(modelName, plotName='KineticEnergy',
+		xHead='Time [s]', yHead='Work [mJ]', xyDat=xyKE)
 
-	#Save xyData
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF,
-		xyData=(xy1, ))
-	plotName='externalWork'
-	fixReportFile(tempFile, plotName, modelName,
-		xVar='Time [s]', yVar='External work [mJ]')
 
-	session.writeXYReport(fileName=tempFile, appendMode=OFF,
-		xyData=(xy2, ))
-	plotName='internalEnergy'
-	fixReportFile(tempFile, plotName, modelName,
-		xVar='Time [s]', yVar='Internal Energy [mJ]')
-
-	session.writeXYReport(fileName=tempFile, appendMode=OFF,
-		xyData=(xy3, ))
-	plotName='kineticEnergy'
-	fixReportFile(tempFile, plotName, modelName,
-		xVar='Time [s]', yVar='Kinetic Energy [mJ]')
 
 
 
@@ -973,40 +1014,3 @@ def xyAPMcolPrint(modelName, column, printFormat, stepName):
 
 
 
-
-def animate(modelName, defScale, frameRate):
-	'''
-	Animates the deformation with Von Mises contour plot
-	Each field output frame is a frame in the animation
-	(that means the animation time is not real time)
-
-	modelName = name of job
-	defScal = deformation scale
-	frameRate = frame rate
-	'''
-	
-	#Open odb
-	odb = open_odb(modelName)
-	#Create object for viewport
-	V=session.viewports['Viewport: 1']
-
-	#View odb in viewport
-	V.setValues(displayedObject=odb)
-	V.odbDisplay.display.setValues(plotState=(CONTOURS_ON_DEF, ))
-	V.odbDisplay.commonOptions.setValues(
-		deformationScaling=UNIFORM, uniformScaleFactor=defScale)
-	V.odbDisplay.setPrimaryVariable(
-		variableLabel='S', outputPosition=INTEGRATION_POINT,
-		refinement=(INVARIANT, 'Mises'), )
-
-	#Create and save animation
-	session.animationController.setValues(animationType=TIME_HISTORY,
-		viewports=(V.name,))
-	session.animationController.play()
-	session.imageAnimationOptions.setValues(frameRate = frameRate,
-		compass = ON, vpBackground=ON)
-	session.writeImageAnimation(fileName=modelName, format=QUICKTIME,
-		canvasObjects=(V, )) #format = QUICKTIME or AVI
-
-	#Stop animation
-	session.animationController.stop()
