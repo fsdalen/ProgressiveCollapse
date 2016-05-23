@@ -21,13 +21,10 @@ clear all; close all; clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Modify apparance of plot
-plotName = 'ConWepPressure';
-xLabel =   'Time [s]' ;
-yLabel =   'Displacement [mm]';
 fontSize =  12;   %Font width of axis, legend 90%, axis title 110% of this
 linWidth =  1.0;     
 figSize =  [700 700];   %[width height]
-xLimit = [0 0.02];
+%xLimit = [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -39,6 +36,12 @@ xLimit = [0 0.02];
 files = dir('xyData*');
 n = size(files,1);
 
+%Get plotName from first file
+fileName = files(1).name;
+underscores = strfind(fileName, '_');
+plotName = fileName(underscores(1)+1:underscores(2)-1);
+    
+%Read files into data
 for i = 1:n
     %Read tab file
     structure = tdfread(files(i).name);
@@ -63,11 +66,15 @@ for i = 1:n
     
     %Shift curves to start at 0,0
     %This removes all the first 0,0 exept one
-    nonZero = find(data(i).y);
-    firstNonZero = nonZero(1);
-    data(i).y = data(i).y(firstNonZero-1:end);
-    data(i).x = data(i).x(1:end-(firstNonZero-2));
+%     nonZero = find(data(i).y);
+%     firstNonZero = nonZero(1);
+%     data(i).y = data(i).y(firstNonZero-1:end);
+%     data(i).x = data(i).x(1:end-(firstNonZero-2));
 end
+
+%Get axis titles from last file
+xLabel = strrep(strrep(field(1),'_0x5B','['), '0x5D',']');
+yLabel = strrep(strrep(field(2),'_0x5B','['), '0x5D',']');
 
 
 
@@ -76,8 +83,8 @@ end
 colors = distinguishable_colors(n);
 legendPlot = [];
 
-figure(1)
-hFig = figure(1);
+
+hFig = figure('Name',plotName,'NumberTitle','off');
 hFig.Position = [200 200 figSize];
 hFig.PaperUnits = 'points';
 hFig.PaperSize = figSize;
