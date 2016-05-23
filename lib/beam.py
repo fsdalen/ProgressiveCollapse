@@ -692,16 +692,10 @@ def mergeColBase(M,x,z):
 #=====================================================#
 
 
-
-
-def xyR2colBase(modelName, x,z, printFormat):
-	plotName = 'R2colBase'
-	M=mdb.models[modelName]
-	odb = func.open_odb(modelName)
-
+def xyColBaseR2(modelName,x,z):
+	#Create xy data for each col base
 	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
 	numb = map(str,range(1,z+1))
-
 	count = 0
 	lst=[]
 	for a in alph:
@@ -711,18 +705,59 @@ def xyR2colBase(modelName, x,z, printFormat):
 			name='Reaction force: RF2 PI: '+inst+' Node 1'
 			lst.append(xyPlot.XYDataFromHistory(odb=odb,
 				outputVariableName=name))
-
 	tpl=tuple(lst)
+	#Compine all to one xyData
 	xyR2 = sum(tpl)
+	#Plot
+	func.XYplot(modelName,
+		plotName='R2colBase',
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat=xyR2)
 
-	c1 = session.Curve(xyData=xyR2)
+
+
+
+def xyCenterU2_colBaseR2(modelName,x,z):
+
+	odb=func.open_odb(modelName)
+
+	#=========== R2 at column base  ============#
+	#Create xy data for each col base
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	count = 0
+	lst=[]
+	for a in alph:
+		for n in numb:
+			count = count + 1
+			inst = 'COLUMN_' + a + n + "-1"
+			name='Reaction force: RF2 PI: '+inst+' Node 1'
+			lst.append(xyPlot.XYDataFromHistory(odb=odb,
+				outputVariableName=name))
+	tpl=tuple(lst)
+	#Compine all to one xyData
+	xyR2 = sum(tpl)
+	#Plot
+	func.XYplot(modelName,
+		plotName='R2colBase',
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat=xyR2)
 	
-	#Plot and Print
-	func.XYprint(modelName, plotName, printFormat, c1)
+	
+	#=========== U2 at center slab  ============#
+	
+	xyU2 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=
+    	'Spatial displacement: U2 PI: SLAB_A1-1 Node 61 in NSET CENTERSLAB',
+    	name='xyU2')
+	func.XYplot(modelName,
+		plotName='U2centerSlab',
+		xHead='Time [s]', yHead='Displacement [mm]',
+		xyDat=xyU2)
 
-	#=========== Data  ============#
-	#Report data
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xyR2, ))
-	func.fixReportFile(tempFile, plotName, modelName,
-		xVar='Force [N]', yVar ='Time [s]')
+
+	#=========== Force-Displacement  ============#
+	xyRD = combine(-xyU2,xyR2)
+	func.XYplot(modelName,
+		plotName='forceDisp',
+		xHead='Displacement [mm]', yHead='Force [N]', 
+		xyDat=xyRD)	

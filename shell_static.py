@@ -13,7 +13,7 @@ from abaqusConstants import *
 mdbName        = 'shellStatic'
 cpus           = 1			#Number of CPU's
 monitor        = 1
-run            = 1
+run            = 0
 
 
 #=========== Geometry  ============#
@@ -176,34 +176,22 @@ if run:
 
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
-
-	# #=========== Contour  ============#
+	
+	# #Contour
 	# func.countourPrint(modelName, defScale, printFormat)
 
-	# #=========== Animation  ============#
+	# #Animation
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 
-
-	#R2 at column base
-	shell.xyR2colBase(modelName, x,z, printFormat)
-	
 	#Energy
-	func.xyEnergyPrint(modelName, printFormat)
+	func.xyEnergyPlot(modelName)
 
-	#U2 at center slab
-	plotName='U2centerSlab'
-	odb=func.open_odb(modelName)
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=
-		'Spatial displacement: U2 PI: SLAB-1 Node 25 in NSET CENTERSLAB', )
-	c1 = session.Curve(xyData=xy1)
-	func.XYprint(modelName, plotName, printFormat, c1)
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	func.fixReportFile(tempFile, plotName, modelName,
-		xVar='Displacement [mm]', yVar ='Time [s]')
+
+	# #R2 at column base
+	# shell.xyR2colBase(modelName, x,z, printFormat)
+	
+	#Force and displacement
+	shell.xyCenterU2_colBaseR2(modelName,x,z)
 	
 	print '   done'
 

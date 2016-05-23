@@ -25,9 +25,11 @@ y           = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime   = 2.0
+quasiTime   = 4.0
 blastTime   = 0.1
 freeTime    = 0.5
+
+qsSmoothFacor = 0.75	#When smooth step reaches full amplitude during QS step
 
 precision   = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt    = SINGLE #SINGLE or FULL
@@ -46,7 +48,7 @@ defScale    = 1.0
 printFormat = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate       = 5
 
-quasiStaticIntervals = 100
+quasiStaticIntervals = 1000
 blastIntervals       = 1000
 freeIntervals        = 100
 
@@ -99,7 +101,7 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 #Create smooth step for forces
 M.SmoothStepAmplitude(name='smooth', timeSpan=STEP, data=(
-	(0.0, 0.0), (0.9*quasiTime, 1.0)))
+	(0.0, 0.0), (qsSmoothFacor*quasiTime, 1.0)))
 
 #Gravity
 M.Gravity(comp2=-9800.0, createStepName=stepName, 
@@ -224,33 +226,23 @@ if run:
 
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
+	#Open ODB
+	odb = func.open_odb(modelName)
 
-	# #=========== Contour  ============#
+	# #Contour
 	# func.countourPrint(modelName, defScale, printFormat)
 
-	# #=========== Animation  ============#
+	# #Animation
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
-	
-	#Energy
-	func.xyEnergyPrint(modelName, printFormat)
 
-	#R2 at column base
-	beam.xyR2colBase(modelName, x,z, printFormat)
-	
-	#U2 at center slab
-	plotName='U2centerSlab'
-	odb=func.open_odb(modelName)
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=
-    	'Spatial displacement: U2 PI: SLAB_A1-1 Node 61 in NSET CENTERSLAB')
-	c1 = session.Curve(xyData=xy1)
-	func.XYprint(modelName, plotName, printFormat, c1)
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	func.fixReportFile(tempFile, plotName, modelName,
-		xVar='Displacement [mm]', yVar ='Time [s]')
+	#Energy
+	func.xyEnergyPlot(modelName)
+
+	# #R2 at col base
+	# beamxyColBaseR2(modelName,x,z)
+
+	#Force and displacement
+	beam.xyCenterU2_colBaseR2(modelName,x,z)
 
 	
 	print '   done'

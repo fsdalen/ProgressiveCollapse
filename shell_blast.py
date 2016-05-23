@@ -10,11 +10,11 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName              = 'shellBlast'
+mdbName              = 'shellQS'
 cpus                 = 1			#Number of CPU's
 monitor              = 1
 
-run                  = 0
+run                  = 1
 
 
 #=========== Geometry  ============#
@@ -25,9 +25,10 @@ y                    = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime            = 1.0
-blastTime            = 0.5
+quasiTime            = 4.0
+blastTime            = 1.0
 
+qsSmoothFactor       = 0.75
 
 TNT                  = 1.0	#tonns of tnt
 
@@ -46,7 +47,7 @@ slabSeedFactor 		 = 8			#Change seed of slab
 #Post
 defScale             = 1.0
 printFormat          = PNG 		#TIFF, PS, EPS, PNG, SVG
-quasiStaticIntervals = 5
+quasiStaticIntervals = 1000
 blastIntervals       = 100
 animeFrameRate       = 10
 
@@ -98,7 +99,7 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 #Create smooth step for forces
 M.SmoothStepAmplitude(name='smooth', timeSpan=STEP, data=(
-	(0.0, 0.0), (0.9*quasiTime, 1.0)))
+	(0.0, 0.0), (qsSmoothFactor*quasiTime, 1.0)))
 
 #Gravity
 M.Gravity(comp2=-9800.0, createStepName=stepName, 
@@ -110,26 +111,26 @@ LL=LL_kN_m * 1.0e-3   #N/mm^2
 shell.surfaceTraction(modelName,stepName, x, z, y, load=LL, amp='smooth')
 
 
-#=========== Blast step  ============#
-#Create step
-oldStep = stepName
-stepName = 'blast'
-M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-    timePeriod=blastTime)
+# #=========== Blast step  ============#
+# #Create step
+# oldStep = stepName
+# stepName = 'blast'
+# M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+#     timePeriod=blastTime)
 
 
-#Create blast
-func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 0.0, 2000.0),
-	timeOfBlast = quasiTime, stepName=stepName)
+# #Create blast
+# func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
+# 	coordinates = (-10000.0, 0.0, 2000.0),
+# 	timeOfBlast = quasiTime, stepName=stepName)
 
-#Remove smooth step from other loads
-loads = M.loads.keys()
-for load in loads:
-	M.loads[load].setValuesInStep(stepName=stepName, amplitude=FREED)
+# #Remove smooth step from other loads
+# loads = M.loads.keys()
+# for load in loads:
+# 	M.loads[load].setValuesInStep(stepName=stepName, amplitude=FREED)
 
 
-
+M.rootAssembly.regenerate()
 
 #=====================================================#
 #=====================================================#
@@ -141,17 +142,31 @@ for load in loads:
 #Frequency of field output
 M.fieldOutputRequests['F-Output-1'].setValues(
 	numIntervals=quasiStaticIntervals)
-M.fieldOutputRequests['F-Output-1'].setValuesInStep(
-    stepName='blast', numIntervals=blastIntervals)
+# M.fieldOutputRequests['F-Output-1'].setValuesInStep(
+#     stepName='blast', numIntervals=blastIntervals)
 
-#Damage field output
-M.FieldOutputRequest(name='damage', 
-    createStepName='blast', variables=('SDEG', 'DMICRT', 'STATUS'),
-    numIntervals=blastIntervals)
+# #Damage field output
+# M.FieldOutputRequest(name='damage', 
+#     createStepName='blast', variables=('SDEG', 'DMICRT', 'STATUS'),
+#     numIntervals=blastIntervals)
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
+#Energy
+M.HistoryOutputRequest(name='Energy', 
+	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
+
+#R2 history at colBases
+M.HistoryOutputRequest(createStepName=stepName, name='R2',
+	region=M.rootAssembly.allInstances['FRAME-1'].sets['colBot'],
+    variables=('RF2', ))
+
+#U2 at shell center
+M.rootAssembly.Set(name='centerSlab', nodes=
+    M.rootAssembly.instances['SLAB-1'].nodes[24:25])
+M.HistoryOutputRequest(createStepName=stepName, name='U2', 
+	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
 
 
 
@@ -185,14 +200,20 @@ if run:
 
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
+	# #Contour
+	# func.countourPrint(modelName, defScale, printFormat)
 
-	#=========== Contour  ============#
-	func.countourPrint(modelName, defScale, printFormat)
+	# #Animation
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 
-	#=========== Animation  ============#
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	#Energy
+	func.xyEnergyPlot(modelName)
+
+
+	# #R2 at column base
+	# shell.xyR2colBase(modelName, x,z, printFormat)
+	
+	#Force and displacement
+	shell.xyCenterU2_colBaseR2(modelName,x,z)
 	
 	print '   done'

@@ -462,14 +462,13 @@ def surfaceTraction(modelName, stepName, x,z,y, load, amp=UNSET):
 
 
 
-def xyR2colBase(modelName, x,z, printFormat):
-	plotName = 'R2colBase'
-	M=mdb.models[modelName]
+
+def xyR2colBase(modelName, x,z):
+
 	odb=func.open_odb(modelName)
 	 	
 	steps = tuple(odb.steps.keys())
 	lst=[]
-
 
 	nodeLst = []
 	for node in odb.rootAssembly.instances['FRAME-1'].nodeSets['COLBOT'].nodes:
@@ -481,18 +480,38 @@ def xyR2colBase(modelName, x,z, printFormat):
 		lst.append(xyPlot.XYDataFromHistory(odb=odb, 
 		    outputVariableName=varName, steps=steps, ))
 
-
 	tpl=tuple(lst)
 	xyR2 = sum(tpl)
 
-	c1 = session.Curve(xyData=xyR2)
-	
-	#Plot and Print
-	func.XYprint(modelName, plotName, printFormat, c1)
+	func.XYplot(modelName,
+		plotName='R2colBase',
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat=xyR2)
 
-	#=========== Data  ============#
-	#Report data
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xyR2, ))
-	func.fixReportFile(tempFile, plotName, modelName,
-		xVar='Force [N]', yVar ='Time [s]')
+	return xyR2
+
+
+
+
+def xyCenterU2_colBaseR2(modelName,x,z):
+	odb=func.open_odb(modelName)
+
+
+	#=========== R2 at column base  ============#
+	xyR2 = xyR2colBase(modelName, x,z)
+
+	#=========== U2 at center slab  ============#
+	xyU2 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=
+		'Spatial displacement: U2 PI: SLAB-1 Node 25 in NSET CENTERSLAB', )
+	func.XYplot(modelName,
+		plotName='U2centerSlab',
+		xHead='Time [s]', yHead='Displacement [mm]',
+		xyDat=xyU2)
+
+	#=========== Force-Displacement  ============#
+	xyRD = combine(-xyU2,xyR2)
+	func.XYplot(modelName,
+		plotName='forceDisp',
+		xHead='Displacement [mm]', yHead='Force [N]', 
+		xyDat=xyRD)	
+	
