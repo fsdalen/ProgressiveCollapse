@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'beamQS'
+mdbName     = 'beamQS-2-1'
 cpus        = 1			#Number of CPU's
 monitor     = 1
 
@@ -25,11 +25,11 @@ y           = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime   = 4.0
+quasiTime   = 3.0
 blastTime   = 0.1
 freeTime    = 0.5
 
-qsSmoothFacor = 0.75	#When smooth step reaches full amplitude during QS step
+qsSmoothFacor= 0.75	#When smooth step reaches full amplitude during QS step
 
 precision   = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt    = SINGLE #SINGLE or FULL
@@ -37,7 +37,7 @@ nodalOpt    = SINGLE #SINGLE or FULL
 
 #=========== General  ============#
 #Live load
-LL_kN_m     = -2.0	    #kN/m^2 (-2.0)
+LL_kN_m     = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
 seed        = 750.0		#Global seed

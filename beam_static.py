@@ -11,22 +11,22 @@ import xyPlot
 #=======================================================#
 
 
-mdbName        = 'beamStatic'
-cpus           = 1			#Number of CPU's
-monitor        = 1
+mdbName        = 'beamStaticRiks'
+cpus           = 8			#Number of CPU's
+monitor        = 0
 
-run            = 1
+run            = 0
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x5(10)
-x              = 2			#Nr of columns in x direction
-z              = 2			#Nr of columns in z direction
-y              = 1			#nr of stories
+x              = 4			#Nr of columns in x direction
+z              = 4			#Nr of columns in z direction
+y              = 5			#nr of stories
 
 
 #=========== Static analysis  ============#
-static_Type    = 'riks' 	#'general' or 'riks'
+static_Type    = 'general' 	#'general' or 'riks'
 static_InInc   = 0.1		# Initial increment
 static_MinIncr = 1e-9
 static_maxInc  = 50 		#Maximum number of increments for static step
@@ -34,7 +34,7 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 #=========== General  ============#
 #Live load
-LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
+LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 750.0		#Global seed
@@ -45,7 +45,7 @@ defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate = 5
 
-APMcol        = 'COLUMN_B2-1'		#Column to be removed
+APMcol        = 'COLUMN_D4-1'		#Column to be removed
 
 #==========================================================#
 #==========================================================#
@@ -150,7 +150,7 @@ M.rootAssembly.regenerate()
 
 
 #Create job
-mdb.Job(model=modelName, name=modelName, numCpus=cpus)
+mdb.Job(model=modelName, name=modelName, numCpus=cpus, numDomains=cpus)
 
 #Run job
 if run:

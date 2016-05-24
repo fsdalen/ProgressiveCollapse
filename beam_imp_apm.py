@@ -11,17 +11,17 @@ from abaqusConstants import *
 
 
 mdbName        = 'beamImpAPM'
-cpus           = 1			#Number of CPU's
-monitor        = 1
+cpus           = 8			#Number of CPU's
+monitor        = 0
 
-run            = 0
+run            = 1
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x              = 2			#Nr of columns in x direction
-z              = 2			#Nr of columns in z direction
-y              = 1			#nr of stories
+x              = 4			#Nr of columns in x direction
+z              = 4			#Nr of columns in z direction
+y              = 4			#nr of stories
 
 
 #=========== Static step  ============#
@@ -34,14 +34,13 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 #=========== Implicit step  ============#
 #Single APM
-
-APMcol        = 'COLUMN_B2-1'
-rmvStepTime   = 1e-3		#Also used in MuliAPM (Fu uses 20e-3)
-dynStepTime   = 0.1
+APMcol        = 'COLUMN_D4-1'
+rmvStepTime   = 20e-3		#Also used in MuliAPM (Fu uses 20e-3)
+dynStepTime   = 2.0
 
 
 #Itterations
-itterations = 0
+itterations   = 0
 elsetName     = None
 var           = 'PEEQ' #'S'
 var_invariant = None #'mises'
@@ -51,17 +50,19 @@ limit         = 0.1733	#Correct limit for PEEQ = 0.1733
 
 #=========== General  ============#
 #Live load
-LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
+LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 150.0		#Global seed
-slabSeedFactor = 2			#Change seed of slab
+seed           = 750.0		#Global seed
+slabSeedFactor = 1			#Change seed of slab
 
 #Post
 defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate = 5
 
+rmvIntervals   = 5
+freeIntervals  = 200
 
 
 #==========================================================#
@@ -75,7 +76,7 @@ import lib.beam as beam
 reload(func)
 reload(beam)
 
-modelName   = 'impAPM-0'
+modelName   = 'beamAPimp'
 
 
 #Set up model with materials
@@ -123,6 +124,10 @@ func.addSlabLoad(M, x, z, y, stepName, LL)
 
 
 
+#Field output: damage
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
+
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
@@ -130,9 +135,9 @@ del M.historyOutputRequests['H-Output-1']
 M.HistoryOutputRequest(name='Energy', 
 	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
 
-#Field output: damage
-M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
+#R2 at all col-bases
+M.HistoryOutputRequest(createStepName='static', name='R2',
+	region=M.rootAssembly.sets['col-bases'], variables=('RF2', ))
 
 #Section forces at top of column to be removed in APM
 func.historySectionForces(M, APMcol, stepName)
@@ -161,6 +166,8 @@ M.ModelChange(activeInStep=False, createStepName=stepName,
 	includeStrain=False, name='elmRemoval', region=
 	M.rootAssembly.sets[rmvSet], regionType=GEOMETRY)
 
+#Set output frequency of step
+func.setOutputIntervals(modelName,stepName, rmvIntervals)
 
 
 #=========== Dynamic step  ============#
@@ -172,7 +179,8 @@ M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
 	stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=ON,
 	maxNumInc=300)
 
-
+#Set output frequency of step
+func.setOutputIntervals(modelName,stepName, freeIntervals)
 
 
 
@@ -182,7 +190,7 @@ M.rootAssembly.regenerate()
 #Save model
 
 #Create job
-mdb.Job(model=modelName, name=modelName, numCpus=cpus)
+mdb.Job(model=modelName, name=modelName, numCpus=cpus, numDomains=cpus)
 
 #Run job
 if run:
@@ -203,14 +211,14 @@ if run:
 	#Contour
 	func.countourPrint(modelName, defScale, printFormat)
 
-	#Animation
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
-
 	#Energy
-	func.xyEnergyPrint(modelName, printFormat)
+	func.xyEnergyPlot(modelName)
 
-	#U2 at top of column to be removed
-	func.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+	#R2 at col base
+	beam.xyColBaseR2(modelName,x,z)
+
+	#Displacement at colTop
+	beam.xyAPMcolPrint(modelName, APMcol)
  
 
 	#Check largest peeq against criteria

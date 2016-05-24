@@ -14,14 +14,14 @@ mdbName        = 'beamExpAPM'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 
-run            = 0
+run            = 1
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x              = 2			#Nr of columns in x direction
-z              = 2			#Nr of columns in z direction
-y              = 1			#nr of stories
+x              = 4			#Nr of columns in x direction
+z              = 4			#Nr of columns in z direction
+y              = 5			#nr of stories
 
 
 #=========== Static model  ============#
@@ -32,29 +32,33 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 
 #=========== Explicit APM model  ============#
-APMcol        = 'COLUMN_B2-1'		#Column to be removed
-histIntervals = 200 		#History output evenly spaced over n increments
-fieldIntervals= 30			
-staticTime    = 0.1				
-rmvStepTime   = 1e-3
-dynStepTime   = 0.1	
+APMName		   = 'beamAPexp' 			#name of APM model and job
+APMcol         = 'COLUMN_C4-1'		#Column to be removed
+
+qsTime         = 3.0 				#Quasi static time
+qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
+rmvStepTime    = 20e-3				#How fast to remove column forces
+dynStepTime    = 2.0				#Length of free dynamic step
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
 
 #=========== General  ============#
 #Live load
-LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
+LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 150.0		#Global seed
-slabSeedFactor = 2			#Change seed of slab
+seed           = 750.0		#Global seed
+slabSeedFactor = 1			#Change seed of slab
 
 #Post
 defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
-animeFrameRate = 5
+animeFrameRate = 40
 
+qsIntervals    = 200
+rmvIntervals   = 5
+freeIntervals  = 200
 
 
 #==========================================================#
@@ -63,6 +67,7 @@ animeFrameRate = 5
 #==========================================================#
 #==========================================================#
 
+#Import library
 import lib.func as func
 import lib.beam as beam
 reload(func)
@@ -75,6 +80,7 @@ modelName   = 'beamStatic'
 #Set up model with materials
 func.perliminary(monitor, modelName)
 
+#
 M=mdb.models[modelName]
 
 
@@ -134,6 +140,9 @@ func.addSlabLoad(M, x, z, y, stepName, LL)
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
+#R2 at all col-bases
+M.HistoryOutputRequest(createStepName='static', name='R2',
+	region=M.rootAssembly.sets['col-bases'], variables=('RF2', ))
 
 #Section forces at top of column to be removed in APM
 func.historySectionForces(M, APMcol, stepName)
@@ -148,10 +157,9 @@ M.HistoryOutputRequest(name=APMcol+'_top'+'U',
 #=========== Save and run  ============#
 M.rootAssembly.regenerate()
 
-#Save model
 
 #Create job
-mdb.Job(model=modelName, name=modelName, numCpus=cpus)
+mdb.Job(model=modelName, name=modelName, numCpus=cpus, numDomains=cpus)
 
 #Run job
 if run:
@@ -165,18 +173,18 @@ if run:
 #=========== Post  ============#
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
+	
+	# #Contour
+	# func.countourPrint(modelName, defScale, printFormat)
 
-	#Contour
-	func.countourPrint(modelName, defScale, printFormat)
+	# #Animation
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
+	
+	#R2 at col base
+	beam.xyColBaseR2(modelName,x,z)
 
-	#Animation
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
-
-	#U2 at top of column to be removed
-	func.xyAPMcolPrint(modelName, APMcol, printFormat, stepName)
+	#Displacement at colTop
+	beam.xyAPMcolPrint(modelName, APMcol)
 
 	
 	print '   done'
@@ -194,7 +202,7 @@ if run:
 
 #New naming
 oldMod = modelName
-modelName = 'beamExpAPM'
+modelName = APMName
 
 
 #Copy Model
@@ -212,13 +220,12 @@ del M.steps[stepName]
 oldStep = 'Initial'
 stepName = 'quasiStatic'
 M.ExplicitDynamicsStep(name=stepName, 
-	previous=oldStep, timePeriod=staticTime, nlgeom=ON)
-
+	previous=oldStep, timePeriod=qsTime, nlgeom=ON)
 
 
 #Create smooth step for forces
 M.SmoothStepAmplitude(name='Smooth', timeSpan=STEP, data=(
-(0.0, 0.0), (0.9*staticTime, 1.0)))
+(0.0, 0.0), (qsSmoothFactor*qsTime, 1.0)))
 
 #Add Gravity
 M.Gravity(comp2=-9800.0, createStepName=stepName, 
@@ -229,6 +236,13 @@ func.addSlabLoad(M, x, z, y, stepName, load = LL,
 	amplitude = 'Smooth')
 
 
+#Frequency of field output
+M.fieldOutputRequests['F-Output-1'].setValues(
+	numIntervals=qsIntervals)
+#Field output: damage
+M.FieldOutputRequest(name='damage', 
+    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=qsIntervals)
 
 
 
@@ -238,25 +252,27 @@ del M.historyOutputRequests['H-Output-1']
 #History output: energy
 M.HistoryOutputRequest(name='Energy', 
 	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),
-	numIntervals=histIntervals)
+	numIntervals=qsIntervals)
 
 #History output: U2 at top of column removal
 M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
 	createStepName=stepName, variables=('U2',), 
 	region=M.rootAssembly.allInstances[APMcol].sets['col-top'],
-	numIntervals=histIntervals)
+	numIntervals=qsIntervals)
 
-#Field output: damage
-M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
-    numIntervals=fieldIntervals)
+#R2 at all col-bases
+M.HistoryOutputRequest(createStepName=stepName, name='R2',
+	region=M.rootAssembly.sets['col-bases'], variables=('RF2', ),
+	numIntervals=qsIntervals)
+
+
 
 
 
 
 
 #Delete BC and add fores for column to be removed
-func.replaceForces(M, APMcol, oldJob=oldMod,
+func.replaceForces(M, x, z, APMcol, oldJob=oldMod,
 	oldStep = 'static', stepName =stepName, amplitude='Smooth')
 
 
@@ -278,7 +294,8 @@ M.TabularAmplitude(name='lin-dec', timeSpan=STEP,
 M.loads['Forces'].setValuesInStep(stepName=stepName, amplitude='lin-dec')
 M.loads['Moments'].setValuesInStep(stepName=stepName, amplitude='lin-dec')
 
-
+#Set output frequency of step
+func.setOutputIntervals(modelName,stepName, rmvIntervals)
 
 
 
@@ -297,7 +314,8 @@ M.loads['Forces'].setValuesInStep(stepName=stepName,
 M.loads['Moments'].setValuesInStep(stepName=stepName,
 	cm1=0.0, cm2=0.0, cm3=0.0, amplitude=FREED)
 
-
+#Set output frequency of step
+func.setOutputIntervals(modelName,stepName, freeIntervals)
 
 
 
@@ -321,20 +339,22 @@ if run:
 
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
-
-	#=========== Contour  ============#
+			
+	#Contour
 	func.countourPrint(modelName, defScale, printFormat)
 
-	#=========== XY  ============#
-	#Energy
-	func.xyEnergyPrint(modelName, printFormat)
+	#Animation
+	func.animate(modelName, defScale, frameRate= animeFrameRate)
 
-	#U2 at top of removed column
-	func.xyAPMcolPrint(modelName, APMcol, printFormat,
-		stepName)
+	#Energy
+	func.xyEnergyPlot(modelName)
+
+	#R2 at col base
+	beam.xyColBaseR2(modelName,x,z)
+
+	#Displacement at colTop
+	beam.xyAPMcolPrint(modelName, APMcol)
+
 
 	print '   done'
 

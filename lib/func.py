@@ -219,6 +219,30 @@ def createMaterials(M, mat1, mat2):
 
 
 
+#====================================================#
+#====================================================#
+#                   OTHER                            #
+#====================================================#
+#====================================================#
+
+
+
+def setOutputIntervals(modelName,stepName, interval):
+	'''
+	Changes the number of output intervals for
+	field and history output for a step
+	'''
+	M=mdb.models[modelName]
+
+	for key in M.fieldOutputRequests.keys():
+		M.fieldOutputRequests[key].setValuesInStep(
+			stepName=stepName,
+			numIntervals=interval)
+
+	for key in M.historyOutputRequests.keys():
+		M.historyOutputRequests[key].setValuesInStep(
+			stepName=stepName,
+			numIntervals=interval)
 
 
 
@@ -425,46 +449,8 @@ def historySectionForces(M, column, stepName):
 
 
 
-def xyAPMcolPrint(odbName, column, printFormat, stepName):
-	'''
-	Prints U2 at top of removed column in APM.
-	odbName     = name of odb
-	column      = name of column that is removed in APM
-	printFormat = TIFF, PS, EPS, PNG, SVG
-	stepName    = name of first step (will print data from this and out)		
-				  plot it not affected by this as long as the
-				  stepName exists
-	'''
 
-	plotName = 'APMcolU2'
-
-	#Open ODB
-	odb = open_odb(odbName)
-	#Find correct historyOutput
-	for key in odb.steps[stepName].historyRegions.keys():
-		if key.find('Node '+column) > -1:
-			histName = key
-	#Get node number
-	nodeNr = histName[-1]
-	varName ='Spatial displacement: U2 PI: '+column+' Node '+nodeNr+' in NSET COL-TOP'
-	#Create XY-curve
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=varName, 
-		suppressQuery=True)
-	c1 = session.Curve(xyData=xy1)
-	#Plot and Print
-	XYprint(odbName, plotName, printFormat, c1)
-
-	#=========== Data  ============#
-	#Report data
-	tempFile = '_____temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	fixReportFile(tempFile, plotName, odbName)
-
-
-
-
-
-def replaceForces(M, column, oldJob, oldStep, stepName, amplitude):
+def replaceForces(M, x, z, column, oldJob, oldStep, stepName, amplitude):
 	'''
 	Remove col-base BC or col-col constraint
 	and add forces and moments from static analysis to top of colum
@@ -475,8 +461,26 @@ def replaceForces(M, column, oldJob, oldStep, stepName, amplitude):
 	amplitude = name of amplitude to add forces with
 	'''
 
+	
+
+
+
 	#Delete col-base BC or col-col constraint
 	if column[-1] == '1':
+		#Delete single BC for all column bases
+		del M.boundaryConditions['fixColBases']
+		#Create one BC for each column
+		alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+		numb = map(str,range(1,z+1))
+		for a in alph:
+			for n in numb:
+				colSet = 'COLUMN_' + a + n + "-" + "1.col-base"
+				M.DisplacementBC(amplitude=UNSET, createStepName=
+					'Initial', distributionType=UNIFORM, fieldName='', fixed=OFF,
+					localCsys=None, name=colSet, region=
+					M.rootAssembly.sets[colSet], u1=0.0, u2=0.0, u3=0.0
+					, ur1=0.0, ur2=0.0, ur3=0.0)
+		#Delete one BC
 		del M.boundaryConditions[column+'.col-base']
 	else:
 		topColNr = column[-1]
