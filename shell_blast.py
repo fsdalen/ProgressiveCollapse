@@ -10,9 +10,9 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName              = 'shellQS'
+mdbName              = 'shellExpQS'
 cpus                 = 1			#Number of CPU's
-monitor              = 1
+monitor              = 0
 
 run                  = 1
 
@@ -25,7 +25,7 @@ y                    = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime            = 4.0
+quasiTime            = 3.0
 blastTime            = 1.0
 
 qsSmoothFactor       = 0.75
@@ -38,7 +38,7 @@ nodalOpt = SINGLE #SINGLE or FULL
 
 #=========== General  ============#
 #Live load
-LL_kN_m              = -2.0	    #kN/m^2 (-2.0)
+LL_kN_m              = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
 seed                 = 150.0		#Global seed

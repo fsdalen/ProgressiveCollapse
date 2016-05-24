@@ -10,9 +10,9 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'beamQS-2-1'
+mdbName     = 'beamExpQS'
 cpus        = 1			#Number of CPU's
-monitor     = 1
+monitor     = 0
 
 run         = 1
 
@@ -239,7 +239,7 @@ if run:
 	func.xyEnergyPlot(modelName)
 
 	# #R2 at col base
-	# beamxyColBaseR2(modelName,x,z)
+	# beam.xyColBaseR2(modelName,x,z)
 
 	#Force and displacement
 	beam.xyCenterU2_colBaseR2(modelName,x,z)

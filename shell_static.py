@@ -12,7 +12,8 @@ from abaqusConstants import *
 
 mdbName        = 'shellStatic'
 cpus           = 1			#Number of CPU's
-monitor        = 1
+monitor        = 0
+
 run            = 0
 
 
@@ -32,7 +33,7 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 #=========== General  ============#
 #Live load
-LL_kN_m        = -2.0	    #kN/m^2 (-2.0)
+LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 150.0		#Global seed

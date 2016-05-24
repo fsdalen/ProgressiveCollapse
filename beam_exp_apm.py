@@ -11,10 +11,14 @@ from abaqusConstants import *
 
 
 mdbName        = 'beamExpAPM'
-cpus           = 1			#Number of CPU's
-monitor        = 1
+cpus           = 8			#Number of CPU's
+monitor        = 0
 
 run            = 1
+
+parameter      = 0
+forceCollapse  = 1
+
 
 
 #=========== Geometry  ============#
@@ -32,16 +36,26 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 
 #=========== Explicit APM model  ============#
-APMName		   = 'beamAPexp' 			#name of APM model and job
-APMcol         = 'COLUMN_C4-1'		#Column to be removed
+APMName		   = 'beamAPexpForceCollapseC3f50t5' 			#name of APM model and job
+APMcol         = 'COLUMN_C3-1'		#Column to be removed
 
 qsTime         = 3.0 				#Quasi static time
 qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
 rmvStepTime    = 20e-3				#How fast to remove column forces
-dynStepTime    = 2.0				#Length of free dynamic step
+dynStepTime    = 4.0				#Length of free dynamic step
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
+
+
+
+#=========== Force collapse  ============#
+loadTime       = 5.0
+loadFactor     = 50.0
+
+
+
+
 
 #=========== General  ============#
 #Live load
@@ -59,6 +73,7 @@ animeFrameRate = 40
 qsIntervals    = 200
 rmvIntervals   = 5
 freeIntervals  = 200
+loadIntervals  = 200
 
 
 #==========================================================#
@@ -193,6 +208,14 @@ if run:
 
 
 
+
+
+
+
+
+
+
+
 #==================================================#
 #==================================================#
 #                   APM ANALYSIS                   #
@@ -308,14 +331,42 @@ stepName='dynamic'
 M.ExplicitDynamicsStep(name=stepName,timePeriod=dynStepTime,
 	previous=oldStep)
 
+
 #Set forces = 0 in last step
 M.loads['Forces'].setValuesInStep(stepName=stepName,
 	cf1=0.0, cf2=0.0, cf3=0.0, amplitude=FREED)
 M.loads['Moments'].setValuesInStep(stepName=stepName,
 	cm1=0.0, cm2=0.0, cm3=0.0, amplitude=FREED)
 
+
+
+
 #Set output frequency of step
-func.setOutputIntervals(modelName,stepName, freeIntervals)
+func.setOutputIntervals(modelName,stepName, loadIntervals)
+
+
+
+
+
+#=========== Force collapse   ============#
+
+#Create new loading step
+oldStep = stepName
+stepName='loading'
+M.ExplicitDynamicsStep(name=stepName, timePeriod=loadTime,
+	previous=oldStep)
+
+
+#Create linear amplitude
+M.TabularAmplitude(data=((0.0, 1.0), (loadTime, loadFactor)), 
+    name='linIncrease', smooth=SOLVER_DEFAULT, timeSpan=STEP)
+
+#Change amplitude of slab load in force step
+func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
+
+#Set output frequency of step
+func.setOutputIntervals(modelName,stepName, loadIntervals)
+
 
 
 
@@ -340,11 +391,11 @@ if run:
 	print 'Post processing...'
 
 			
-	#Contour
-	func.countourPrint(modelName, defScale, printFormat)
+	# #Contour
+	# func.countourPrint(modelName, defScale, printFormat)
 
-	#Animation
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	# #Animation
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 
 	#Energy
 	func.xyEnergyPlot(modelName)
@@ -360,8 +411,71 @@ if run:
 
 
 
+#==============================================================#
+#==============================================================#
+#                   PARAMETER STUDY                            #
+#==============================================================#
+#==============================================================#
+
+oldMod = modelName
+
+if parameter:
+		
+	#=========== Seed  ============#
+	paraLst = [1500, 500, 300]
 
 
+	for para in paraLst:
+		
+		#New model
+		modelName = 'beamAPexpSeed'+str(para)
+		mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+		M = mdb.models[modelName]	
+
+
+		#=========== Change parameter  ============#
+		
+		beam.mesh(M, seed = para, slabSeedFactor=1.0)
+
+		M.rootAssembly.regenerate()
+
+
+
+
+		#=========== Create job and run  ============#
+		
+		#Create job
+		mdb.Job(model=modelName, name=modelName,
+		    numCpus=cpus, numDomains=cpus,
+		    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
+
+
+		#Run job
+
+		mdb.saveAs(pathName = mdbName + '.cae')
+		func.runJob(modelName)
+		func.readStaFile(modelName, 'results.txt')
+
+
+
+		#=========== Post proccesing  ============#
+
+		print 'Post processing...'
+				
+		# #Contour
+		# func.countourPrint(modelName, defScale, printFormat)
+
+		# #Animation
+		# func.animate(modelName, defScale, frameRate= animeFrameRate)
+
+		#Energy
+		func.xyEnergyPlot(modelName)
+
+		#R2 at col base
+		beam.xyColBaseR2(modelName,x,z)
+
+		#Displacement at colTop
+		beam.xyAPMcolPrint(modelName, APMcol)
 
 
 print '###########    END OF SCRIPT    ###########'

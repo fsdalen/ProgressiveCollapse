@@ -16,7 +16,7 @@ epspl  =  0.024; %yield plateau strain
 %%-----------------------------------------------------------------------%%
 % Define element shape
 %%-----------------------------------------------------------------------%%
-leote = 1.0; %ratio between the in-plane size and the thickness of the shell
+leote = 75.0; %ratio between the in-plane size and the thickness of the shell
 
 
 %%-----------------------------------------------------------------------%%
@@ -68,7 +68,7 @@ end
 %%-----------------------------------------------------------------------%%
 % Plot results
 %%-----------------------------------------------------------------------%%
-figure (2)
+figure (1)
 subplot(1,2,1)
 plot(p,model)
 axis([0 max(p) 0 max(model)])

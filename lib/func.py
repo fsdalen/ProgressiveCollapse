@@ -68,7 +68,7 @@ def perliminary(monitor, modelName):
 	delModels(modelName)
 
 	#Close and delete old jobs and ODBs
-	delJobs(exeption = matFile)
+	# delJobs(exeption = matFile)
 
 
 	#=========== Material  ============#

@@ -16,12 +16,13 @@ monitor        = 0
 
 run            = 1
 
+parameter      = 1
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
 x              = 4			#Nr of columns in x direction
 z              = 4			#Nr of columns in z direction
-y              = 4			#nr of stories
+y              = 5			#nr of stories
 
 
 #=========== Static step  ============#
@@ -76,7 +77,7 @@ import lib.beam as beam
 reload(func)
 reload(beam)
 
-modelName   = 'beamAPimp'
+modelName   = 'beamAPimpSeed750'
 
 
 #Set up model with materials
@@ -204,10 +205,7 @@ if run:
 #=========== Post  ============#
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
-
+	
 	#Contour
 	func.countourPrint(modelName, defScale, printFormat)
 
@@ -237,6 +235,104 @@ if run:
 
 
 	print '   done'
+
+
+
+
+#==============================================================#
+#==============================================================#
+#                   PARAMETER STUDY                            #
+#==============================================================#
+#==============================================================#
+
+oldMod = modelName
+
+if parameter:
+		
+	#=========== Seed  ============#
+	paraLst = [1500, 500, 300]
+
+
+	for para in paraLst:
+		
+		#New model
+		modelName = 'beamAPexpSeed'+str(para)
+		mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+		M = mdb.models[modelName]	
+
+
+		#=========== Change parameter  ============#
+		
+		beam.mesh(M, seed = para, slabSeedFactor=1.0)
+
+		M.rootAssembly.regenerate()
+
+
+
+
+		#=========== Create job and run  ============#
+		
+		#Create job
+		mdb.Job(model=modelName, name=modelName,
+		    numCpus=cpus, numDomains=cpus,
+		    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
+
+
+		#Run job
+
+		mdb.saveAs(pathName = mdbName + '.cae')
+		func.runJob(modelName)
+		func.readStaFile(modelName, 'results.txt')
+
+
+
+		# #=========== Post proccesing  ============#
+
+		# print 'Post processing...'
+				
+		# # #Contour
+		# # func.countourPrint(modelName, defScale, printFormat)
+
+		# # #Animation
+		# # func.animate(modelName, defScale, frameRate= animeFrameRate)
+
+		#Energy
+		func.xyEnergyPlot(modelName)
+
+		#R2 at col base
+		beam.xyColBaseR2(modelName,x,z)
+
+		#Displacement at colTop
+		beam.xyAPMcolPrint(modelName, APMcol)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

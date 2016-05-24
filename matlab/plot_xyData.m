@@ -16,7 +16,10 @@ X and Y labels are manual at the end of the script
 
 %% Perliminaries
 
-clear all; close all; clc; 
+%close all;
+
+clear all; 
+clc; 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
