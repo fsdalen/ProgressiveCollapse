@@ -16,8 +16,8 @@ monitor        = 0
 
 run            = 1
 
-parameter      = 0
-forceCollapse  = 1
+parameter      = 1
+forceCollapse  = 0
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
@@ -35,7 +35,7 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 
 #=========== Implicit step  ============#
-modelName   = 'beamAPimpForceCollapseD4f50t5'
+modelName   = 'beamAPimpSeed750'
 #Single APM
 APMcol        = 'COLUMN_D4-1'
 rmvStepTime   = 20e-3		#Also used in MuliAPM (Fu uses 20e-3)
@@ -86,7 +86,7 @@ import lib.beam as beam
 reload(func)
 reload(beam)
 
-modelName   = 'beamAPimpForceCollapseD4f50t5'
+
 
 
 #Set up model with materials
@@ -149,8 +149,6 @@ M.HistoryOutputRequest(name='Energy',
 M.HistoryOutputRequest(createStepName='static', name='R2',
 	region=M.rootAssembly.sets['col-bases'], variables=('RF2', ))
 
-#Section forces at top of column to be removed in APM
-func.historySectionForces(M, APMcol, stepName)
 
 #U2 at top of column to later be removed
 M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
@@ -315,9 +313,9 @@ if parameter:
 
 		#Run job
 
-		mdb.saveAs(pathName = mdbName + '.cae')
-		func.runJob(modelName)
-		func.readStaFile(modelName, 'results.txt')
+		# mdb.saveAs(pathName = mdbName + '.cae')
+		# func.runJob(modelName)
+		# func.readStaFile(modelName, 'results.txt')
 
 
 
@@ -331,14 +329,14 @@ if parameter:
 		# # #Animation
 		# # func.animate(modelName, defScale, frameRate= animeFrameRate)
 
-		#Energy
-		func.xyEnergyPlot(modelName)
+		# #Energy
+		# func.xyEnergyPlot(modelName)
 
-		#R2 at col base
-		beam.xyColBaseR2(modelName,x,z)
+		# #R2 at col base
+		# beam.xyColBaseR2(modelName,x,z)
 
-		#Displacement at colTop
-		beam.xyAPMcolPrint(modelName, APMcol)
+		# #Displacement at colTop
+		# beam.xyAPMcolPrint(modelName, APMcol)
 
 
 

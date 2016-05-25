@@ -718,7 +718,7 @@ def xyColBaseR2(modelName,x,z):
 
 
 
-def xyCenterU2_colBaseR2(modelName,x,z):
+
 
 	odb=func.open_odb(modelName)
 
@@ -780,8 +780,8 @@ def xyAPMcolPrint(modelName, column):
 	#Open ODB
 	odb = func.open_odb(modelName)
 	
-
-	nodeSet = odb.rootAssembly.instances['COLUMN_B2-1'].nodeSets['COL-TOP']
+	#Find correct node number and name of column
+	nodeSet = odb.rootAssembly.instances[column].nodeSets['COL-TOP']
 	nodeNr = nodeSet.nodes[0].label
 	varName ='Spatial displacement: U2 PI: '+column+' Node '+str(nodeNr)+\
 		' in NSET COL-TOP'

@@ -10,8 +10,8 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName              = 'shellExpQS'
-cpus                 = 1			#Number of CPU's
+mdbName              = 'shellBlastBasic'
+cpus                 = 8			#Number of CPU's
 monitor              = 0
 
 run                  = 1
@@ -19,21 +19,22 @@ run                  = 1
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x                    = 2			#Nr of columns in x direction
-z                    = 2			#Nr of columns in z direction
-y                    = 1			#nr of stories
+x                    = 4			#Nr of columns in x direction
+z                    = 4			#Nr of columns in z direction
+y                    = 5			#nr of stories
 
 
 #=========== Step  ============#
 quasiTime            = 3.0
-blastTime            = 1.0
+blastTime            = 2.0
+#freeTime			 = 0.1
 
 qsSmoothFactor       = 0.75
 
 TNT                  = 1.0	#tonns of tnt
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
-nodalOpt = SINGLE #SINGLE or FULL
+nodalOpt  = SINGLE #SINGLE or FULL
 
 
 #=========== General  ============#
@@ -47,11 +48,15 @@ slabSeedFactor 		 = 8			#Change seed of slab
 #Post
 defScale             = 1.0
 printFormat          = PNG 		#TIFF, PS, EPS, PNG, SVG
-quasiStaticIntervals = 1000
-blastIntervals       = 100
+
+qsIntervals          = 100
+blastIntervals       = 300
+#freeIntervals		 = 20
+
 animeFrameRate       = 10
 
 
+blastCol             = 'D2-1'
 
 #==========================================================#
 #==========================================================#
@@ -111,23 +116,38 @@ LL=LL_kN_m * 1.0e-3   #N/mm^2
 shell.surfaceTraction(modelName,stepName, x, z, y, load=LL, amp='smooth')
 
 
-# #=========== Blast step  ============#
+#=========== Blast step  ============#
+#Create step
+oldStep = stepName
+stepName = 'blast'
+M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+    timePeriod=blastTime)
+
+
+#Create blast
+func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
+	coordinates = (7500.0*3 + 10000.0, 500.0, 7500.0*2),
+	timeOfBlast = quasiTime, stepName=stepName)
+
+#Remove smooth step from other loads
+loads = M.loads.keys()
+for load in loads:
+	M.loads[load].setValuesInStep(stepName=stepName, amplitude=FREED)
+
+
+
+
+#The free step after the blast step does not work for some stupid reason
+#The analyis won't even start because of some amplitude defenition is not found
+# #=========== Free step  ============#
 # #Create step
 # oldStep = stepName
-# stepName = 'blast'
+# stepName = 'free'
 # M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-#     timePeriod=blastTime)
+#     timePeriod=freeTime)
+# M.ExplicitDynamicsStep(name='Step-3', previous='blast')
 
 
-# #Create blast
-# func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-# 	coordinates = (-10000.0, 0.0, 2000.0),
-# 	timeOfBlast = quasiTime, stepName=stepName)
-
-# #Remove smooth step from other loads
-# loads = M.loads.keys()
-# for load in loads:
-# 	M.loads[load].setValuesInStep(stepName=stepName, amplitude=FREED)
 
 
 M.rootAssembly.regenerate()
@@ -141,32 +161,58 @@ M.rootAssembly.regenerate()
 
 #Frequency of field output
 M.fieldOutputRequests['F-Output-1'].setValues(
-	numIntervals=quasiStaticIntervals)
+	numIntervals=qsIntervals)
+M.fieldOutputRequests['F-Output-1'].setValuesInStep(
+    stepName='blast', numIntervals=blastIntervals)
 # M.fieldOutputRequests['F-Output-1'].setValuesInStep(
-#     stepName='blast', numIntervals=blastIntervals)
+#     stepName='free', numIntervals=freeIntervals)
 
-# #Damage field output
-# M.FieldOutputRequest(name='damage', 
-#     createStepName='blast', variables=('SDEG', 'DMICRT', 'STATUS'),
-#     numIntervals=blastIntervals)
+#Field output: damage
+M.FieldOutputRequest(name='damage', 
+    createStepName='blast', variables=('SDEG', 'DMICRT', 'STATUS'),
+    numIntervals=blastIntervals)
+#Field output: damage
+# M.fieldOutputRequests['damage'].setValuesInStep(
+#     stepName='free', numIntervals=freeIntervals)
+
 
 #Delete default history output
 del M.historyOutputRequests['H-Output-1']
 
-#Energy
+
+#History output: energy
 M.HistoryOutputRequest(name='Energy', 
-	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
+	createStepName='quasi-static', variables=('ALLIE', 'ALLKE', 'ALLWK'),
+	numIntervals = qsIntervals)
+M.historyOutputRequests['Energy'].setValuesInStep(
+    stepName='blast', numIntervals=blastIntervals)
+# M.historyOutputRequests['Energy'].setValuesInStep(
+#     stepName='free', numIntervals=freeIntervals)
 
 #R2 history at colBases
-M.HistoryOutputRequest(createStepName=stepName, name='R2',
+M.HistoryOutputRequest(createStepName='quasi-static', name='R2',
 	region=M.rootAssembly.allInstances['FRAME-1'].sets['colBot'],
     variables=('RF2', ))
+M.historyOutputRequests['R2'].setValuesInStep(
+    stepName='blast', numIntervals=blastIntervals)
+# M.historyOutputRequests['R2'].setValuesInStep(
+#     stepName='free', numIntervals=freeIntervals)
 
-#U2 at shell center
-M.rootAssembly.Set(name='centerSlab', nodes=
-    M.rootAssembly.instances['SLAB-1'].nodes[24:25])
-M.HistoryOutputRequest(createStepName=stepName, name='U2', 
-	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
+#U at top of column blastCol
+shell.histColTopU(modelName, stepName='quasi-static', column=blastCol)
+M.historyOutputRequests['colTopU'].setValuesInStep(
+    stepName='quasi-static', numIntervals=blastIntervals)
+M.historyOutputRequests['colTopU'].setValuesInStep(
+    stepName='blast', numIntervals=blastIntervals)
+# M.historyOutputRequests['colTopU'].setValuesInStep(
+#     stepName='free', numIntervals=freeIntervals)
+
+
+# #U2 at slab center (A1-1 slab)
+# M.rootAssembly.Set(name='centerSlab', nodes=
+#     M.rootAssembly.instances['SLAB-1'].nodes[24:25])
+# M.HistoryOutputRequest(createStepName=stepName, name='U2', 
+# 	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
 
 
 
@@ -178,7 +224,7 @@ M.HistoryOutputRequest(createStepName=stepName, name='U2',
 M.rootAssembly.regenerate()
 
 #Create job
-mdb.Job(model=modelName, name=modelName, numCpus=cpus,
+mdb.Job(model=modelName, name=modelName, numCpus=cpus, numDomains=cpus,
 	explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
 
 #Run job
@@ -209,11 +255,16 @@ if run:
 	#Energy
 	func.xyEnergyPlot(modelName)
 
+	#R2 at column base
+	shell.xyR2colBase(modelName, x,z)
 
-	# #R2 at column base
-	# shell.xyR2colBase(modelName, x,z, printFormat)
+	#U at column top
+	shell.xyUcolTop(modelName, column=blastCol)
 	
-	#Force and displacement
-	shell.xyCenterU2_colBaseR2(modelName,x,z)
+	# #Force and displacement
+	# shell.xyCenterU2_colBaseR2(modelName,x,z)
 	
 	print '   done'
+
+
+print '###########    END OF SCRIPT    ###########'

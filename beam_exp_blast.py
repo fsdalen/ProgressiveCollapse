@@ -144,7 +144,7 @@ M.loads['Gravity'].setValuesInStep(stepName=stepName, amplitude=FREED)
 func.changeSlabLoad(M, x, z, y, stepName, amplitude=FREED)
 
 
-# #=========== Free step  ============#
+#=========== Free step  ============#
 #Create step
 oldStep = stepName
 stepName = 'free'
@@ -263,10 +263,7 @@ if run:
 
 	beam.xyAPMcolPrint(modelName, blastCol)
 	#
-	xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-    outputVariableName='Spatial displacement: U2 PI: COLUMN_B2-1 Node 5 in NSET COL-TOP', 
-    )
-
+	
 	# #Force and displacement
 	# beam.xyCenterU2_colBaseR2(modelName,x,z)
 

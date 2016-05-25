@@ -450,7 +450,44 @@ def surfaceTraction(modelName, stepName, x,z,y, load, amp=UNSET):
 
 
 
+#=====================================================#
+#=====================================================#
+#                   OUTPUT                            #
+#=====================================================#
+#=====================================================#
 
+def histColTopU(modelName, stepName, column):
+	'''
+	Creates history output for U1, U2 and U3 at the top of
+	the specified column in the givven step.
+	Column must be specified as 'B3-1'
+	Creates a set called colTop
+	'''
+
+	M=mdb.models[modelName]
+	
+	#Read column name into x,y,z
+	dic = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4}
+	x = dic[column[0]]
+	y = float(column[3])
+	z = float(column[1])-1
+
+	#Create set colTop
+	# M.rootAssembly.Set(name='colTop', vertices=
+	# 	M.rootAssembly.instances['FRAME-1'].vertices.findAt(
+	# 	((-150+x*7500, 150 +y*3000.0, -150+z*7500.0), )))
+
+	# M.parts['FRAME'].Set(name='col_Top', vertices=
+	# 	M.rootAssembly.instances['FRAME-1'].vertices.findAt(
+	# 	((-150+x*7500, 150 +y*3000.0, -150+z*7500.0), )))
+	M.parts['FRAME'].Set(name='colTop', vertices=
+	    M.parts['FRAME'].vertices.findAt(
+	    ((-150+x*7500, 150 +y*3000.0, -150+z*7500.0), )))
+
+	#Create history output
+	M.HistoryOutputRequest(createStepName=stepName, name='colTopU',
+		region=M.rootAssembly.allInstances['FRAME-1'].sets['colTop'],
+		variables=('U1', 'U2', 'U3'))
 
 
 
@@ -489,6 +526,63 @@ def xyR2colBase(modelName, x,z):
 		xyDat=xyR2)
 
 	return xyR2
+
+
+
+
+
+
+
+
+def xyUcolTop(modelName, column):
+	'''
+	Prints U2 at top of removed column in APM.
+
+	modelName     = name of odb
+	column      = name of column that is removed in APM
+	printFormat = TIFF, PS, EPS, PNG, SVG
+	stepName    = name of a step that exist in the model
+	'''
+
+	
+	#Open ODB
+	odb = func.open_odb(modelName)
+	
+	#Find correct node number and name of column
+	nodeSet = odb.rootAssembly.instances['FRAME-1'].nodeSets['COLTOP']
+	nodeNr = nodeSet.nodes[0].label
+	u1Name ='Spatial displacement: U1 PI: FRAME-1 Node '+str(nodeNr)+\
+		' in NSET COLTOP'
+	u2Name ='Spatial displacement: U2 PI: FRAME-1 Node '+str(nodeNr)+\
+		' in NSET COLTOP'
+	u3Name ='Spatial displacement: U3 PI: FRAME-1 Node '+str(nodeNr)+\
+		' in NSET COLTOP'
+
+	#Create XY-curve
+	xyU1colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u1Name, 
+		suppressQuery=True, name='U1colTop')
+	xyU2colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u3Name, 
+		suppressQuery=True, name='U2colTop')
+	xyU3colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u2Name, 
+		suppressQuery=True, name='U3colTop')
+	
+	#Plot
+	func.XYplot(modelName, plotName='U1colTop',
+		xHead ='Time [s]',
+		yHead = 'Displacement [mm]',
+		xyDat=xyU1colTop)
+	func.XYplot(modelName, plotName='U2colTop',
+		xHead ='Time [s]',
+		yHead = 'Displacement [mm]',
+		xyDat=xyU2colTop)
+	func.XYplot(modelName, plotName='U3colTop',
+		xHead ='Time [s]',
+		yHead = 'Displacement [mm]',
+		xyDat=xyU3colTop)
+
+
+
+
 
 
 

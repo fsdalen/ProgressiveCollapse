@@ -476,28 +476,28 @@ def replaceForces(M, x, z, column, oldJob, oldStep, stepName, amplitude):
 
 
 
-	#Delete col-base BC or col-col constraint
-	if column[-1] == '1':
-		#Delete single BC for all column bases
-		del M.boundaryConditions['fixColBases']
-		#Create one BC for each column
-		alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
-		numb = map(str,range(1,z+1))
-		for a in alph:
-			for n in numb:
-				colSet = 'COLUMN_' + a + n + "-" + "1.col-base"
-				M.DisplacementBC(amplitude=UNSET, createStepName=
-					'Initial', distributionType=UNIFORM, fieldName='', fixed=OFF,
-					localCsys=None, name=colSet, region=
-					M.rootAssembly.sets[colSet], u1=0.0, u2=0.0, u3=0.0
-					, ur1=0.0, ur2=0.0, ur3=0.0)
-		#Delete one BC
-		del M.boundaryConditions[column+'.col-base']
-	else:
-		topColNr = column[-1]
-		botColNr = str(int(topColNr)-1)
-		constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
-		del M.constraints[constName]
+#Delete col-base BC or col-col constraint
+if column[-1] == '1':
+	#Delete single BC for all column bases
+	del M.boundaryConditions['fixColBases']
+	#Create one BC for each column
+	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
+	numb = map(str,range(1,z+1))
+	for a in alph:
+		for n in numb:
+			colSet = 'COLUMN_' + a + n + "-" + "1.col-base"
+			M.DisplacementBC(amplitude=UNSET, createStepName=
+				'Initial', distributionType=UNIFORM, fieldName='', fixed=OFF,
+				localCsys=None, name=colSet, region=
+				M.rootAssembly.sets[colSet], u1=0.0, u2=0.0, u3=0.0
+				, ur1=0.0, ur2=0.0, ur3=0.0)
+	#Delete one BC
+	del M.boundaryConditions[column+'.col-base']
+else:
+	topColNr = column[-1]
+	botColNr = str(int(topColNr)-1)
+	constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
+	del M.constraints[constName]
 
 	#Open odb with static analysis
 	odb = open_odb(oldJob)

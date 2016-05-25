@@ -37,12 +37,12 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 #=========== Explicit APM model  ============#
 APMName		   = 'beamAPexpForceCollapseD4f50t5' 			#name of APM model and job
-APMcol         = 'COLUMN_C3-1'		#Column to be removed
+APMcol         = 'COLUMN_D4-1'		#Column to be removed
 
 qsTime         = 3.0 				#Quasi static time
 qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
 rmvStepTime    = 20e-3				#How fast to remove column forces
-dynStepTime    = 4.0				#Length of free dynamic step
+dynStepTime    = 4.00			#Length of free dynamic step
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
@@ -70,7 +70,7 @@ defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate = 40
 
-qsIntervals    = 200
+qsIntervals    = 100
 rmvIntervals   = 5
 freeIntervals  = 200
 loadIntervals  = 200
@@ -349,23 +349,23 @@ func.setOutputIntervals(modelName,stepName, loadIntervals)
 
 
 #=========== Force collapse   ============#
+if forceCollapse:
+	#Create new loading step
+	oldStep = stepName
+	stepName='loading'
+	M.ExplicitDynamicsStep(name=stepName, timePeriod=loadTime,
+		previous=oldStep)
 
-#Create new loading step
-oldStep = stepName
-stepName='loading'
-M.ExplicitDynamicsStep(name=stepName, timePeriod=loadTime,
-	previous=oldStep)
 
+	#Create linear amplitude
+	M.TabularAmplitude(data=((0.0, 1.0), (loadTime, loadFactor)), 
+	    name='linIncrease', smooth=SOLVER_DEFAULT, timeSpan=STEP)
 
-#Create linear amplitude
-M.TabularAmplitude(data=((0.0, 1.0), (loadTime, loadFactor)), 
-    name='linIncrease', smooth=SOLVER_DEFAULT, timeSpan=STEP)
+	#Change amplitude of slab load in force step
+	func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
 
-#Change amplitude of slab load in force step
-func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
-
-#Set output frequency of step
-func.setOutputIntervals(modelName,stepName, loadIntervals)
+	#Set output frequency of step
+	func.setOutputIntervals(modelName,stepName, loadIntervals)
 
 
 
@@ -394,8 +394,8 @@ if run:
 	# #Contour
 	# func.countourPrint(modelName, defScale, printFormat)
 
-	# #Animation
-	# func.animate(modelName, defScale, frameRate= animeFrameRate)
+	#Animation
+	func.animate(modelName, defScale, frameRate= animeFrameRate)
 
 	#Energy
 	func.xyEnergyPlot(modelName)
