@@ -14,7 +14,7 @@ mdbName        = 'shellStatic'
 cpus           = 1			#Number of CPU's
 monitor        = 0
 
-run            = 0
+run            = 1
 
 
 #=========== Geometry  ============#
@@ -103,7 +103,8 @@ elif static_Type == 'riks':
 		nlgeom=ON, initialArcInc=static_InInc, minArcInc=static_MinIncr,
 		maxNumInc=static_maxInc, maxLPF=1.0)
 
-
+#Add restart output
+M.steps[stepName].Restart(frequency=1)
 
 #=========== Loads  ============#
 # Gravity

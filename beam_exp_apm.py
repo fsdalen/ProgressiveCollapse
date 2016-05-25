@@ -36,7 +36,7 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 
 #=========== Explicit APM model  ============#
-APMName		   = 'beamAPexpForceCollapseC3f50t5' 			#name of APM model and job
+APMName		   = 'beamAPexpForceCollapseD4f50t5' 			#name of APM model and job
 APMcol         = 'COLUMN_C3-1'		#Column to be removed
 
 qsTime         = 3.0 				#Quasi static time

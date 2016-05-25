@@ -68,7 +68,7 @@ def perliminary(monitor, modelName):
 	delModels(modelName)
 
 	#Close and delete old jobs and ODBs
-	# delJobs(exeption = matFile)
+	delJobs(exeption = matFile)
 
 
 	#=========== Material  ============#
@@ -201,6 +201,11 @@ def createMaterials(M, mat1, mat2):
 	M.materials[mat2].Elastic(table=((mat2_E, mat2_v), ))
 	M.materials[mat2].Plastic(table=((mat2_yield, 0.0), ))
 	M.materials[mat2].Damping(alpha=damping)
+
+
+
+
+
 
 
 

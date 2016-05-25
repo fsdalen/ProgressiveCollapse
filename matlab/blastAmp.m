@@ -40,6 +40,7 @@ t = [t T_pos+delta_t];
 P = [0 P];
 
 %% Plot
+figure(2)
 plot (t,P)
 xlabel('Time [s]')
 ylabel('Pressure [Mpa]')

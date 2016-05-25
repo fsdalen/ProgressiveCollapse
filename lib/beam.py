@@ -67,11 +67,11 @@ def buildBeamMod(modelName, x, z, y, seed, slabSeedFactor):
 	airDensity = 1.225e-12    #1.225 kg/m^3
 	M.sections['HEB300'].setValues(useFluidInertia=ON,
 		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=1.2)
+	    lateralMassCoef=1.0)
 
 	M.sections['HUP300x300'].setValues(useFluidInertia=ON,
 		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=1.2) 
+	    lateralMassCoef=1.0) 
 
 	#=========== Sets and surfaces  ============#
 	#A lot of surfaces are created with the joints

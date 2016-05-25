@@ -16,7 +16,8 @@ monitor        = 0
 
 run            = 1
 
-parameter      = 1
+parameter      = 0
+forceCollapse  = 1
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
@@ -34,10 +35,11 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 
 #=========== Implicit step  ============#
+modelName   = 'beamAPimpForceCollapseD4f50t5'
 #Single APM
 APMcol        = 'COLUMN_D4-1'
 rmvStepTime   = 20e-3		#Also used in MuliAPM (Fu uses 20e-3)
-dynStepTime   = 2.0
+dynStepTime   = 4.0
 
 
 #Itterations
@@ -46,6 +48,12 @@ elsetName     = None
 var           = 'PEEQ' #'S'
 var_invariant = None #'mises'
 limit         = 0.1733	#Correct limit for PEEQ = 0.1733
+
+
+
+#=========== Force collapse  ============#
+loadTime       = 5.0
+loadFactor     = 50.0
 
 
 
@@ -64,6 +72,7 @@ animeFrameRate = 5
 
 rmvIntervals   = 5
 freeIntervals  = 200
+loadIntervals  = 200
 
 
 #==========================================================#
@@ -77,7 +86,7 @@ import lib.beam as beam
 reload(func)
 reload(beam)
 
-modelName   = 'beamAPimpSeed750'
+modelName   = 'beamAPimpForceCollapseD4f50t5'
 
 
 #Set up model with materials
@@ -178,10 +187,36 @@ oldStep = stepName
 stepName = 'dynamicStep'
 M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
 	stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=ON,
-	maxNumInc=300)
+	maxNumInc=1000)
 
 #Set output frequency of step
 func.setOutputIntervals(modelName,stepName, freeIntervals)
+
+
+
+#=========== Force collapse   ============#
+
+#Create new loading step
+oldStep = stepName
+stepName='loading'
+M.ImplicitDynamicsStep(initialInc=0.01, minInc=1e-06,
+	name=stepName, previous=oldStep, timePeriod=loadTime, nlgeom=ON,
+	maxNumInc=1000)
+
+
+#Create linear amplitude
+M.TabularAmplitude(data=((0.0, 1.0), (loadTime, loadFactor)), 
+    name='linIncrease', timeSpan=STEP)
+
+#Change amplitude of slab load in force step
+func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
+
+#Set output frequency of step
+func.setOutputIntervals(modelName,stepName, loadIntervals)
+
+
+
+
 
 
 
@@ -219,17 +254,17 @@ if run:
 	beam.xyAPMcolPrint(modelName, APMcol)
  
 
-	#Check largest peeq against criteria
-	print '\n' + "Getting data from ODB..."
-	elmOverLim = func.getElmOverLim(modelName, var,
-	stepName, var_invariant, limit)
-	print "    done"
-	with open('results.txt','a') as f:
-		if elmOverLim:
-			num = len(elmOverLim)
-			f.write('%s	Nr of elements over lim: %s' %(modelName, num))
-		else: 
-			f.write('%s	No element over limit' %(modelName))
+	# #Check largest peeq against criteria
+	# print '\n' + "Getting data from ODB..."
+	# elmOverLim = func.getElmOverLim(modelName, var,
+	# stepName, var_invariant, limit)
+	# print "    done"
+	# with open('results.txt','a') as f:
+	# 	if elmOverLim:
+	# 		num = len(elmOverLim)
+	# 		f.write('%s	Nr of elements over lim: %s' %(modelName, num))
+	# 	else: 
+	# 		f.write('%s	No element over limit' %(modelName))
 
 
 

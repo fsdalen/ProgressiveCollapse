@@ -10,20 +10,20 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'simpleBeamBlast'
+mdbName        = 'simpleBeamBlast09fluidInertia'
 cpus           = 1			#Number of CPU's
 monitor        = 1
 
 
-run            = 0
-blastTime      = 0.1
+run            = 1
+blastTime      = 0.1	#Takes around 0.03 for the wave to pass the building
 
 
 #Post
 defScale       = 1.0
 printFormat    = PNG 	#TIFF, PS, EPS, PNG, SVG
 fieldIntervals = 30
-histIntervals  = 100
+histIntervals  = 500
 animeFrameRate = 5
 
 
@@ -63,7 +63,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-singleCol.createSingleBeam(modelName)
+singleCol.createSimpleBeamGeom(modelName, steel)
 
 
 #Create setp
@@ -73,9 +73,11 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
     timePeriod=blastTime)
 
 #Create blast
-func.blast(modelName, stepName, 
+func.addIncidentWave(modelName, stepName,
+	AmpFile= 'blastAmp.txt',
 	sourceCo = (-10000.0, 100.0, 0.0),
 	refCo = (-1000.0, 100.0, 0.0))
+
 
 
 
@@ -151,14 +153,14 @@ if run:
 	for plot in session.xyPlots.keys():
 		del session.xyPlots[plot]
 
-	#=========== Contour  ============#
-	func.countourPrint(modelName, defScale, printFormat)
+	# #=========== Contour  ============#
+	# func.countourPrint(modelName, defScale, printFormat)
 
-	#=========== Animation  ============#
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	# #=========== Animation  ============#
+	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	singleCol.xySimpleDef(modelName, printFormat)
+	singleCol.xySimpleBeam(modelName)
 
 	print '   done'
 

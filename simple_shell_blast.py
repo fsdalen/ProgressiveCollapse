@@ -67,7 +67,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-singleCol.createSimpleShellGeom(modelName, seed)
+singleCol.createSimpleShellGeom(modelName, steel, seed)
 
 
 #Create setp
@@ -77,19 +77,19 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
     timePeriod=blastTime)
 
 #CONWEP blast
-# func.conWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-# 	coordinates = (-10000.0, 0.0, 0.0),
-# 	timeOfBlast =0.0, stepName=stepName)
+func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
+	coordinates = (-10000.0, 3000.0, 0.0),
+	timeOfBlast =0.0, stepName=stepName)
 
-#Incident wave
+# Incident wave
 # func.addIncidentWave(modelName, stepName,
 # 	AmpFile = 'conwepReflected.txt',
 # 	sourceCo = (-10000.0, 0.0, 0.0),
 # 	refCo = (-1000.0, 0.0, 0.0))
 	
-#Pressure load
-singleCol.pressureLoad(modelName, stepName,
-	ampFile='conwepReflected.txt', surf = 'front')
+# #Pressure load
+# singleCol.pressureLoad(modelName, stepName,
+# 	ampFile='conwepReflected.txt', surf = 'front')
 
 
 

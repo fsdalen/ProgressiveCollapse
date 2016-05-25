@@ -1,5 +1,6 @@
 #Abaqus modules
 from abaqus import *
+from mesh import *
 from abaqusConstants import *
 import xyPlot
 from regionToolset import *
@@ -36,7 +37,7 @@ def createSimpleBeamGeom(modelName, steel):
 	airDensity = 1.225e-12    #1.225 kg/m^3
 	M.sections[sect1].setValues(useFluidInertia=ON,
 		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=1.15)#latteralMassCoef is for rectangle from wikipedia
+	    lateralMassCoef=0.9) #1.2
 
 
 	#Create part
@@ -90,9 +91,10 @@ def createSimpleBeamGeom(modelName, steel):
 	M.parts[part1].seedPart(minSizeFactor=0.1, size=seed)
 
 	#Change element type
-	M.parts[part1].setElementType(elemTypes=(ElemType(
-	    elemCode=element1, elemLibrary=analysisType), ), regions=(
-	    M.parts[part1].edges.findAt((0.0, 0.0, 0.0), ), ))
+	M.parts[part1].setElementType(
+		elemTypes=(ElemType(elemCode=element1, elemLibrary=analysisType,),),
+		regions=(M.parts[part1].edges.findAt((0.0, 0.0, 0.0), ), ))
+
 
 	#Mesh
 	M.parts[part1].generateMesh()
@@ -126,7 +128,7 @@ def createSimpleBeamGeom(modelName, steel):
 
 #=========== Post  ============#
 
-def xySimpleBeam(modelName, printFormat):
+def xySimpleBeam(modelName):
 
 	#Open ODB
 	odb = func.open_odb(modelName)
@@ -135,41 +137,25 @@ def xySimpleBeam(modelName, printFormat):
 	#=========== Force-displacement  ============#
 	plotName='force-Disp'
 	
-	# rf1 = xyPlot.XYDataFromHistory(odb=odb, 
-	# 	outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
-	# rf2 = xyPlot.XYDataFromHistory(odb=odb, 
-	# 	outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
-	# u = xyPlot.XYDataFromHistory(odb=odb, 
-	# 	outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
+	rf1 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
+	rf2 = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
+	u = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
 
-	rf1 = session.XYDataFromHistory(name='XYData-1', odb=odb,
-		outputVariableName='Reaction force: RF1 at Node 1 in NSET COL-BASE')
-	rf2 = session.XYDataFromHistory(name='XYData-2', odb=odb, 
-		outputVariableName='Reaction force: RF1 at Node 3 in NSET COL-TOP')
-	u = session.XYDataFromHistory(name='XYData-3', odb=odb, 
-		outputVariableName='Spatial displacement: U1 at Node 2 in NSET COL-MID')
 	fdData = combine(u, -(rf1+rf2))
-	fdCurve = session.Curve(xyData=fdData)
-	func.XYprint(modelName, plotName, printFormat, fdCurve)
 
-	#Report data
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(fdData, ))
-	func.fixReportFile(tempFile, plotName, modelName)
+	func.XYplot(modelName, plotName,
+		xHead='Displacement [mm]',
+		yHead='Force [kN]',
+		xyDat=fdData)
 
-
-	#=========== Displacement  ============#
-	plotName = 'midU1'
-
-	dCurve = session.Curve(xyData=u)
-
-	#Plot and Print
-	func.XYprint(modelName, plotName, printFormat, dCurve)
-
-	#Report data
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(u, ))
-	func.fixReportFile(tempFile, plotName, modelName)
+	func.XYplot(modelName,
+		plotName = 'midU1',
+		xHead='Displacement [mm]',
+		yHead='Force [kN]',
+		xyDat=u)
 
 
 
