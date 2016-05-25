@@ -10,18 +10,21 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName              = 'shellBlast10t'
-cpus                 = 8			#Number of CPU's
+mdbName              = 'shellBlastSeed'
+cpus                 = 1			#Number of CPU's
 monitor              = 0
 
-run                  = 1
+run                  = 0
+
+parameter            = 1
+runPara              = 0
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x                    = 4			#Nr of columns in x direction
-z                    = 4			#Nr of columns in z direction
-y                    = 5			#nr of stories
+x                    = 2			#Nr of columns in x direction
+z                    = 2			#Nr of columns in z direction
+y                    = 1			#nr of stories
 
 
 #=========== Step  ============#
@@ -31,7 +34,7 @@ blastTime            = 2.0
 
 qsSmoothFactor       = 0.75
 
-TNT                  = 10.0	#tonns of tnt
+TNT                  = 1.0	#tonns of tnt
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt  = SINGLE #SINGLE or FULL
@@ -56,7 +59,7 @@ blastIntervals       = 500
 animeFrameRate       = 40
 
 
-blastCol             = 'D3-1'
+blastCol             = 'B2-1'
 
 #==========================================================#
 #==========================================================#
@@ -269,6 +272,76 @@ if run:
 	# shell.xyCenterU2_colBaseR2(modelName,x,z)
 	
 	print '   done'
+
+
+
+
+#==============================================================#
+#==============================================================#
+#                   PARAMETER STUDY                            #
+#==============================================================#
+#==============================================================#
+
+
+oldMod = modelName
+if parameter:
+
+	#=========== Seed  ============#
+	paraLst = [1500, 500, 300]
+
+
+	for para in paraLst:
+		
+		#New model
+		modelName = 'beamBlastSeed'+str(para)
+		
+		mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
+		M = mdb.models[modelName]	
+
+
+		#=========== Change parameter  ============#
+		
+		
+		# beam.mesh(M, seed = para, slabSeedFactor=1.0)
+
+		# M.rootAssembly.regenerate()
+
+
+
+
+		# #=========== Create job and run  ============#
+		
+		# #Create job
+		# mdb.Job(model=modelName, name=modelName,
+		#     numCpus=cpus, numDomains=cpus,
+		#     explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
+
+
+		# if runPara:
+		# 	#Run job
+
+		# 	mdb.saveAs(pathName = mdbName + '.cae')
+		# 	func.runJob(modelName)
+		# 	func.readStaFile(modelName, 'results.txt')
+
+
+
+		# 	#=========== Post proccesing  ============#
+
+		# 	print 'Post processing...'
+			
+		# 	#Energy
+		# 	func.xyEnergyPlot(modelName)
+
+		# 	#R2 at col base
+		# 	beam.xyColBaseR2(modelName,x,z)
+
+		# 	#U at top of col closes to blast
+		# 	beam.xyUtopCol(modelName, blastCol)
+
+
+
+
 
 
 print '###########    END OF SCRIPT    ###########'
