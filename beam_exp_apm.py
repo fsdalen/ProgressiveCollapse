@@ -11,7 +11,7 @@ from abaqusConstants import *
 
 
 mdbName        = 'beamExpAPM'
-cpus           = 8			#Number of CPU's
+cpus           = 4			#Number of CPU's
 monitor        = 0
 
 run            = 1
@@ -39,10 +39,10 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 APMName		   = 'beamAPexpForceCollapseD4f50t5' 			#name of APM model and job
 APMcol         = 'COLUMN_D4-1'		#Column to be removed
 
-qsTime         = 3.0 				#Quasi static time
+qsTime         = 0.01 #3.0 				#Quasi static time
 qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
 rmvStepTime    = 20e-3				#How fast to remove column forces
-dynStepTime    = 4.00			#Length of free dynamic step
+dynStepTime    = 0.01 #4.00			#Length of free dynamic step
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
@@ -50,8 +50,8 @@ nodalOpt = SINGLE #SINGLE or FULL
 
 
 #=========== Force collapse  ============#
-loadTime       = 5.0
-loadFactor     = 50.0
+loadTime       = 0.01 #5.0
+loadFactor     = 5 #50.0
 
 
 

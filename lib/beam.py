@@ -719,7 +719,7 @@ def xyColBaseR2(modelName,x,z):
 
 
 
-
+def xyForceDisp(modelName, x, z):
 	odb=func.open_odb(modelName)
 
 	#=========== R2 at column base  ============#
@@ -764,6 +764,53 @@ def xyColBaseR2(modelName,x,z):
 		xyDat=xyRD)	
 
 
+
+
+def xyUtopCol(modelName, column):
+	'''
+	Prints U1, U2 and U3 at top of column.
+
+	modelName     = name of odb
+	column      = name of column that is removed in APM
+	printFormat = TIFF, PS, EPS, PNG, SVG
+	stepName    = name of a step that exist in the model
+	'''
+
+	
+	#Open ODB
+	odb = func.open_odb(modelName)
+	
+	#Find correct node number and name of column
+	nodeSet = odb.rootAssembly.instances[column].nodeSets['COL-TOP']
+	nodeNr = nodeSet.nodes[0].label
+	
+	u1Name ='Spatial displacement: U1 PI: '+column+' Node '+str(nodeNr)+\
+		' in NSET COL-TOP'
+	u2Name ='Spatial displacement: U2 PI: '+column+' Node '+str(nodeNr)+\
+		' in NSET COL-TOP'
+	u3Name ='Spatial displacement: U3 PI: '+column+' Node '+str(nodeNr)+\
+		' in NSET COL-TOP'
+
+	#Create XY-Data
+	xyU1colTop = xyPlot.XYDataFromHistory(odb=odb,
+		outputVariableName=u1Name, suppressQuery=True, name='U1colTop')
+	xyU2colTop = xyPlot.XYDataFromHistory(odb=odb,
+		outputVariableName=u2Name, suppressQuery=True, name='U2colTop')
+	xyU3colTop = xyPlot.XYDataFromHistory(odb=odb,
+		outputVariableName=u3Name, suppressQuery=True, name='U3colTop')
+	
+	func.XYplot(modelName, plotName='U1colTop',
+		xHead ='Time [s]',
+		yHead = 'Displacement [mm]',
+		xyDat= xyU1colTop)
+	func.XYplot(modelName, plotName='U2colTop',
+		xHead ='Time [s]',
+		yHead = 'Displacement [mm]',
+		xyDat= xyU2colTop)
+	func.XYplot(modelName, plotName='U3colTop',
+		xHead ='Time [s]',
+		yHead = 'Displacement [mm]',
+		xyDat= xyU3colTop)
 
 
 def xyAPMcolPrint(modelName, column):

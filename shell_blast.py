@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName              = 'shellBlastBasic'
+mdbName              = 'shellBlast10t'
 cpus                 = 8			#Number of CPU's
 monitor              = 0
 
@@ -31,7 +31,7 @@ blastTime            = 2.0
 
 qsSmoothFactor       = 0.75
 
-TNT                  = 1.0	#tonns of tnt
+TNT                  = 10.0	#tonns of tnt
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt  = SINGLE #SINGLE or FULL
@@ -49,14 +49,14 @@ slabSeedFactor 		 = 8			#Change seed of slab
 defScale             = 1.0
 printFormat          = PNG 		#TIFF, PS, EPS, PNG, SVG
 
-qsIntervals          = 100
-blastIntervals       = 300
+qsIntervals          = 40
+blastIntervals       = 500
 #freeIntervals		 = 20
 
-animeFrameRate       = 10
+animeFrameRate       = 40
 
 
-blastCol             = 'D2-1'
+blastCol             = 'D3-1'
 
 #==========================================================#
 #==========================================================#
@@ -125,8 +125,12 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 
 #Create blast
+#Read column name into x,y,z
+dic = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4}
+xBlast = dic[blastCol[0]]
+zBlast = float(blastCol[1])-1
 func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (7500.0*3 + 10000.0, 500.0, 7500.0*2),
+	coordinates = (7500.0*xBlast + 10000.0, 500.0, 7500.0*zBlast),
 	timeOfBlast = quasiTime, stepName=stepName)
 
 #Remove smooth step from other loads
@@ -249,8 +253,8 @@ if run:
 	# #Contour
 	# func.countourPrint(modelName, defScale, printFormat)
 
-	# #Animation
-	# func.animate(modelName, defScale, frameRate= animeFrameRate)
+	#Animation
+	func.animate(modelName, defScale, frameRate= animeFrameRate)
 
 	#Energy
 	func.xyEnergyPlot(modelName)

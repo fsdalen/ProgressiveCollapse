@@ -11,23 +11,23 @@ from abaqusConstants import *
 
 
 mdbName     = 'beamBlast'
-cpus        = 8			#Number of CPU's
+cpus        = 1			#Number of CPU's
 monitor     = 0
 
-run         = 0
+run         = 1
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x           = 4			#Nr of columns in x direction
-z           = 4			#Nr of columns in z direction
-y           = 5			#nr of stories
+x           = 2			#Nr of columns in x direction
+z           = 2			#Nr of columns in z direction
+y           = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime   = 3.0
-blastTime   = 0.1		#Takes around 0.03 for the wave to pass the building
-freeTime    = 2.0
+quasiTime   = 0.01 #3.0
+blastTime   = 0.01 #0.1		#Takes around 0.03 for the wave to pass the building
+freeTime    = 0.01 #2.0
 
 qsSmoothFacor= 0.75	#When smooth step reaches full amplitude during QS step
 
@@ -48,9 +48,9 @@ defScale    = 1.0
 printFormat = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate       = 5
 
-quasiStaticIntervals = 20
-blastIntervals       = 20
-freeIntervals        = 20
+quasiStaticIntervals = 5
+blastIntervals       = 5
+freeIntervals        = 5
 
 blastCol             = 'COLUMN_B2-1'
 
@@ -133,10 +133,13 @@ blastSurf = tuple(lst)
 M.rootAssembly.SurfaceByBoolean(name='blastSurf', surfaces=blastSurf)
 
 #Create blast
+dic = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4}
+xBlast = dic[blastCol[7]]
+zBlast = float(blastCol[8])-1
 func.addIncidentWave(modelName, stepName,
 	AmpFile= 'blastAmp.txt',
-	sourceCo = (7500.0*3 + 10000.0, 500.0, 7500.0*2),
-	refCo = (7500.0*3 + 1000.0, 500.0, 7500.0*2))
+	sourceCo = (7500.0*xBlast + 10000.0, 500.0, 7500.0*zBlast),
+	refCo = (7500.0*xBlast + 1000.0, 500.0, 7500.0*zBlast))
 
 
 #Remove smooth step from other loads
@@ -200,7 +203,7 @@ M.historyOutputRequests['R2'].setValuesInStep(
 
 #U2 at top of column closes to blast
 M.HistoryOutputRequest(name=blastCol+'_top'+'U', 
-		createStepName='quasi-static', variables=('U2',), 
+		createStepName='quasi-static', variables=('U1','U2','U3'), 
 		region=M.rootAssembly.allInstances[blastCol].sets['col-top'],
 		numIntervals = quasiStaticIntervals)
 M.historyOutputRequests[blastCol+'_top'+'U'].setValuesInStep(
@@ -261,8 +264,8 @@ if run:
 	#R2 at col base
 	beam.xyColBaseR2(modelName,x,z)
 
-	beam.xyAPMcolPrint(modelName, blastCol)
-	#
+	beam.xyUtopCol(modelName, blastCol)
+	
 	
 	# #Force and displacement
 	# beam.xyCenterU2_colBaseR2(modelName,x,z)
