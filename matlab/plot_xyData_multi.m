@@ -16,19 +16,21 @@ X and Y labels are manual at the end of the script
 
 %% Perliminaries
 
-%close all;
+close all;
 
 clear all; 
 clc; 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plotName = 'together';
+
 %Modify apparance of plot
 fontSize =  12;   %Font width of axis, legend 90%, axis title 110% of this
 linWidth =  1.0;     
 figSize =  [700 700];   %[width height]
-%xLimit = [0 4];      %comment out gives auto
-%yLimit = [-3.0 0.2];   %comment out gives auto
+xLimit = [0.0 11.0];      %comment out gives auto
+yLimit = [0.0 3.5];   %comment out gives auto
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -40,11 +42,7 @@ figSize =  [700 700];   %[width height]
 files = dir('xyData*');
 n = size(files,1);
 
-%Get plotName from first file
-fileName = files(1).name;
-underscores = strfind(fileName, '_');
-plotName = fileName(underscores(1)+1:underscores(2)-1);
-    
+
 %Read files into data
 for i = 1:n
     %Read tab file
@@ -74,13 +72,26 @@ for i = 1:n
 %     firstNonZero = nonZero(1);
 %     data(i).y = data(i).y(firstNonZero-1:end);
 %     data(i).x = data(i).x(1:end-(firstNonZero-2));
+
+    %Change units in order force, disp and energies together
+    fileName = files(i).name;
+    underscores = strfind(fileName, '_');
+    data(i).var = fileName(underscores(1)+1:underscores(2)-1);
+    if strfind(data(i).var, 'R2')
+        data(i).y = data(i).y*0.66*10^-7; %Normalize force
+    elseif strfind(data(i).var, 'U2')
+        data(i).y = data(i).y*-10^-2; %Convert displacement to positive decimeter
+    elseif strfind(data(i).var, 'Work')
+        data(i).y = data(i).y*10^-8; %Convert from mJ 10^5 J
+    elseif strfind(data(i).var, 'Energy')
+        data(i).y = data(i).y*10^-8; %Convert from mJ 10^5 J
+    end
+    
 end
 
 %Get axis titles from last file
-xLabel = strrep(strrep(field(1),'_0x5B',' ['), '0x5D',']');
-yLabel = strrep(strrep(field(2),'_0x5B',' ['), '0x5D',']');
-
-
+xLabel = 'Time [s]';
+yLabel = ' ';
 
 %% Plot
 
@@ -112,6 +123,20 @@ end
 grid on
 xlabel(xLabel)
 ylabel(yLabel)
+
+%Create legend
+for i = 1:n
+    if strfind(data(i).var, 'R2')
+        data(i).name=strcat(data(i).var,' [ ]');
+    elseif strfind(data(i).var, 'U2')
+        data(i).name=strcat(data(i).var,' [10^{-1} m]');
+    elseif strfind(data(i).var, 'Work')
+        data(i).name=strcat(data(i).var,' [10^5 J]');
+    elseif strfind(data(i).var, 'Energy')
+        data(i).name=strcat(data(i).var,' [10^5 J]');
+    end
+end
+
 legend(legendPlot,data.name,'location','best');
 
 %Change limits

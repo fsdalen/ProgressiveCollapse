@@ -88,12 +88,6 @@ def buildBeamMod(modelName, x, z, y, seed, slabSeedFactor):
 
 	mesh(M, seed, slabSeedFactor)
 
-	#Write nr of elements to results file
-	M.rootAssembly.regenerate()
-	nrElm = elmCounter(M)
-	with open('results.txt','a') as f:
-		f.write("%s	Elements: %s \n" %(modelName, nrElm))
-
 
 	#=========== Joints  ============#
 	createJoints(M, x, z, y,
@@ -456,6 +450,12 @@ def mesh(M, seed, slabSeedFactor):
 		regions=(M.parts['SLAB'].faces.findAt((0.0, 0.0, 0.0), ), ))
 	#Mesh
 	M.parts['SLAB'].generateMesh()
+
+	#Write nr of elements to results file
+	M.rootAssembly.regenerate()
+	nrElm = elmCounter(M)
+	with open('results.txt','a') as f:
+		f.write("%s	Elements: %s \n" %(M.name, nrElm))
 
 
 

@@ -10,13 +10,15 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'beamImpAPM'
+mdbName        = 'beamImpAPMseed'
 cpus           = 8			#Number of CPU's
 monitor        = 0
 
 run            = 1
 
 parameter      = 1
+runPara        = 1
+
 forceCollapse  = 0
 
 #=========== Geometry  ============#
@@ -194,23 +196,24 @@ func.setOutputIntervals(modelName,stepName, freeIntervals)
 
 #=========== Force collapse   ============#
 
-#Create new loading step
-oldStep = stepName
-stepName='loading'
-M.ImplicitDynamicsStep(initialInc=0.01, minInc=1e-06,
-	name=stepName, previous=oldStep, timePeriod=loadTime, nlgeom=ON,
-	maxNumInc=1000)
+if forceCollapse:
+	#Create new loading step
+	oldStep = stepName
+	stepName='loading'
+	M.ImplicitDynamicsStep(initialInc=0.01, minInc=1e-06,
+		name=stepName, previous=oldStep, timePeriod=loadTime, nlgeom=ON,
+		maxNumInc=1000)
 
 
-#Create linear amplitude
-M.TabularAmplitude(data=((0.0, 1.0), (loadTime, loadFactor)), 
-    name='linIncrease', timeSpan=STEP)
+	#Create linear amplitude
+	M.TabularAmplitude(data=((0.0, 1.0), (loadTime, loadFactor)), 
+	    name='linIncrease', timeSpan=STEP)
 
-#Change amplitude of slab load in force step
-func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
+	#Change amplitude of slab load in force step
+	func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
 
-#Set output frequency of step
-func.setOutputIntervals(modelName,stepName, loadIntervals)
+	#Set output frequency of step
+	func.setOutputIntervals(modelName,stepName, loadIntervals)
 
 
 
@@ -304,39 +307,38 @@ if parameter:
 
 
 		#=========== Create job and run  ============#
-		
 		#Create job
 		mdb.Job(model=modelName, name=modelName,
-		    numCpus=cpus, numDomains=cpus,
-		    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
+		    numCpus=cpus, numDomains=cpus)
 
 
-		#Run job
+		if runPara:
+			#Run job
 
-		# mdb.saveAs(pathName = mdbName + '.cae')
-		# func.runJob(modelName)
-		# func.readStaFile(modelName, 'results.txt')
+			# mdb.saveAs(pathName = mdbName + '.cae')
+			# func.runJob(modelName)
+			# func.readStaFile(modelName, 'results.txt')
 
 
 
-		# #=========== Post proccesing  ============#
+			#=========== Post proccesing  ============#
 
-		# print 'Post processing...'
-				
-		# # #Contour
-		# # func.countourPrint(modelName, defScale, printFormat)
+			print 'Post processing...'
+					
+			# #Contour
+			# func.countourPrint(modelName, defScale, printFormat)
 
-		# # #Animation
-		# # func.animate(modelName, defScale, frameRate= animeFrameRate)
+			# #Animation
+			# func.animate(modelName, defScale, frameRate= animeFrameRate)
 
-		# #Energy
-		# func.xyEnergyPlot(modelName)
+			#Energy
+			func.xyEnergyPlot(modelName)
 
-		# #R2 at col base
-		# beam.xyColBaseR2(modelName,x,z)
+			#R2 at col base
+			beam.xyColBaseR2(modelName,x,z)
 
-		# #Displacement at colTop
-		# beam.xyAPMcolPrint(modelName, APMcol)
+			#Displacement at colTop
+			beam.xyAPMcolPrint(modelName, APMcol)
 
 
 
