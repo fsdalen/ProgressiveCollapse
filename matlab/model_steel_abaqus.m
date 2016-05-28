@@ -1,5 +1,6 @@
 clc
 clear all
+%close all
 
 %%-----------------------------------------------------------------------%%
 % Define material constants
@@ -16,7 +17,7 @@ epspl  =  0.024; %yield plateau strain
 %%-----------------------------------------------------------------------%%
 % Define element shape
 %%-----------------------------------------------------------------------%%
-leote = 75.0; %ratio between the in-plane size and the thickness of the shell
+leote = 7.5; %ratio between the in-plane size and the thickness of the shell
 
 
 %%-----------------------------------------------------------------------%%
@@ -68,7 +69,7 @@ end
 %%-----------------------------------------------------------------------%%
 % Plot results
 %%-----------------------------------------------------------------------%%
-figure (1)
+figure('Name',num2str(leote),'NumberTitle','off');
 subplot(1,2,1)
 plot(p,model)
 axis([0 max(p) 0 max(model)])
@@ -86,8 +87,8 @@ grid on
 %%-----------------------------------------------------------------------%%
 % Export material card
 %%-----------------------------------------------------------------------%%
-%fich=fopen(['mat_' num2str(leote) '.inp'],'w');
-fich=fopen(['steelMat.inp'],'w');
+fich=fopen(['mat_' num2str(leote) '.inp'],'w');
+%fich=fopen(['steelMat.inp'],'w');
 % Add material
 fprintf(fich,'*Material, name=DOMEX_S355\n');
 % Add Density

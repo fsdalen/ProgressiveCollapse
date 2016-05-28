@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName              = 'shellBlastSeed75'
+mdbName              = 'shellBlast75seed1s2m'
 cpus                 = 8			#Number of CPU's
 monitor              = 0
 
@@ -27,7 +27,7 @@ y                    = 5			#nr of stories
 
 #=========== Step  ============#
 quasiTime            = 3.0
-blastTime            = 2.0
+blastTime            = 1.0
 #freeTime			 = 0.1
 
 qsSmoothFactor       = 0.75
@@ -43,8 +43,9 @@ nodalOpt  = SINGLE #SINGLE or FULL
 LL_kN_m              = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed                 = 75.0		#Global seed
+seed                 = 75		#Global seed
 slabSeedFactor 		 = 8			#Change seed of slab
+steelMatFile   = 'mat_7.5.inp'  #Damage parameter is a function of element size
 
 #Post
 defScale             = 1.0
@@ -77,7 +78,7 @@ concrete = 'Concrete'
 rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName)
+func.perliminary(monitor, modelName,steelMatFile)
 
 M=mdb.models[modelName]
 
@@ -255,7 +256,7 @@ if run:
 	# func.countourPrint(modelName, defScale, printFormat)
 
 	#Animation
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	#func.animate(modelName, defScale, frameRate= animeFrameRate)
 
 	#Energy
 	func.xyEnergyPlot(modelName)

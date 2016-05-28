@@ -37,7 +37,7 @@ from datetime import datetime
 
 
 
-def perliminary(monitor, modelName):
+def perliminary(monitor, modelName, steelMatFile):
 	#Makes mouse clicks into physical coordinates
 	session.journalOptions.setValues(replayGeometry=COORDINATE,
 		recoverGeometry=COORDINATE)
@@ -57,18 +57,18 @@ def perliminary(monitor, modelName):
 
 
 	#=========== Set up model  ============#
-	matFile = 'inputData/steelMat.inp'
-
+	
 	#Create model based on input material
 	print '\n'*2
-	mdb.ModelFromInputFile(name=modelName, inputFileName=matFile)
+	mdb.ModelFromInputFile(name=modelName,
+		inputFileName='inputData/'+steelMatFile)
 	print '\n'*2
 
 	#Deletes all other models
 	delModels(modelName)
 
 	#Close and delete old jobs and ODBs
-	delJobs(exeption = matFile)
+	delJobs(exeption = steelMatFile)
 
 
 	#=========== Material  ============#

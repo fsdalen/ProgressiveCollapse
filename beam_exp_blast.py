@@ -10,26 +10,26 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'beamBlastSeed'
-cpus        = 8			#Number of CPU's
+mdbName     = 'beamBlastSeedHiOtp'
+cpus        = 4			#Number of CPU's
 monitor     = 0
 
 run         = 1
 
-parameter   = 1
-runPara     = 1
+parameter   = 0
+runPara     = 0
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x           = 4			#Nr of columns in x direction
-z           = 4			#Nr of columns in z direction
-y           = 5			#nr of stories
+x           = 2			#Nr of columns in x direction
+z           = 2			#Nr of columns in z direction
+y           = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime   = 3.0
-blastTime   = 0.1		#Takes around 0.03 for the wave to pass the building
-freeTime    = 2.0
+quasiTime   = 0.01
+blastTime   = 0.01		#Takes around 0.03 for the wave to pass the building
+freeTime    = 0.01
 
 qsSmoothFacor= 0.75	#When smooth step reaches full amplitude during QS step
 
@@ -44,17 +44,18 @@ LL_kN_m     = -0.5	    #kN/m^2 (-2.0)
 #Mesh
 seed        = 750.0		#Global seed
 slabSeedFactor = 1			#Change seed of slab
+steelMatFile   = 'mat_75.inp'  #Damage parameter is a function of element size
 
 #Post
 defScale    = 1.0
 printFormat = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate       = 5
 
-quasiStaticIntervals = 100
-blastIntervals       = 200
-freeIntervals        = 200
+quasiStaticIntervals = 5 #100
+blastIntervals       = 5 #200
+freeIntervals        = 5 #200
 
-blastCol             = 'COLUMN_D3-1'
+blastCol             = 'COLUMN_B2-1'
 
 
 
@@ -76,7 +77,7 @@ concrete = 'Concrete'
 rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName)
+func.perliminary(monitor, modelName, steelMatFile)
 
 M=mdb.models[modelName]
 

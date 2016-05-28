@@ -10,16 +10,16 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'beamImpAPMseed'
+mdbName        = 'beamImpAPM'
 cpus           = 8			#Number of CPU's
 monitor        = 0
 
 run            = 1
 
-parameter      = 1
-runPara        = 1
+parameter      = 0
+runPara        = 0
 
-forceCollapse  = 0
+forceCollapse  = 1
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
@@ -37,11 +37,13 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 
 
 #=========== Implicit step  ============#
-modelName   = 'beamAPimpSeed750'
+modelName   = 'beamAPimpD4Collapse'
 #Single APM
 APMcol        = 'COLUMN_D4-1'
 rmvStepTime   = 20e-3		#Also used in MuliAPM (Fu uses 20e-3)
 dynStepTime   = 4.0
+dynamic_InInc = 0.1
+dynamic_MaxInc= 1000
 
 
 #Itterations
@@ -66,15 +68,13 @@ LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 #Mesh
 seed           = 750.0		#Global seed
 slabSeedFactor = 1			#Change seed of slab
+steelMatFile   = 'mat_75.inp'  #Damage parameter is a function of element size
 
 #Post
 defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate = 5
 
-rmvIntervals   = 5
-freeIntervals  = 200
-loadIntervals  = 200
 
 
 #==========================================================#
@@ -92,7 +92,7 @@ reload(beam)
 
 
 #Set up model with materials
-func.perliminary(monitor, modelName)
+func.perliminary(monitor, modelName, steelMatFile)
 
 M=mdb.models[modelName]
 
@@ -176,8 +176,6 @@ M.ModelChange(activeInStep=False, createStepName=stepName,
 	includeStrain=False, name='elmRemoval', region=
 	M.rootAssembly.sets[rmvSet], regionType=GEOMETRY)
 
-#Set output frequency of step
-func.setOutputIntervals(modelName,stepName, rmvIntervals)
 
 
 #=========== Dynamic step  ============#
@@ -185,12 +183,11 @@ func.setOutputIntervals(modelName,stepName, rmvIntervals)
 #Create dynamic APM step
 oldStep = stepName
 stepName = 'dynamicStep'
-M.ImplicitDynamicsStep(initialInc=0.01, minInc=5e-05, name=
+M.ImplicitDynamicsStep(initialInc=dynamic_InInc, minInc=5e-07, name=
 	stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=ON,
-	maxNumInc=1000)
+	maxNumInc=dynamic_MaxInc)
 
-#Set output frequency of step
-func.setOutputIntervals(modelName,stepName, freeIntervals)
+
 
 
 
@@ -212,8 +209,8 @@ if forceCollapse:
 	#Change amplitude of slab load in force step
 	func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
 
-	#Set output frequency of step
-	func.setOutputIntervals(modelName,stepName, loadIntervals)
+
+
 
 
 
@@ -292,7 +289,7 @@ if parameter:
 	for para in paraLst:
 		
 		#New model
-		modelName = 'beamAPexpSeed'+str(para)
+		modelName = 'beamAPimpSeed'+str(para)
 		mdb.Model(name=modelName, objectToCopy=mdb.models[oldMod])
 		M = mdb.models[modelName]	
 
@@ -315,9 +312,10 @@ if parameter:
 		if runPara:
 			#Run job
 
-			# mdb.saveAs(pathName = mdbName + '.cae')
-			# func.runJob(modelName)
-			# func.readStaFile(modelName, 'results.txt')
+			mdb.saveAs(pathName = mdbName + '.cae')
+			func.runJob(modelName)
+			#Write CPU time to file
+			func.readMsgFile(modelName, 'results.txt')
 
 
 
