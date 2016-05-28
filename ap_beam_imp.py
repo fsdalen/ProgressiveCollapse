@@ -10,9 +10,8 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'beamImpAPM'
+modelName   = 'apBeamImpCollapseD4'
 cpus           = 8			#Number of CPU's
-monitor        = 0
 
 run            = 1
 
@@ -21,8 +20,10 @@ runPara        = 0
 
 forceCollapse  = 1
 
+
+
 #=========== Geometry  ============#
-#Size 	4x4  x10(5)
+#Size
 x              = 4			#Nr of columns in x direction
 z              = 4			#Nr of columns in z direction
 y              = 5			#nr of stories
@@ -31,22 +32,22 @@ y              = 5			#nr of stories
 #=========== Static step  ============#
 static_Type    = 'general' 	#'general' or 'riks'
 static_InInc   = 0.1		# Initial increment
-static_MinIncr = 1e-9
-static_maxInc  = 50 		#Maximum number of increments for static step
-
+static_MinIncr = 1e-9		# Smalles allowed increment
+static_maxInc  = 50 		#Maximum number of increments 
 
 
 #=========== Implicit step  ============#
-modelName   = 'beamAPimpD4Collapse'
 #Single APM
 APMcol        = 'COLUMN_D4-1'
+
 rmvStepTime   = 20e-3		#Also used in MuliAPM (Fu uses 20e-3)
 dynStepTime   = 4.0
+
 dynamic_InInc = 0.1
 dynamic_MaxInc= 1000
 
 
-#Itterations
+#Itterations, not in use
 itterations   = 0
 elsetName     = None
 var           = 'PEEQ' #'S'
@@ -62,6 +63,8 @@ loadFactor     = 50.0
 
 
 #=========== General  ============#
+monitor        = 0			#Write status of job continusly in Abaqus CAE
+
 #Live load
 LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
@@ -88,7 +91,7 @@ import lib.beam as beam
 reload(func)
 reload(beam)
 
-
+mdbName        = 'apBeamImp'    	#Name of .cae file
 
 
 #Set up model with materials

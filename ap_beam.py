@@ -10,19 +10,20 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'beamExpAPM'
+apModelName    = 'apBeamCollapseD4f50t5' #name of AP model
 cpus           = 4			#Number of CPU's
-monitor        = 0
 
 run            = 1
 
 parameter      = 0
+runPara		   = 0
+
 forceCollapse  = 1
 
 
 
 #=========== Geometry  ============#
-#Size 	4x4  x10(5)
+#Size
 x              = 4			#Nr of columns in x direction
 z              = 4			#Nr of columns in z direction
 y              = 5			#nr of stories
@@ -31,18 +32,18 @@ y              = 5			#nr of stories
 #=========== Static model  ============#
 static_Type    = 'general' 	#'general' or 'riks'
 static_InInc   = 0.1		# Initial increment
-static_MinIncr = 1e-9
-static_maxInc  = 50 		#Maximum number of increments for static step
+static_MinIncr = 1e-9		# Smalles allowed increment
+static_maxInc  = 50 		#Maximum number of increments
 
 
-#=========== Explicit APM model  ============#
-APMName		   = 'beamAPexpForceCollapseD4f50t5' 			#name of APM model and job
+#=========== Explicit AP model  ============#
 APMcol         = 'COLUMN_D4-1'		#Column to be removed
 
 qsTime         = 0.01 #3.0 				#Quasi static time
-qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
 rmvStepTime    = 20e-3				#How fast to remove column forces
 dynStepTime    = 0.01 #4.00			#Length of free dynamic step
+
+qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
@@ -58,12 +59,15 @@ loadFactor     = 5 #50.0
 
 
 #=========== General  ============#
+monitor        = 0			#Write status of job continusly in Abaqus CAE
+
 #Live load
 LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
 seed           = 750.0		#Global seed
 slabSeedFactor = 1			#Change seed of slab
+steelMatFile   = 'mat_75.inp'  #Damage parameter is a function of element size
 
 #Post
 defScale       = 1.0
@@ -88,14 +92,14 @@ import lib.beam as beam
 reload(func)
 reload(beam)
 
-modelName   = 'beamStatic'
-
+mdbName     = 'apBeam' 			#Name of .cae file
+modelName   = 'staticBeam'
 
 
 #Set up model with materials
-func.perliminary(monitor, modelName)
+func.perliminary(monitor, modelName, steelMatFile)
 
-#
+
 M=mdb.models[modelName]
 
 
@@ -225,7 +229,7 @@ if run:
 
 #New naming
 oldMod = modelName
-modelName = APMName
+modelName = apModelName
 
 
 #Copy Model
@@ -450,32 +454,33 @@ if parameter:
 		    explicitPrecision=precision, nodalOutputPrecision=nodalOpt)
 
 
-		#Run job
+		if runPara:
+			#Run job
 
-		mdb.saveAs(pathName = mdbName + '.cae')
-		func.runJob(modelName)
-		func.readStaFile(modelName, 'results.txt')
+			mdb.saveAs(pathName = mdbName + '.cae')
+			func.runJob(modelName)
+			func.readStaFile(modelName, 'results.txt')
 
 
 
-		#=========== Post proccesing  ============#
+			#=========== Post proccesing  ============#
 
-		print 'Post processing...'
-				
-		# #Contour
-		# func.countourPrint(modelName, defScale, printFormat)
+			print 'Post processing...'
+					
+			# #Contour
+			# func.countourPrint(modelName, defScale, printFormat)
 
-		# #Animation
-		# func.animate(modelName, defScale, frameRate= animeFrameRate)
+			# #Animation
+			# func.animate(modelName, defScale, frameRate= animeFrameRate)
 
-		#Energy
-		func.xyEnergyPlot(modelName)
+			#Energy
+			func.xyEnergyPlot(modelName)
 
-		#R2 at col base
-		beam.xyColBaseR2(modelName,x,z)
+			#R2 at col base
+			beam.xyColBaseR2(modelName,x,z)
 
-		#Displacement at colTop
-		beam.xyAPMcolPrint(modelName, APMcol)
+			#Displacement at colTop
+			beam.xyAPMcolPrint(modelName, APMcol)
 
 
 print '###########    END OF SCRIPT    ###########'

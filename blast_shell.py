@@ -10,11 +10,14 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName              = 'shellBlast75seed1s2m'
+modelName            = 'shellBlast75seed1s2m'
 cpus                 = 8			#Number of CPU's
-monitor              = 0
 
 run                  = 1
+
+
+
+
 
 
 
@@ -33,12 +36,15 @@ blastTime            = 1.0
 qsSmoothFactor       = 0.75
 
 TNT                  = 1.0	#tonns of tnt
+blastCol             = 'D3-1'
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt  = SINGLE #SINGLE or FULL
 
 
 #=========== General  ============#
+monitor        = 0			#Write status of job continusly in Abaqus CAE
+
 #Live load
 LL_kN_m              = -0.5	    #kN/m^2 (-2.0)
 
@@ -50,15 +56,15 @@ steelMatFile   = 'mat_7.5.inp'  #Damage parameter is a function of element size
 #Post
 defScale             = 1.0
 printFormat          = PNG 		#TIFF, PS, EPS, PNG, SVG
+animeFrameRate       = 40
 
 qsIntervals          = 40
 blastIntervals       = 500
 #freeIntervals		 = 20
 
-animeFrameRate       = 40
 
 
-blastCol             = 'D3-1'
+
 
 #==========================================================#
 #==========================================================#
@@ -71,7 +77,9 @@ import lib.shell as shell
 reload(func)
 reload(shell)
 
-modelName   = mdbName
+
+mdbName = 'blastShell'
+
 
 steel = 'DOMEX_S355'
 concrete = 'Concrete'

@@ -10,14 +10,15 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'beamBlastSeedHiOtp'
+modelName   = 'blastBeam'
 cpus        = 4			#Number of CPU's
-monitor     = 0
 
 run         = 1
 
 parameter   = 0
 runPara     = 0
+
+
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
@@ -33,11 +34,15 @@ freeTime    = 0.01
 
 qsSmoothFacor= 0.75	#When smooth step reaches full amplitude during QS step
 
+blastCol     = 'COLUMN_B2-1'
+
 precision   = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt    = SINGLE #SINGLE or FULL
 
 
 #=========== General  ============#
+monitor        = 0			#Write status of job continusly in Abaqus CAE
+
 #Live load
 LL_kN_m     = -0.5	    #kN/m^2 (-2.0)
 
@@ -55,7 +60,7 @@ quasiStaticIntervals = 5 #100
 blastIntervals       = 5 #200
 freeIntervals        = 5 #200
 
-blastCol             = 'COLUMN_B2-1'
+
 
 
 
@@ -71,10 +76,10 @@ reload(func)
 reload(beam)
 
 modelName   = mdbName
+mdbName     = 'blastBeam' 	#Name of .cae file
 
 steel = 'DOMEX_S355'
 concrete = 'Concrete'
-rebarSteel = steel
 
 #Set up model with materials
 func.perliminary(monitor, modelName, steelMatFile)
