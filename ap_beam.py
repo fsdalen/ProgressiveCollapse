@@ -10,23 +10,23 @@ from abaqusConstants import *
 #=======================================================#
 
 
-apModelName    = 'apBeamCollapseD4f50t5' #name of AP model
-cpus           = 4			#Number of CPU's
+apModelName    = 'apBeam'
+cpus           = 1			#Number of CPU's
 
 run            = 1
 
 parameter      = 0
 runPara		   = 0
 
-forceCollapse  = 1
+forceCollapse  = 0
 
 
 
 #=========== Geometry  ============#
 #Size
-x              = 4			#Nr of columns in x direction
-z              = 4			#Nr of columns in z direction
-y              = 5			#nr of stories
+x              = 2			#Nr of columns in x direction
+z              = 2			#Nr of columns in z direction
+y              = 1			#nr of stories
 
 
 #=========== Static model  ============#
@@ -37,7 +37,7 @@ static_maxInc  = 50 		#Maximum number of increments
 
 
 #=========== Explicit AP model  ============#
-APMcol         = 'COLUMN_D4-1'		#Column to be removed
+APMcol         = 'COLUMN_B2-1'		#Column to be removed
 
 qsTime         = 0.01 #3.0 				#Quasi static time
 rmvStepTime    = 20e-3				#How fast to remove column forces
@@ -399,7 +399,7 @@ if run:
 	# func.countourPrint(modelName, defScale, printFormat)
 
 	#Animation
-	func.animate(modelName, defScale, frameRate= animeFrameRate)
+	#func.animate(modelName, defScale, frameRate= animeFrameRate)
 
 	#Energy
 	func.xyEnergyPlot(modelName)

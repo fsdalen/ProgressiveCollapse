@@ -694,7 +694,9 @@ def mergeColBase(M,x,z):
 
 def xyColBaseR2(modelName,x,z):
 	odb = func.open_odb(modelName)
-	#Create xy data for each col base
+
+	
+	#=========== Get xy data for each colBot  ============#
 	alph = map(chr, range(65, 65+x)) #Start at 97 for lower case letters
 	numb = map(str,range(1,z+1))
 	count = 0
@@ -704,14 +706,25 @@ def xyColBaseR2(modelName,x,z):
 			count = count + 1
 			inst = 'COLUMN_' + a + n + "-1"
 			name='Reaction force: RF2 PI: '+inst+' Node 1'
-			lst.append(xyPlot.XYDataFromHistory(odb=odb,
+			lst.append(xyPlot.XYDataFromHistory(odb=odb, name='R2colBot-'+a+n,
 				outputVariableName=name))
+	
+
+	#=========== Individual columns  ============#
+	for col in lst:
+		func.XYplot(modelName,
+		plotName =col.name[1:],	# "1:"" to not include "_" added by abaqus
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat=col)	
+
+
+	#=========== Total force  ============#
 	tpl=tuple(lst)
 	#Compine all to one xyData
 	xyR2 = sum(tpl)
 	#Plot
 	func.XYplot(modelName,
-		plotName='R2colBase',
+		plotName='R2colBot',
 		xHead='Time [s]', yHead='Force [N]',
 		xyDat=xyR2)
 

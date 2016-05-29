@@ -10,8 +10,8 @@ from abaqusConstants import *
 #=======================================================#
 
 
-modelName            = 'shellBlast75seed1s2m'
-cpus                 = 8			#Number of CPU's
+modelName            = 'shellBlast'
+cpus                 = 1			#Number of CPU's
 
 run                  = 1
 
@@ -23,20 +23,20 @@ run                  = 1
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x                    = 4			#Nr of columns in x direction
-z                    = 4			#Nr of columns in z direction
-y                    = 5			#nr of stories
+x                    = 2			#Nr of columns in x direction
+z                    = 2			#Nr of columns in z direction
+y                    = 1			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime            = 3.0
-blastTime            = 1.0
+quasiTime            = 0.01 #3.0
+blastTime            = 0.01 #1.0
 #freeTime			 = 0.1
 
 qsSmoothFactor       = 0.75
 
 TNT                  = 1.0	#tonns of tnt
-blastCol             = 'D3-1'
+blastCol             = 'B2-1'
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt  = SINGLE #SINGLE or FULL
@@ -49,9 +49,9 @@ monitor        = 0			#Write status of job continusly in Abaqus CAE
 LL_kN_m              = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed                 = 75		#Global seed
+seed                 = 150		#Global seed
 slabSeedFactor 		 = 8			#Change seed of slab
-steelMatFile   = 'mat_7.5.inp'  #Damage parameter is a function of element size
+steelMatFile   = 'mat_15.inp'  #Damage parameter is a function of element size
 
 #Post
 defScale             = 1.0

@@ -499,36 +499,36 @@ def replaceForces(M, x, z, column, oldJob, oldStep, stepName, amplitude):
 		constName = 'Const_col_col_'+ column[-4:-1]+botColNr+'-'+topColNr
 		del M.constraints[constName]
 
-		#Open odb with static analysis
-		odb = open_odb(oldJob)
+	#Open odb with static analysis
+	odb = open_odb(oldJob)
 
-		#Find correct historyOutput
-		for key in odb.steps[oldStep].historyRegions.keys():
-			if key.find('Element '+column) > -1:
-				histName = key
+	#Find correct historyOutput
+	for key in odb.steps[oldStep].historyRegions.keys():
+		if key.find('Element '+column) > -1:
+			histName = key
 
-		#Create dictionary with forces
-		dict = {}
-		histOpt = odb.steps[oldStep].historyRegions[histName].historyOutputs
-		variables = histOpt.keys()
-		for var in variables:
-			value = histOpt[var].data[-1][1]
-			dict[var] = value
+	#Create dictionary with forces
+	dict = {}
+	histOpt = odb.steps[oldStep].historyRegions[histName].historyOutputs
+	variables = histOpt.keys()
+	for var in variables:
+		value = histOpt[var].data[-1][1]
+		dict[var] = value
 
-		#Where to add forces
-		region = M.rootAssembly.instances[column].sets['col-top']
+	#Where to add forces
+	region = M.rootAssembly.instances[column].sets['col-top']
 
-		#Create forces
-		M.ConcentratedForce(name='Forces', 
-			createStepName=stepName, region=region, amplitude=amplitude,
-			distributionType=UNIFORM, field='', localCsys=None,
-			cf1=dict['SF3'], cf2=-dict['SF1'], cf3=dict['SF2'])
+	#Create forces
+	M.ConcentratedForce(name='Forces', 
+		createStepName=stepName, region=region, amplitude=amplitude,
+		distributionType=UNIFORM, field='', localCsys=None,
+		cf1=dict['SF3'], cf2=-dict['SF1'], cf3=dict['SF2'])
 
-		#Create moments
-		M.Moment(name='Moments', createStepName=stepName, 
-			region=region, distributionType=UNIFORM, field='', localCsys=None,
-			amplitude=amplitude, 
-			cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
+	#Create moments
+	M.Moment(name='Moments', createStepName=stepName, 
+		region=region, distributionType=UNIFORM, field='', localCsys=None,
+		amplitude=amplitude, 
+		cm1=dict['SM2'], cm2=-dict['SM3'], cm3=dict['SM1'])
 
 
 
