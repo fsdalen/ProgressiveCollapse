@@ -374,16 +374,16 @@ def addIncidentWave(modelName, stepName, AmpFile, sourceCo, refCo):
 
 
 	#Create interaction property
-	M.IncidentWaveProperty(name='Blast', 
+	M.IncidentWaveProperty(name='incidentWave', 
 	    definition=SPHERICAL, fluidDensity=airDensity, soundSpeed=soundSpeed)
 
 
 	#Create incident Wave Interaction
-	M.IncidentWave(name='Blast', createStepName=stepName, 
+	M.IncidentWave(name='incidentWave', createStepName=stepName, 
 	    sourcePoint=M.rootAssembly.sets['Source'],
 	    standoffPoint=M.rootAssembly.sets['Standoff'],
 	    surface=M.rootAssembly.surfaces['blastSurf'],
-	    definition=PRESSURE, interactionProperty='Blast', 
+	    definition=PRESSURE, interactionProperty='incidentWave', 
 	    referenceMagnitude=1.0, amplitude='Blast')
 
 
@@ -397,8 +397,9 @@ def addConWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
 	blastType = AIR_BLAST SURFACE_BLAST
 	name of surf must be blastSurf
 
-	time: Time of blast, NB: total time
-	OfBlast	'''
+	timeoOfBlast, NB: total time 	
+	TNT in tonns
+	'''
 	M=mdb.models[modelName]
 
 	#Create interaction property
@@ -407,7 +408,7 @@ def addConWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
 	    massFactor=1.0e3,
 	    lengthFactor=1.0e-3,
 	    pressureFactor=1.0e6,
-	    name='IntProp-1',)
+	    name='conWep',)
 
 	#Source Point
 	feature = M.rootAssembly.ReferencePoint(point=coordinates)
@@ -419,8 +420,8 @@ def addConWep(modelName, TNT, blastType, coordinates,timeOfBlast, stepName):
 
 	#Create ineraction
 	M.IncidentWave(createStepName=stepName, definition=CONWEP, 
-	    detonationTime=timeOfBlast, interactionProperty='IntProp-1',
-	 	name='Int-1',
+	    detonationTime=timeOfBlast, interactionProperty='conWep',
+	 	name='conWep',
 	    sourcePoint=M.rootAssembly.sets['Source'], 
 	    surface=M.rootAssembly.surfaces['blastSurf'])
 

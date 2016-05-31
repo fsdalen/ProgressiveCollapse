@@ -31,7 +31,7 @@ y                    = 1			#nr of stories
 #=========== Step  ============#
 quasiTime            = 0.01 #3.0
 blastTime            = 0.01 #1.0
-#freeTime			 = 0.1
+freeTime			 = 0.1
 
 qsSmoothFactor       = 0.75
 
@@ -60,7 +60,7 @@ animeFrameRate       = 40
 
 qsIntervals          = 40
 blastIntervals       = 500
-#freeIntervals		 = 20
+freeIntervals		 = 20
 
 
 
@@ -153,13 +153,13 @@ for load in loads:
 
 #The free step after the blast step does not work for some stupid reason
 #The analyis won't even start because of some amplitude defenition is not found
-# #=========== Free step  ============#
-# #Create step
-# oldStep = stepName
-# stepName = 'free'
-# M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-#     timePeriod=freeTime)
-# M.ExplicitDynamicsStep(name='Step-3', previous='blast')
+#=========== Free step  ============#
+#Create step
+oldStep = stepName
+stepName = 'free'
+M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
+    timePeriod=freeTime)
+M.ExplicitDynamicsStep(name='Step-3', previous='blast')
 
 
 
