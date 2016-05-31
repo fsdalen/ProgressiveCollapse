@@ -10,18 +10,22 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'shellIncidentWaveConWepAmpReflected'
+mdbName     = 'shellConWep'
 cpus        = 1			#Number of CPU's
-monitor     = 1
+monitor     = 0
 
+run         = 0
 
-run         = 1
 blastTime   = 0.02
 TNT         = 1.0	#tonns of tnt
-seed 		= 150.0
+
+
+seed        = 150.0
+steelMatFile= 'mat_15.inp'
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL
+
 
 #Post
 defScale    = 1.0
@@ -54,7 +58,7 @@ concrete = 'Concrete'
 rebarSteel = 'Rebar Steel'
 
 #Set up model with materials
-func.perliminary(monitor, modelName)
+func.perliminary(monitor, modelName, steelMatFile)
 
 M=mdb.models[modelName]
 
@@ -78,12 +82,12 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 
 #CONWEP blast
 func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (-10000.0, 3000.0, 0.0),
+	coordinates = (-10000.0, 0.0, 0.0),
 	timeOfBlast =0.0, stepName=stepName)
 
-# Incident wave
+# #Incident wave
 # func.addIncidentWave(modelName, stepName,
-# 	AmpFile = 'conwepReflected.txt',
+# 	AmpFile = 'blastAmp.txt',
 # 	sourceCo = (-10000.0, 0.0, 0.0),
 # 	refCo = (-1000.0, 0.0, 0.0))
 	
@@ -117,11 +121,29 @@ M.FieldOutputRequest(name='damage',
 del M.historyOutputRequests['H-Output-1']
 
 
-#Create U history output
-regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['mid']
-M.HistoryOutputRequest(name='displacement', 
+#U1 history output
+regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['mid-side']
+M.HistoryOutputRequest(name='U1-midSide', 
     createStepName=stepName, variables=('U1', ), region=regionDef, 
-    sectionPoints=DEFAULT, rebar=EXCLUDE, numIntervals=histIntervals)
+    numIntervals=histIntervals)
+regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['mid-back']
+M.HistoryOutputRequest(name='U1-midBack', 
+    createStepName=stepName, variables=('U1', ), region=regionDef, 
+    numIntervals=histIntervals)
+regionDef=M.rootAssembly.allInstances['Part-1-1'].sets['mid-front']
+M.HistoryOutputRequest(name='U1-midFront', 
+    createStepName=stepName, variables=('U1', ), region=regionDef, 
+    numIntervals=histIntervals)
+
+#R1 history output
+M.HistoryOutputRequest(createStepName=stepName, name='R1-top', 
+	region= M.rootAssembly.allInstances['Part-1-1'].sets['top'],
+	variables=('RF1', ), numIntervals=histIntervals)
+M.HistoryOutputRequest(createStepName=stepName, name='R1-bot', 
+	region= M.rootAssembly.allInstances['Part-1-1'].sets['bot'],
+	variables=('RF1', ), numIntervals=histIntervals)
+
+
 
 
 #===========================================================#
@@ -154,9 +176,6 @@ if run:
 
 	print 'Post processing...'
 
-	#Clear plots
-	for plot in session.xyPlots.keys():
-		del session.xyPlots[plot]
 
 	#=========== Contour  ============#
 	# func.countourPrint(modelName, defScale, printFormat)
@@ -165,7 +184,7 @@ if run:
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	singleCol.xySimpleShell(modelName, printFormat)
+	singleCol.xyShell(modelName)
 	# singleCol.xySimpleIWCONWEP(modelName, printFormat)
 	print '   done'
 

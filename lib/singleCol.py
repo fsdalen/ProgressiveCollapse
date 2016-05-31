@@ -18,7 +18,7 @@ from lib import func as func
 #=========================================================#
 #=========================================================#
 
-def createSimpleBeamGeom(modelName, steel):
+def createSimpleBeamGeom(modelName, steel, seed):
 
 	M = mdb.models[modelName]
 	#================ Part ==================#
@@ -37,7 +37,7 @@ def createSimpleBeamGeom(modelName, steel):
 	airDensity = 1.225e-12    #1.225 kg/m^3
 	M.sections[sect1].setValues(useFluidInertia=ON,
 		fluidMassDensity=airDensity, crossSectionRadius=300.0, 
-	    lateralMassCoef=0.9) #1.2
+	    lateralMassCoef=1.0) #1.0
 
 
 	#Create part
@@ -87,7 +87,6 @@ def createSimpleBeamGeom(modelName, steel):
 	element1 = B31 #B31 or B32 for linear or quadratic
 
 	#Seed
-	seed=150.0
 	M.parts[part1].seedPart(minSizeFactor=0.1, size=seed)
 
 	#Change element type
@@ -106,7 +105,6 @@ def createSimpleBeamGeom(modelName, steel):
 
 
 	#=========== Blast surface  ============#
-	M.rootAssembly
 	c1 = M.rootAssembly.instances['COLUMN-1'].edges
 	circumEdges1 = c1.findAt(((0.0, 525.0, 0.0), ), ((0.0, 2625.0, 0.0), ))
 	M.rootAssembly.Surface(circumEdges=circumEdges1, name='blastSurf')
@@ -126,44 +124,81 @@ def createSimpleBeamGeom(modelName, steel):
 	    localCsys=None)
 
 
+
+
+
 #=========== Post  ============#
 
-def xySimpleBeam(modelName):
+def xyBeam(modelName):
 
 	#Open ODB
 	odb = func.open_odb(modelName)
 
 
-	#=========== Force-displacement  ============#
-	plotName='force-Disp'
+	#=========== Displacemnet  ============#
+	#Get node numbers
+	nodeNr = odb.rootAssembly.instances['COLUMN-1'].\
+		nodeSets['COL-MID'].nodes[0].label
+
+	#Create names
+	name = 'Spatial displacement: U1 PI: COLUMN-1 Node '+\
+		str(nodeNr)+' in NSET COL-MID'
 	
-	rf1 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
-	rf2 = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
-	u = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
+	#Get xy data
+	xyU1mid = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName=name)
+	
+	func.XYplot(modelName,
+		plotName = 'U1mid',
+		xHead='Time [s]',
+		yHead='Displacement [mm]',
+		xyDat=xyU1mid)
+	
 
-	fdData = combine(u, -(rf1+rf2))
+	#=========== Reaction Force  ============#
+	#Get node numbers
+	topNodeNr = odb.rootAssembly.instances['COLUMN-1'].\
+		nodeSets['COL-TOP'].nodes[0].label
+	baseNodeNr = odb.rootAssembly.instances['COLUMN-1'].\
+		nodeSets['COL-BASE'].nodes[0].label
 
-	func.XYplot(modelName, plotName,
-		xHead='Displacement [mm]',
-		yHead='Force [kN]',
-		xyDat=fdData)
+	#Create names
+	topName = 'Reaction force: RF1 PI: COLUMN-1 Node '+\
+		str(topNodeNr)+' in NSET COL-TOP'
+	baseName = 'Reaction force: RF1 PI: COLUMN-1 Node '+\
+		str(baseNodeNr)+' in NSET COL-BASE'
+
+	#Get xy data
+	xyR1top = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName=topName)
+	xyR1base = xyPlot.XYDataFromHistory(odb=odb, 
+		outputVariableName=baseName)
+
+	xyR1tot = sum(xyR1top,xyR1base)
 
 	func.XYplot(modelName,
-		plotName = 'midU1',
+		plotName = 'R1',
+		xHead='Time [s]',
+		yHead='Force [N]',
+		xyDat=xyR1tot)
+
+	# #=========== Force-displacement  ============#
+	# plotName='force-Disp'
+	
+	# rf1 = xyPlot.XYDataFromHistory(odb=odb, 
+	# 	outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 1 in NSET COL-BASE')
+	# rf2 = xyPlot.XYDataFromHistory(odb=odb, 
+	# 	outputVariableName='Reaction force: RF1 PI: COLUMN-1 Node 3 in NSET COL-TOP')
+	# u = xyPlot.XYDataFromHistory(odb=odb, 
+	# 	outputVariableName='Spatial displacement: U1 PI: COLUMN-1 Node 2 in NSET COL-MID')
+
+	xyUR = combine(xyU1mid, -xyR1tot)
+
+	func.XYplot(modelName,
+		plotName = 'ForceDisp',
 		xHead='Displacement [mm]',
-		yHead='Force [kN]',
-		xyDat=u)
-
-
-
-
-
-
-
-
+		yHead='Force [N]',
+		xyDat=xyUR)
 
 
 
@@ -193,7 +228,7 @@ def createSimpleShellGeom(modelName, steel, seed):
 
 
 	thickness=10.0 	#Thickness of section
-	width=300.0-thickness
+	width=300.0
 	hight= 3000.0
 
 
@@ -218,10 +253,10 @@ def createSimpleShellGeom(modelName, steel, seed):
 	del M.sketches['__profile__']
 
 	#Assign section
-	faces =M.parts['Part-1'].faces.findAt(((-145.0, 
-		-48.333333, 0.0), (-1.0, 0.0, 0.0)), ((-48.333333, 145.0, 
-		0.0), (0.0, 1.0, 0.0)), ((145.0, 48.333333, 0.0),
-		(1.0, 0.0, 0.0)), ((48.333333, -145.0, 0.0),
+	faces =M.parts['Part-1'].faces.findAt(((-150.0, 
+		-48.333333, 0.0), (-1.0, 0.0, 0.0)), ((-48.333333, 150.0, 
+		0.0), (0.0, 1.0, 0.0)), ((150.0, 48.333333, 0.0),
+		(1.0, 0.0, 0.0)), ((48.333333, -150.0, 0.0),
 		(0.0, -1.0, 0.0)), )
 
 	M.parts['Part-1'].SectionAssignment(offset=0.0, offsetField=
@@ -231,35 +266,55 @@ def createSimpleShellGeom(modelName, steel, seed):
 	#Create sets
 	M.parts['Part-1'].Set(edges=
 	    M.parts['Part-1'].edges.findAt(
-	    ((-145.0, -72.5, 0.0), ),
-	    ((-72.5, 145.0, 0.0), ),
-	    ((145.0, 72.5, 0.0), ),
-	    ((72.5, -145.0, 0.0), ), ),
+	    ((-150.0, -72.5, 0.0), ),
+	    ((-72.5, 150.0, 0.0), ),
+	    ((150.0, 72.5, 0.0), ),
+	    ((72.5, -150.0, 0.0), ), ),
 	    name='bot')
 
 	M.parts['Part-1'].Set(edges=
 	    M.parts['Part-1'].edges.findAt(
-	    ((-145.0, -72.5, 3000.0), ),
-	    ((-72.5, 145.0, 3000.0), ),
-	    ((145.0, 72.5, 3000.0), ),
-	    ((72.5, -145.0, 3000.0), ), ),
+	    ((-150.0, -72.5, 3000.0), ),
+	    ((-72.5, 150.0, 3000.0), ),
+	    ((150.0, 72.5, 3000.0), ),
+	    ((72.5, -150.0, 3000.0), ), ),
 	    name='top')
 
+	#Partition to obtain geometric points
 	M.parts['Part-1'].DatumPlaneByPrincipalPlane(offset=
 	    1500.0, principalPlane=XYPLANE)
 	M.parts['Part-1'].PartitionFaceByDatumPlane(datumPlane=
 	    M.parts['Part-1'].datums[5], faces=
-	    M.parts['Part-1'].faces.findAt(((-48.333333, 145.0, 
-	    2000.0), )))
+	    M.parts['Part-1'].faces.findAt(
+	    (( -50.0, 150.0, 2000.0),),
+	    ((-150.0, -50.0, 2000.0),),
+	    (( 150.0,  50.0, 2000.0),), ))
 	M.parts['Part-1'].PartitionEdgeByPoint(edge=
-	    M.parts['Part-1'].edges.findAt((72.5, 145.0, 
-	    1500.0), ), point=
-	    M.parts['Part-1'].InterestingPoint(
-	    M.parts['Part-1'].edges.findAt((72.5, 145.0, 
-	    1500.0), ), MIDDLE))
-	M.parts['Part-1'].Set(name='mid', vertices=
-	    M.parts['Part-1'].vertices.findAt(((0.0, 145.0, 
-	    1500.0), )))
+	    M.parts['Part-1'].edges.findAt(
+	    (72.5, 150.0, 1500.0), ),
+	    point=M.parts['Part-1'].InterestingPoint(
+	    M.parts['Part-1'].edges.findAt(
+	    (72.5, 150.0, 1500.0), ), MIDDLE))
+	M.parts['Part-1'].PartitionEdgeByPoint(edge=
+	    M.parts['Part-1'].edges.findAt(
+	    (-150.0, 75.0, 1500.0), ),
+	    point=M.parts['Part-1'].InterestingPoint(
+	    M.parts['Part-1'].edges.findAt(
+	    (-150.0, 75.0, 1500.0), ), MIDDLE))
+	M.parts['Part-1'].PartitionEdgeByPoint(edge=
+	    M.parts['Part-1'].edges.findAt(
+	    (150.0, -75.0, 1500.0), ),
+	    point=M.parts['Part-1'].InterestingPoint(
+	    M.parts['Part-1'].edges.findAt(
+	    (150.0, -75.0, 1500.0), ), MIDDLE))
+
+	#Mid sets
+	M.parts['Part-1'].Set(name='mid-side', vertices=
+	    M.parts['Part-1'].vertices.findAt(((0.0, 150.0, 1500.0), )))
+	M.parts['Part-1'].Set(name='mid-back', vertices=
+	    M.parts['Part-1'].vertices.findAt(((150.0, 0.0, 1500.0), )))
+	M.parts['Part-1'].Set(name='mid-front', vertices=
+	    M.parts['Part-1'].vertices.findAt(((-150.0, 0.0, 1500.0), )))
 
 
 	# #=========== Small plate just for pressure output  ============#
@@ -309,25 +364,28 @@ def createSimpleShellGeom(modelName, steel, seed):
 
 	#Create surfaces
 	M.rootAssembly.Surface(name='front', side1Faces=
-	    M.rootAssembly.instances['Part-1-1'].faces.findAt(
-	    ((-145.0, 0.0, 48.333333), ),))
+    	M.rootAssembly.instances['Part-1-1'].faces.findAt(
+    	((-150.0, 1000.0,  50.0), ),
+    	((-150.0, 2000.0, -50.0), ), ))
 	M.rootAssembly.Surface(name='back', side1Faces=
 	    M.rootAssembly.instances['Part-1-1'].faces.findAt(
-	    ((145.0, 0.0, -48.333333), ),))
+	    ((150.0, 2000.0,  50.0), ),
+	    ((150.0, 1000.0, -50.0), ), ))
 	M.rootAssembly.Surface(name='sides', side1Faces=
 	    M.rootAssembly.instances['Part-1-1'].faces.findAt(
-	    ((-48.333333, 0.0, -145.0), ), 
-	    ((48.333333, 0.0, 145.0), ),
-	    ((-48.333333, 2000.0, -145.0), ),))
+	    ((-50.0,    0.0, -150.0), ), 
+	    (( 50.0,    0.0,  150.0), ),
+	    ((-50.0, 2000.0, -150.0), ),))
 	# M.rootAssembly.Surface(name='smallPlate', side1Faces=
 	# 	M.rootAssembly.instances['Part-2-1'].faces.findAt(
 	# 	((-1000.0, 25.0, -25.0), )))
 
 	#Join surfaces to blast surface
 	M.rootAssembly.SurfaceByBoolean(name='blastSurf', 
-	    surfaces=(M.rootAssembly.surfaces['back'], 
-	    M.rootAssembly.surfaces['front'], 
-	    M.rootAssembly.surfaces['sides']))
+	    surfaces=(
+	    M.rootAssembly.surfaces['back'], 
+	    M.rootAssembly.surfaces['sides'], 
+	    M.rootAssembly.surfaces['front'],))
 	
 
 	#=========== Mesh  ============#
@@ -335,12 +393,6 @@ def createSimpleShellGeom(modelName, steel, seed):
     minSizeFactor=0.1, size=seed)
 	M.parts['Part-1'].generateMesh()
 	
-	#Create set for mid nodes
-	nodes = M.parts['Part-1'].nodes[101:102]+\
-		M.parts['Part-1'].nodes[120:121]+\
-		M.parts['Part-1'].nodes[139:140]+\
-		M.parts['Part-1'].nodes[158:159]
-	M.parts['Part-1'].Set(nodes = nodes, name = 'midNodes')
 
 	#=========== BC  ============#
 	#Fix ends
@@ -390,7 +442,7 @@ def pressureLoad(modelName, stepName, ampFile, surf):
 				table.append((float(row[0]), float(row[1])))
 				blastTime = float(row[0])
 	tpl = tuple(table)
-	M.TabularAmplitude(name='Blast', timeSpan=STEP, 
+	M.TabularAmplitude(name='blast', timeSpan=STEP, 
 	   	smooth=SOLVER_DEFAULT, data=(tpl))
 
 
@@ -410,30 +462,111 @@ def pressureLoad(modelName, stepName, ampFile, surf):
 #=========== Post  ============#
 
 
-def xySimpleShell(modelName, printFormat):
-
-	plotName = 'midU1'
-
+def xyShell(modelName):
+	'''
+	Prints xy data for displacment at mid col, forces at top
+	and force-displacemnt
+	'''
 
 	#Open ODB
 	odb = func.open_odb(modelName)
 
-	try:
-		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-		    outputVariableName='Spatial displacement: U1 PI: PART-1-1 Node 4 in NSET MID', 
-		    )
-	except:
-		xy1 = xyPlot.XYDataFromHistory(odb=odb, 
-	    	outputVariableName='Spatial displacement: U1 at Node 4 in NSET MID', )
-	c1 = session.Curve(xyData=xy1)
 
-	#Plot and Print
-	func.XYprint(modelName, plotName, printFormat, c1)
-	#Report
-	tempFile = 'temp.txt'
-	session.writeXYReport(fileName=tempFile, appendMode=OFF, xyData=(xy1, ))
-	func.fixReportFile(tempFile, 'otherMiddleU1', modelName,
-		x='Time [s]', y='Displacement [mm]')
+	#=========== Displament at mid col  ============#
+	
+	#Get node numbers
+	sideNodeNr=odb.rootAssembly.instances['PART-1-1'].\
+		nodeSets['MID-SIDE'].nodes[0].label
+	# backNodeNr=odb.rootAssembly.instances['PART-1-1'].\
+	# 	nodeSets['MID-BACK'].nodes[0].label
+	# frontNodeNr=odb.rootAssembly.instances['PART-1-1'].\
+	# 	nodeSets['MID-FRONT'].nodes[0].label
+
+	#Create output names
+	sideName= 'Spatial displacement: U1 PI: PART-1-1 Node '+str(sideNodeNr)+\
+		' in NSET MID-SIDE'
+	# backName= 'Spatial displacement: U1 PI: PART-1-1 Node '+str(backNodeNr)+\
+	# 	' in NSET MID-BACK'
+	# frontName='Spatial displacement: U1 PI: PART-1-1 Node '+str(frontNodeNr)+\
+	# 	' in NSET MID-FRONT'
+
+	#Get xy data
+	xyU1side = xyPlot.XYDataFromHistory(odb=odb,
+		outputVariableName=sideName, name='U1midSide')
+	# xyU1back = xyPlot.XYDataFromHistory(odb=odb,
+	# 	outputVariableName=backName, name='U1midBack')
+	# xyU1front = xyPlot.XYDataFromHistory(odb=odb,
+	# 	outputVariableName=frontName, name='U1midFront')
+		
+	#Print to file
+	func.XYplot(modelName, plotName = 'U1midSide',
+		xHead='Time [s]', yHead='Displacement [mm]',
+		xyDat= xyU1side)
+	# func.XYplot(modelName, plotName = 'U1midBack',
+	# 	xHead='Time [s]', yHead='Displacement [mm]',
+	# 	xyDat= xyU1back)
+	# func.XYplot(modelName, plotName = 'U1midFront',
+	# 	xHead='Time [s]', yHead='Displacement [mm]',
+	# 	xyDat= xyU1front)
+
+
+	#=========== R2 at top and bot  ============#
+	#Get node numbers
+	topNodeNr =[]
+	for nodes in odb.rootAssembly.instances['PART-1-1'].nodeSets['TOP'].nodes:
+		topNodeNr.append(nodes.label)
+	botNodeNr =[]
+	for nodes in odb.rootAssembly.instances['PART-1-1'].nodeSets['BOT'].nodes:
+		botNodeNr.append(nodes.label)
+
+	#Create output names
+	topNames = []
+	for nr in topNodeNr:
+		topNames.append('Reaction force: RF1 PI: PART-1-1 Node '
+			+str(nr)+' in NSET TOP')
+	botNames = []
+	for nr in botNodeNr:
+		botNames.append('Reaction force: RF1 PI: PART-1-1 Node '
+			+str(nr)+' in NSET BOT')
+
+	#Get xy data
+	xyTopLst = []
+	for name in topNames:
+		xyTopLst.append(xyPlot.XYDataFromHistory(odb=odb, 
+			outputVariableName=name))
+	xyTopTup = tuple(xyTopLst)
+	xyBotLst = []
+	for name in botNames:
+		xyBotLst.append(xyPlot.XYDataFromHistory(odb=odb, 
+			outputVariableName=name))
+	xyBotTup = tuple(xyBotLst)
+	
+	xyR1Top = sum(xyTopTup)
+	xyR1Bot = sum(xyBotTup)
+	xyR1Tot = sum(xyR1Top,xyR1Bot)
+
+	#Print to file
+	func.XYplot(modelName, plotName = 'R1top',
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat= xyR1Top)
+	func.XYplot(modelName, plotName = 'R1bot',
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat= xyR1Bot)
+	func.XYplot(modelName, plotName = 'R1',
+		xHead='Time [s]', yHead='Force [N]',
+		xyDat= xyR1Tot)
+
+
+	#=========== Force Displacement  ============#
+	xyRU = combine(xyU1side,-xyR1Tot)		
+	func.XYplot(modelName, plotName = 'forceDisp',
+		xHead='Displacment [mm]', yHead='Force [N]',
+		xyDat= xyRU)
+	
+
+
+
+
 
 
 

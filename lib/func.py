@@ -103,6 +103,7 @@ def simpleCB(jobName, messageType, data, userData):
 		memberValue = getattr(data, member)
 		memberType = type(memberValue).__name__
 		print format%(member, memberType, memberValue)
+
 def printStatus(start=ON):
     """
     Switch message printing ON or OFF

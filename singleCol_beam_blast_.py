@@ -10,20 +10,22 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'simpleBeamBlast09fluidInertia'
+mdbName        = 'beamIncident'
 cpus           = 1			#Number of CPU's
-monitor        = 1
+monitor        = 0
 
+run            = 0
 
-run            = 1
-blastTime      = 0.1	#Takes around 0.03 for the wave to pass the building
+blastTime      = 0.02	#Takes around 0.03 for the wave to pass the building
 
+seed           = 150.0
+steelMatFile   = 'mat_15.inp'
 
 #Post
 defScale       = 1.0
 printFormat    = PNG 	#TIFF, PS, EPS, PNG, SVG
-fieldIntervals = 30
-histIntervals  = 500
+fieldIntervals = 1000
+histIntervals  = 1000
 animeFrameRate = 5
 
 
@@ -49,7 +51,7 @@ concrete = 'Concrete'
 rebarSteel = 'Rebar Steel'
 
 #Set up model with materials
-func.perliminary(monitor, modelName)
+func.perliminary(monitor, modelName, steelMatFile)
 
 M=mdb.models[modelName]
 
@@ -63,7 +65,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-singleCol.createSimpleBeamGeom(modelName, steel)
+singleCol.createSimpleBeamGeom(modelName, steel, seed)
 
 
 #Create setp
@@ -75,8 +77,8 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 #Create blast
 func.addIncidentWave(modelName, stepName,
 	AmpFile= 'blastAmp.txt',
-	sourceCo = (-10000.0, 100.0, 0.0),
-	refCo = (-1000.0, 100.0, 0.0))
+	sourceCo = (-10000.0, 0.0, 0.0),
+	refCo = (-1000.0, 0.0, 0.0))
 
 
 
@@ -160,7 +162,7 @@ if run:
 	# func.animate(modelName, defScale, frameRate= animeFrameRate)
 	
 	#=========== XY  ============#
-	singleCol.xySimpleBeam(modelName)
+	singleCol.xyBeam(modelName)
 
 	print '   done'
 

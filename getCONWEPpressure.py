@@ -31,7 +31,7 @@ from lib import func as func
 modelName = 'ConWepPressure'
 run       = 1
 TNT       = 1.0 	#(tonn)
-standoff  = 9000.0
+standoff  = 19000.0
 intervals = 1000
 blastType = SURFACE_BLAST	#AIR_BLAST or SURFACE_BLAST
 
@@ -197,31 +197,17 @@ odb = func.open_odb(modelName)
 #Get xy data
 xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=ELEMENT_FACE, 
     variable=(('IWCONWEP', ELEMENT_FACE), ), elementSets=('FRONT', 'SIDE' ))
-xy1 = xyList[0]
-c1 = session.Curve(xyData=xy1)
-xy2 = xyList[1]
-c2 = session.Curve(xyData=xy2)
-# xyList = xyPlot.xyDataListFromField(odb=odb, outputPosition=ELEMENT_FACE, 
-#     variable=(('IWCONWEP', ELEMENT_FACE), ), elementSets=('SIDE', ))
-# xy2 = xyList[0]
-# c2 = session.Curve(xyData=xy2)
+xy1 = xyList[0] #IncidentPressure
+xy2 = xyList[1] #Reflected pressure
 
-#Plot incident- and reflected pressure
+#Print to file
+func.XYplot(modelName,
+    plotName = 'incidentPressure'+str(int(standoff/1000))+'m',
+    xHead='Time [s]', yHead='Pressure [MPa]',
+    xyDat= xy1)
+func.XYplot(modelName, 
+    lotName = 'reflectedPressure'+str(int(standoff/1000))+'m',
+    xHead='Time [s]', yHead='Pressure [MPa]',
+    xyDat= xy2)
 
-plotName= 'incidentPressure'
-printFormat = PNG
-# func.XYprint(modelName, plotName, printFormat, c1)
-session.writeXYReport(fileName='temp.txt', appendMode=OFF, xyData=(xy1, ))
-func.fixReportFile(reportFile = 'temp.txt',
-	plotName = modelName, modelName=plotName,
-	x='Time [s]', y = 'Pressure [MPa]')
-
-
-
-plotName = 'reflectedPressure'
-# func.XYprint(modelName, plotName, printFormat, c2)
-session.writeXYReport(fileName='temp.txt', appendMode=OFF, xyData=(xy2, ))
-func.fixReportFile(reportFile = 'temp.txt',
-	plotName = modelName, modelName=plotName, 
-	x='Time [s]', y = 'Pressure [MPa]')
 
