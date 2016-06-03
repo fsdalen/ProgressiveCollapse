@@ -257,8 +257,37 @@ def setOutputIntervals(modelName,stepName, interval):
 			numIntervals=interval)
 
 
+def changeHistoryOutputFreq(modelname, **kwargs):
+	'''
+	Changes the history output frequency for in all history outputs
+	
+	Input:
+	modelName
+	stepName=freq, stepName2=freq2...
+	'''
 
+	M=mdb.models[modelname]
 
+	for step in kwargs:
+		for hstOtpt in M.historyOutputRequests.keys():
+			M.historyOutputRequests[hstOtpt].setValuesInStep(
+				stepName=step, numIntervals=kwargs[step])
+
+def changeFieldOutputFreq(modelname, **kwargs):
+	'''
+	Changes the field output frequency for all field outputs
+	
+	Input:
+	modelName
+	stepName=freq, stepName2=freq2...
+	'''
+
+	M=mdb.models[modelname]
+
+	for step in kwargs:
+		for fieldOtpt in M.fieldOutputRequests.keys():
+			M.fieldOutputRequests[fieldOtpt].setValuesInStep(
+				stepName=step, numIntervals=kwargs[step])
 
 
 
@@ -717,10 +746,10 @@ def runJob(jobName):
 	#View odb in viewport
 	V=session.viewports['Viewport: 1']
 	V.setValues(displayedObject=odb)
-	V.odbDisplay.display.setValues(plotState=(
-		CONTOURS_ON_DEF, ))
-	V.odbDisplay.commonOptions.setValues(
-		deformationScaling=UNIFORM, uniformScaleFactor=1)
+	# V.odbDisplay.display.setValues(plotState=(
+	# 	CONTOURS_ON_DEF, ))
+	# V.odbDisplay.commonOptions.setValues(
+	# 	deformationScaling=UNIFORM, uniformScaleFactor=1)
 
 
 
@@ -969,13 +998,6 @@ def xyEnergyPlot(modelName):
 
 	#Open ODB
 	odb = open_odb(modelName)
-
-	#External Work
-	xyEW = xyPlot.XYDataFromHistory(odb=odb, 
-		outputVariableName='External work: ALLWK for Whole Model', 
-		suppressQuery=True, name='xyEW')
-	XYplot(modelName, plotName='ExternalWork',
-		xHead='Time [s]', yHead='Work [mJ]', xyDat=xyEW)
 
 	#Internal Work
 	xyIW = xyPlot.XYDataFromHistory(odb=odb, 

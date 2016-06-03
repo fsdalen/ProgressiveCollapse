@@ -1,7 +1,7 @@
 #Abaqus modules
 from abaqus import *
 from abaqusConstants import *
-
+from mesh import *
 
 #=======================================================#
 #=======================================================#
@@ -10,8 +10,8 @@ from abaqusConstants import *
 #=======================================================#
 
 
-modelName            = 'shellBlast'
-cpus                 = 1			#Number of CPU's
+modelName            = 'shellBlastS4RS'
+cpus                 = 8			#Number of CPU's
 
 run                  = 1
 
@@ -19,52 +19,48 @@ run                  = 1
 
 
 
-
-
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x                    = 2			#Nr of columns in x direction
-z                    = 2			#Nr of columns in z direction
-y                    = 1			#nr of stories
+x                    = 4			#Nr of columns in x direction
+z                    = 4			#Nr of columns in z direction
+y                    = 5			#nr of stories
 
 
 #=========== Step  ============#
-quasiTime            = 0.01 #3.0
-blastTime            = 0.01 #1.0
-freeTime			 = 0.1
+quasiTime            = 3.0
+blastTime            = 2.1
+
 
 qsSmoothFactor       = 0.75
 
-TNT                  = 1.0	#tonns of tnt
-blastCol             = 'B2-1'
+TNT                  = 1.0	         #tonns of tnt
+blastCol             = 'D4-1'
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt  = SINGLE #SINGLE or FULL
 
 
 #=========== General  ============#
-monitor        = 0			#Write status of job continusly in Abaqus CAE
+monitor               = 0			#Write status of job continusly in Abaqus CAE
 
 #Live load
-LL_kN_m              = -0.5	    #kN/m^2 (-2.0)
+LL_kN_m              = -0.5	        #kN/m^2 (-2.0)
 
 #Mesh
-seed                 = 150		#Global seed
+seed                 = 150		    #Global seed
 slabSeedFactor 		 = 8			#Change seed of slab
 steelMatFile   = 'mat_15.inp'  #Damage parameter is a function of element size
 
 #Post
 defScale             = 1.0
-printFormat          = PNG 		#TIFF, PS, EPS, PNG, SVG
+printFormat          = PNG 		     #TIFF, PS, EPS, PNG, SVG
 animeFrameRate       = 40
 
-qsIntervals          = 40
-blastIntervals       = 500
-freeIntervals		 = 20
+qsIntervals          = 100
+blastIntervals       = 300
 
-
-
-
+qsFieldIntervals     = 6
+blastFieldIntervals  = 44
 
 #==========================================================#
 #==========================================================#
@@ -107,7 +103,7 @@ shell.createShellmod(modelName, x, z, y,seed, slabSeedFactor)
 #=========== Quasi-static step  ============#
 
 oldStep = 'Initial'
-stepName = 'quasi-static'
+stepName = 'quasiStatic'
 M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
     timePeriod=quasiTime)
 
@@ -149,18 +145,18 @@ for load in loads:
 	M.loads[load].setValuesInStep(stepName=stepName, amplitude=FREED)
 
 
-
-
-#The free step after the blast step does not work for some stupid reason
-#The analyis won't even start because of some amplitude defenition is not found
-#=========== Free step  ============#
-#Create step
-oldStep = stepName
-stepName = 'free'
-M.ExplicitDynamicsStep(name=stepName, previous=oldStep, 
-    timePeriod=freeTime)
-M.ExplicitDynamicsStep(name='Step-3', previous='blast')
-
+#Change element type to S4RS
+M.parts['SLAB'].setElementType(elemTypes=(ElemType(
+    elemCode=S4RS, elemLibrary=EXPLICIT, secondOrderAccuracy=OFF, 
+    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=EXPLICIT)), 
+    regions=(M.parts['SLAB'].faces.findAt(((2400.0, 
+    2500.0, 0.0), )), ))
+M.parts['FRAME'].setElementType(elemTypes=(ElemType(
+    elemCode=S4RS, elemLibrary=EXPLICIT, secondOrderAccuracy=OFF, 
+    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=EXPLICIT, 
+    secondOrderAccuracy=OFF)), regions=(
+    M.parts['FRAME'].faces.getSequenceFromMask((
+    '[#ffffffff:41 #ffffff ]', ), ), ))
 
 
 
@@ -173,53 +169,33 @@ M.rootAssembly.regenerate()
 #=====================================================#
 
 
-#Frequency of field output
-M.fieldOutputRequests['F-Output-1'].setValues(
-	numIntervals=qsIntervals)
-M.fieldOutputRequests['F-Output-1'].setValuesInStep(
-    stepName='blast', numIntervals=blastIntervals)
-# M.fieldOutputRequests['F-Output-1'].setValuesInStep(
-#     stepName='free', numIntervals=freeIntervals)
-
-#Field output: damage
-M.FieldOutputRequest(name='damage', 
-    createStepName='blast', variables=('SDEG', 'DMICRT', 'STATUS'),
-    numIntervals=blastIntervals)
-#Field output: damage
-# M.fieldOutputRequests['damage'].setValuesInStep(
-#     stepName='free', numIntervals=freeIntervals)
-
-
-#Delete default history output
+#Detete default output
+del M.fieldOutputRequests['F-Output-1']
 del M.historyOutputRequests['H-Output-1']
+
+
+#Displacement field output
+M.FieldOutputRequest(name='U', createStepName='quasiStatic', 
+    variables=('U', ))
+
+# #Status field output
+# M.FieldOutputRequest(name='Status', createStepName='quasiStatic', 
+#     variables=('STATUS', ))
 
 
 #History output: energy
 M.HistoryOutputRequest(name='Energy', 
-	createStepName='quasi-static', variables=('ALLIE', 'ALLKE', 'ALLWK'),
-	numIntervals = qsIntervals)
-M.historyOutputRequests['Energy'].setValuesInStep(
-    stepName='blast', numIntervals=blastIntervals)
-# M.historyOutputRequests['Energy'].setValuesInStep(
-#     stepName='free', numIntervals=freeIntervals)
+	createStepName='quasiStatic', variables=('ALLIE', 'ALLKE'),)
 
 #R2 history at colBases
-M.HistoryOutputRequest(createStepName='quasi-static', name='R2',
+M.HistoryOutputRequest(createStepName='quasiStatic', name='R2',
 	region=M.rootAssembly.allInstances['FRAME-1'].sets['colBot'],
     variables=('RF2', ))
-M.historyOutputRequests['R2'].setValuesInStep(
-    stepName='blast', numIntervals=blastIntervals)
-# M.historyOutputRequests['R2'].setValuesInStep(
-#     stepName='free', numIntervals=freeIntervals)
 
 #U at top of column blastCol
-shell.histColTopU(modelName, stepName='quasi-static', column=blastCol)
+shell.histColTopU(modelName, stepName='quasiStatic', column=blastCol)
 M.historyOutputRequests['colTopU'].setValuesInStep(
-    stepName='quasi-static', numIntervals=blastIntervals)
-M.historyOutputRequests['colTopU'].setValuesInStep(
-    stepName='blast', numIntervals=blastIntervals)
-# M.historyOutputRequests['colTopU'].setValuesInStep(
-#     stepName='free', numIntervals=freeIntervals)
+    stepName='quasiStatic')
 
 
 # #U2 at slab center (A1-1 slab)
@@ -228,6 +204,13 @@ M.historyOutputRequests['colTopU'].setValuesInStep(
 # M.HistoryOutputRequest(createStepName=stepName, name='U2', 
 # 	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
 
+
+
+#Change frequency of output for all steps
+func.changeHistoryOutputFreq(modelName,
+	quasiStatic=qsIntervals, blast = blastIntervals)
+func.changeFieldOutputFreq(modelName,
+	quasiStatic=qsFieldIntervals, blast = blastFieldIntervals)
 
 
 #===========================================================#

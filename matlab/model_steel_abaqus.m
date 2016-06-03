@@ -17,7 +17,7 @@ epspl  =  0.024; %yield plateau strain
 %%-----------------------------------------------------------------------%%
 % Define element shape
 %%-----------------------------------------------------------------------%%
-leote = 7.5; %ratio between the in-plane size and the thickness of the shell
+leote = 3.75; %ratio between the in-plane size and the thickness of the shell
 
 
 %%-----------------------------------------------------------------------%%

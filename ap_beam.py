@@ -10,23 +10,23 @@ from abaqusConstants import *
 #=======================================================#
 
 
-apModelName    = 'apBeam'
-cpus           = 1			#Number of CPU's
+apModelName    = 'apBeamCollapse'
+cpus           = 8			#Number of CPU's
 
-run            = 1
+run            = 0
 
 parameter      = 0
 runPara		   = 0
 
-forceCollapse  = 0
+forceCollapse  = 1
 
 
 
 #=========== Geometry  ============#
 #Size
-x              = 2			#Nr of columns in x direction
-z              = 2			#Nr of columns in z direction
-y              = 1			#nr of stories
+x              = 4			#Nr of columns in x direction
+z              = 4			#Nr of columns in z direction
+y              = 5			#nr of stories
 
 
 #=========== Static model  ============#
@@ -37,11 +37,11 @@ static_maxInc  = 50 		#Maximum number of increments
 
 
 #=========== Explicit AP model  ============#
-APMcol         = 'COLUMN_B2-1'		#Column to be removed
+APMcol         = 'COLUMN_D4-1'		#Column to be removed
 
-qsTime         = 0.01 #3.0 				#Quasi static time
+qsTime         = 3.0 			#Quasi static time
 rmvStepTime    = 20e-3				#How fast to remove column forces
-dynStepTime    = 0.01 #4.00			#Length of free dynamic step
+dynStepTime    = 4.00   	    #Length of free dynamic step (collapse:4.0)
 
 qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
 
@@ -51,8 +51,8 @@ nodalOpt = SINGLE #SINGLE or FULL
 
 
 #=========== Force collapse  ============#
-loadTime       = 0.01 #5.0
-loadFactor     = 5 #50.0
+loadTime       = 5.0
+loadFactor     = 35.0
 
 
 
@@ -74,10 +74,18 @@ defScale       = 1.0
 printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
 animeFrameRate = 40
 
+#History output intervals
 qsIntervals    = 100
-rmvIntervals   = 5
+rmvIntervals   = 2
 freeIntervals  = 200
-loadIntervals  = 200
+
+loadIntervals  = 20
+
+#Field output intervals
+qsFieldIntervals    = 6
+rmvFieldIntervals   = 1
+freeFieldIntervals  = 45
+loadFieldIntervals  = 500
 
 
 #==========================================================#
@@ -156,8 +164,13 @@ func.addSlabLoad(M, x, z, y, stepName, LL)
 
 
 #=========== Output  ============#
-#Delete default history output
+#Detete default output
+del M.fieldOutputRequests['F-Output-1']
 del M.historyOutputRequests['H-Output-1']
+
+#Displacement field output
+M.FieldOutputRequest(name='U', createStepName=stepName, 
+    variables=('U', ))
 
 #R2 at all col-bases
 M.HistoryOutputRequest(createStepName='static', name='R2',
@@ -263,37 +276,31 @@ func.addSlabLoad(M, x, z, y, stepName, load = LL,
 	amplitude = 'Smooth')
 
 
-#Frequency of field output
-M.fieldOutputRequests['F-Output-1'].setValues(
-	numIntervals=qsIntervals)
-#Field output: damage
-M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
-    numIntervals=qsIntervals)
-
-
-
-#Delete default history output
+#=========== Output  ============#
+#Detete default output
+del M.fieldOutputRequests['F-Output-1']
 del M.historyOutputRequests['H-Output-1']
+
+#Displacement field output
+M.FieldOutputRequest(name='U', createStepName=stepName, 
+    variables=('U', ))
+
+#Status field output
+M.FieldOutputRequest(name='Status', createStepName=stepName, 
+    variables=('STATUS', ))
 
 #History output: energy
 M.HistoryOutputRequest(name='Energy', 
-	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),
-	numIntervals=qsIntervals)
+	createStepName=stepName, variables=('ALLIE', 'ALLKE'))
 
 #History output: U2 at top of column removal
 M.HistoryOutputRequest(name=APMcol+'_top'+'U', 
 	createStepName=stepName, variables=('U2',), 
-	region=M.rootAssembly.allInstances[APMcol].sets['col-top'],
-	numIntervals=qsIntervals)
+	region=M.rootAssembly.allInstances[APMcol].sets['col-top'])
 
 #R2 at all col-bases
 M.HistoryOutputRequest(createStepName=stepName, name='R2',
-	region=M.rootAssembly.sets['col-bases'], variables=('RF2', ),
-	numIntervals=qsIntervals)
-
-
-
+	region=M.rootAssembly.sets['col-bases'], variables=('RF2', ))
 
 
 
@@ -321,17 +328,15 @@ M.TabularAmplitude(name='lin-dec', timeSpan=STEP,
 M.loads['Forces'].setValuesInStep(stepName=stepName, amplitude='lin-dec')
 M.loads['Moments'].setValuesInStep(stepName=stepName, amplitude='lin-dec')
 
-#Set output frequency of step
-func.setOutputIntervals(modelName,stepName, rmvIntervals)
 
 
 
 
-#=========== Dynamic step  ============#
+#=========== Free step  ============#
 
 #Create APM step
 oldStep = stepName
-stepName='dynamic'
+stepName='free'
 M.ExplicitDynamicsStep(name=stepName,timePeriod=dynStepTime,
 	previous=oldStep)
 
@@ -344,10 +349,12 @@ M.loads['Moments'].setValuesInStep(stepName=stepName,
 
 
 
-
-#Set output frequency of step
-func.setOutputIntervals(modelName,stepName, loadIntervals)
-
+#Change frequency of output for all steps
+func.changeHistoryOutputFreq(modelName,
+	quasiStatic=qsIntervals, forceRmv = rmvIntervals, free=freeIntervals)
+func.changeFieldOutputFreq(modelName,
+	quasiStatic=qsFieldIntervals, forceRmv = rmvFieldIntervals,
+	free=freeFieldIntervals)
 
 
 
@@ -368,8 +375,7 @@ if forceCollapse:
 	#Change amplitude of slab load in force step
 	func.changeSlabLoad(M, x, z, y, stepName, amplitude='linIncrease')
 
-	#Set output frequency of step
-	func.setOutputIntervals(modelName,stepName, loadIntervals)
+	
 
 
 
@@ -427,7 +433,7 @@ if parameter:
 		
 	#=========== Seed  ============#
 	paraLst = [1500, 500, 300]
-
+	freeFieldIntervals={1500:27, 500:45, 300:55}
 
 	for para in paraLst:
 		
@@ -440,6 +446,11 @@ if parameter:
 		#=========== Change parameter  ============#
 		
 		beam.mesh(M, seed = para, slabSeedFactor=1.0)
+
+
+		#Change field output to match implicit analyses
+		func.changeFieldOutputFreq(modelName,
+			free=freeFieldIntervals[para])
 
 		M.rootAssembly.regenerate()
 

@@ -122,7 +122,7 @@ del M.historyOutputRequests['H-Output-1']
 
 #Energies
 M.HistoryOutputRequest(name='Energy', 
-	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
+	createStepName=stepName, variables=('ALLIE', 'ALLKE'),)
 
 #R2 at all col-bases
 M.HistoryOutputRequest(createStepName='static', name='R2',

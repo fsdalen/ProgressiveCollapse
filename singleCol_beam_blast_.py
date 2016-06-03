@@ -10,11 +10,11 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'beamIncident'
+mdbName        = 'beamIncident-90deg'
 cpus           = 1			#Number of CPU's
 monitor        = 0
 
-run            = 0
+run            = 1
 
 blastTime      = 0.02	#Takes around 0.03 for the wave to pass the building
 
@@ -77,8 +77,8 @@ M.ExplicitDynamicsStep(name=stepName, previous=oldStep,
 #Create blast
 func.addIncidentWave(modelName, stepName,
 	AmpFile= 'blastAmp.txt',
-	sourceCo = (-10000.0, 0.0, 0.0),
-	refCo = (-1000.0, 0.0, 0.0))
+	sourceCo = (100.0, -100000.0, 0.0),
+	refCo = (100.0, -1000.0, 0.0))
 
 
 

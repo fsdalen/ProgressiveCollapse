@@ -10,14 +10,14 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName     = 'shellConWep'
+mdbName     = 'singleColBlastShell'
 cpus        = 1			#Number of CPU's
 monitor     = 0
 
-run         = 0
+run         = 1
 
 blastTime   = 0.02
-TNT         = 1.0	#tonns of tnt
+TNT         = 10.0	#tonns of tnt
 
 
 seed        = 150.0
@@ -87,7 +87,7 @@ func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 
 # #Incident wave
 # func.addIncidentWave(modelName, stepName,
-# 	AmpFile = 'blastAmp.txt',
+# 	AmpFile = 'conwepReflected.txt',
 # 	sourceCo = (-10000.0, 0.0, 0.0),
 # 	refCo = (-1000.0, 0.0, 0.0))
 	
@@ -108,7 +108,7 @@ func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 M.fieldOutputRequests['F-Output-1'].setValues(numIntervals=fieldIntervals)
 
 M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),
+    createStepName=stepName, variables=('STATUS',), #'SDEG', 'DMICRT',),
     numIntervals=fieldIntervals)
 
 #IWCONWEP field output

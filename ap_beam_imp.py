@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-modelName   = 'apBeamImpCollapseD4'
+modelName      = 'apBeamImpCollapse'
 cpus           = 8			#Number of CPU's
 
 run            = 1
@@ -40,11 +40,11 @@ static_maxInc  = 50 		#Maximum number of increments
 #Single APM
 APMcol        = 'COLUMN_D4-1'
 
-rmvStepTime   = 20e-3		#Also used in MuliAPM (Fu uses 20e-3)
+rmvStepTime   = 20e-3		
 dynStepTime   = 4.0
 
 dynamic_InInc = 0.1
-dynamic_MaxInc= 1000
+dynamic_MaxInc= 500
 
 
 #Itterations, not in use
@@ -58,7 +58,7 @@ limit         = 0.1733	#Correct limit for PEEQ = 0.1733
 
 #=========== Force collapse  ============#
 loadTime       = 5.0
-loadFactor     = 50.0
+loadFactor     = 35.0
 
 
 
@@ -136,19 +136,23 @@ LL=LL_kN_m * 1.0e-3   #N/mm^2
 func.addSlabLoad(M, x, z, y, stepName, LL)
 
 
+#Detete default output
+del M.fieldOutputRequests['F-Output-1']
+del M.historyOutputRequests['H-Output-1']
 
-
+#Displacement field output
+M.FieldOutputRequest(name='U', createStepName=stepName, 
+    variables=('U', ))
+M.FieldOutputRequest(name='Status', createStepName=stepName, 
+    variables=('STATUS', ))
 
 #Field output: damage
-M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
-
-#Delete default history output
-del M.historyOutputRequests['H-Output-1']
+# M.FieldOutputRequest(name='damage', 
+    # createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'))
 
 #Create history output for energies
 M.HistoryOutputRequest(name='Energy', 
-	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
+	createStepName=stepName, variables=('ALLIE', 'ALLKE'),)
 
 #R2 at all col-bases
 M.HistoryOutputRequest(createStepName='static', name='R2',
@@ -200,9 +204,9 @@ if forceCollapse:
 	#Create new loading step
 	oldStep = stepName
 	stepName='loading'
-	M.ImplicitDynamicsStep(initialInc=0.01, minInc=1e-06,
+	M.ImplicitDynamicsStep(initialInc=0.01, minInc=0.0001,
 		name=stepName, previous=oldStep, timePeriod=loadTime, nlgeom=ON,
-		maxNumInc=1000)
+		maxNumInc=dynamic_MaxInc)
 
 
 	#Create linear amplitude
@@ -242,8 +246,8 @@ if run:
 	print 'Post processing...'
 
 	
-	#Contour
-	func.countourPrint(modelName, defScale, printFormat)
+	# #Contour
+	# func.countourPrint(modelName, defScale, printFormat)
 
 	#Energy
 	func.xyEnergyPlot(modelName)

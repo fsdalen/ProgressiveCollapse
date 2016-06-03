@@ -134,7 +134,7 @@ M.FieldOutputRequest(name='damage',
 del M.historyOutputRequests['H-Output-1']
 
 M.HistoryOutputRequest(name='Energy', 
-	createStepName=stepName, variables=('ALLIE', 'ALLKE', 'ALLWK'),)
+	createStepName=stepName, variables=('ALLIE', 'ALLKE'),)
 
 #R2 history at colBases
 M.HistoryOutputRequest(createStepName=stepName, name='R2',

@@ -28,11 +28,11 @@ from lib import func as func
 #=======================================================#
 
 
-modelName = 'ConWepPressure'
+modelName = 'ConWepPressure1c5m'
 run       = 1
-TNT       = 1.0 	#(tonn)
-standoff  = 19000.0
-intervals = 1000
+TNT       = 10.0 	#(tonn)
+standoff  = 1500.0
+intervals = 500
 blastType = SURFACE_BLAST	#AIR_BLAST or SURFACE_BLAST
 
 
@@ -206,7 +206,7 @@ func.XYplot(modelName,
     xHead='Time [s]', yHead='Pressure [MPa]',
     xyDat= xy1)
 func.XYplot(modelName, 
-    lotName = 'reflectedPressure'+str(int(standoff/1000))+'m',
+    plotName = 'reflectedPressure'+str(int(standoff/1000))+'m',
     xHead='Time [s]', yHead='Pressure [MPa]',
     xyDat= xy2)
 
