@@ -14,7 +14,7 @@ mdbName     = 'singleColBlastShell'
 cpus        = 1			#Number of CPU's
 monitor     = 0
 
-run         = 1
+run         = 0
 
 blastTime   = 0.02
 TNT         = 10.0	#tonns of tnt
@@ -85,11 +85,11 @@ func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
 	coordinates = (-10000.0, 0.0, 0.0),
 	timeOfBlast =0.0, stepName=stepName)
 
-# #Incident wave
-# func.addIncidentWave(modelName, stepName,
-# 	AmpFile = 'conwepReflected.txt',
-# 	sourceCo = (-10000.0, 0.0, 0.0),
-# 	refCo = (-1000.0, 0.0, 0.0))
+#Incident wave
+func.addIncidentWave(modelName, stepName,
+	AmpFile = 'blastAmp.txt',
+	sourceCo = (-10000.0, 0.0, 0.0),
+	refCo = (-1000.0, 0.0, 0.0))
 	
 # #Pressure load
 # singleCol.pressureLoad(modelName, stepName,

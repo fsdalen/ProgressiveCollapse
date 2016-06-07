@@ -418,6 +418,87 @@ def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
 
 
 
+#===========================================================#
+#===========================================================#
+#                   AP functions                            #
+#===========================================================#
+#===========================================================#
+
+def rmvCol(modelName, stepName, column):
+	'''
+	Creates a model change deactivation elements of column in given step.
+	Column must be given as 'B3-1'
+	'''
+
+	M=mdb.models[modelName]
+
+	#Get coordinates for column
+	dic = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4}
+	x = dic[column[0]]
+	y = int(column[3])-1
+	z = int(column[1])-1
+
+	#Get elements to remove
+	elements = M.parts['FRAME'].elements.getByBoundingCylinder(
+		center1=(x*7500,y*3000,z*7500), center2=(x*7500,y*3000+2850,z*7500), radius=213.0)
+	M.parts['FRAME'].Set(elements=elements, name='rmvCol')
+	reg = M.rootAssembly.instances['FRAME-1'].sets['rmvCol']
+
+	#Create model change
+	M.ModelChange(name='elmRmv', createStepName=stepName, 
+	    region=reg, regionType=ELEMENTS, activeInStep=False, includeStrain=False)
+
+
+
+
+
+def rmvColBC(modelName, stepName, column):
+	'''
+	Removes the column base BC for column in given step
+	Column must be given as 'B3-1'
+	'''
+
+	M=mdb.models[modelName]
+
+
+	#=========== Create set ============#
+	#Set will contain all column bases except one
+	
+	#Get coordinates for column (0-indexed)
+	dic = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4}
+	x = dic[column[0]]
+	z = int(column[1])-1
+
+	#Removal col bot set
+	M.parts['FRAME'].Set(edges=
+	    M.parts['FRAME'].edges.getByBoundingBox(
+	    x*7500-200, -1, z*7500-200,
+	    x*7500+200,  1, z*7500+200), 
+	    name='rmvColBot')
+
+	#Set with all colBot except removal col
+	M.parts['FRAME'].SetByBoolean(name='colBot-rmvCol', operation=
+	    DIFFERENCE, sets=(
+	    M.parts['FRAME'].sets['colBot'], 
+	    M.parts['FRAME'].sets['rmvColBot']))
+
+
+	#=========== BCs  ============#
+	#Deactivate old BC in step
+	M.boundaryConditions['BC-1'].deactivate(stepName)
+
+	#New BC
+	mdb.models['shellBlast'].DisplacementBC(createStepName=stepName,
+	    distributionType=UNIFORM, name='BC-2', region=
+	    M.rootAssembly.instances['FRAME-1'].sets['colBot-rmvCol'], 
+	    u1=0.0, u2=0.0, u3=0.0, ur1=0.0, ur2=0.0, ur3=0.0)
+
+
+
+
+
+
+
 
 
 
@@ -561,9 +642,9 @@ def xyUcolTop(modelName, column):
 	#Create XY-curve
 	xyU1colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u1Name, 
 		suppressQuery=True, name='U1colTop')
-	xyU2colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u3Name, 
+	xyU2colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u2Name, 
 		suppressQuery=True, name='U2colTop')
-	xyU3colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u2Name, 
+	xyU3colTop = xyPlot.XYDataFromHistory(odb=odb, outputVariableName=u3Name, 
 		suppressQuery=True, name='U3colTop')
 	
 	#Plot

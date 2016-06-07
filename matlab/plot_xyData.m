@@ -24,9 +24,9 @@ clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Modify apparance of plot
-fontSize =  12;   %Font width of axis, legend 90%, axis title 110% of this
-linWidth =  1.0;     
-figSize =  [700 700];   %[width height]
+fontSize =  16;   %Font width of axis, legend 90%, axis title 110% of this
+linWidth =  1.20;     
+figSize =  [700 400];   %[width height]
 %xLimit = [0 4];      %comment out gives auto
 %yLimit = [-3.0 0.2];   %comment out gives auto
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

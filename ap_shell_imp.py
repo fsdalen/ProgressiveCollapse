@@ -1,7 +1,7 @@
 #Abaqus modules
 from abaqus import *
 from abaqusConstants import *
-
+from mesh import *
 
 #=======================================================#
 #=======================================================#
@@ -10,39 +10,59 @@ from abaqusConstants import *
 #=======================================================#
 
 
-mdbName        = 'staticShell'
-cpus           = 8			#Number of CPU's
-monitor        = 0
+modelName            = 'apShelImp'
+cpus                 = 8			#Number of CPU's
 
-run            = 1
+run                  = 1
+
+
+
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x10(5)
-x              = 4			#Nr of columns in x direction
-z              = 4			#Nr of columns in z direction
-y              = 5			#nr of stories
+x                    = 4			#Nr of columns in x direction
+z                    = 4			#Nr of columns in z direction
+y                    = 5			#nr of stories
 
 
-#=========== Static analysis  ============#
+
+#=========== Static step  ============#
 static_Type    = 'general' 	#'general' or 'riks'
 static_InInc   = 0.1		# Initial increment
-static_MinIncr = 1e-9
-static_maxInc  = 50 		#Maximum number of increments for static step
+static_MinIncr = 1e-9		# Smalles allowed increment
+static_maxInc  = 50 		# Maximum number of increments 
+
+
+#=========== Implicit step  ============#
+#Single APM
+APMcol        = 'D4-1'
+
+rmvStepTime   = 20e-3		
+dynStepTime   = 2.0
+
+dynamic_InInc = 0.1
+dynamic_MaxInc= 500
+
+
+
 
 
 #=========== General  ============#
+monitor               = 1			#Write status of job continusly in Abaqus CAE
+
 #Live load
-LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
+LL_kN_m              = -0.5	        #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 150.0		#Global seed
-slabSeedFactor = 8			#Factor to scale slab seed
+seed                 = 150		    #Global seed
+slabSeedFactor 		 = 8			#Change seed of slab
+steelMatFile   = 'mat_15.inp'  #Damage parameter is a function of element size
 
 #Post
-defScale       = 1.0
-printFormat    = PNG 		#TIFF, PS, EPS, PNG, SVG
-animeFrameRate = 5
+defScale             = 1.0
+printFormat          = PNG 		     #TIFF, PS, EPS, PNG, SVG
+animeFrameRate       = 40
 
 
 
@@ -57,14 +77,16 @@ import lib.shell as shell
 reload(func)
 reload(shell)
 
-modelName   = mdbName
+
+mdbName = 'apShellImp'
+
 
 steel = 'DOMEX_S355'
 concrete = 'Concrete'
 rebarSteel = steel
 
 #Set up model with materials
-func.perliminary(monitor, modelName)
+func.perliminary(monitor, modelName,steelMatFile)
 
 M=mdb.models[modelName]
 
@@ -77,21 +99,11 @@ M=mdb.models[modelName]
 #==========================================================#
 #==========================================================#
 
-#Build geometry
-
-shell.createShellmod(modelName, x, z, y, seed, slabSeedFactor)
-
+#=========== Geometry  ============#
+shell.createShellmod(modelName, x, z, y,seed, slabSeedFactor)
 
 
-
-#================================================================#
-#================================================================#
-#                   STEP DEPENDENCIES                            #
-#================================================================#
-#================================================================#
-
-
-#=========== Step  ============#
+#=========== Static step  ============#
 oldStep = 'Initial'
 stepName = 'static'
 if static_Type == 'general':
@@ -103,20 +115,43 @@ elif static_Type == 'riks':
 		nlgeom=ON, initialArcInc=static_InInc, minArcInc=static_MinIncr,
 		maxNumInc=static_maxInc, maxLPF=1.0)
 
-#Add restart output
-M.steps[stepName].Restart(frequency=1)
-
-#=========== Loads  ============#
-# Gravity
+#Gravity
 M.Gravity(comp2=-9800.0, createStepName=stepName, 
-	distributionType=UNIFORM, field='', name='Gravity')
+	distributionType=UNIFORM, field='', name='Gravity',
+	amplitude = UNSET)
 
 #LL
 LL=LL_kN_m * 1.0e-3   #N/mm^2
-shell.surfaceTraction(modelName,stepName, x, z, y, load=LL)
+shell.surfaceTraction(modelName,stepName, x, z, y, load=LL, amp=UNSET)
+
+
+
+
+#=========== Coulumn removal step  ============#
+# Create step for column removal
+oldStep = stepName
+stepName = 'elmRemStep'
+M.ImplicitDynamicsStep( name=stepName,  previous=oldStep, 
+	initialInc=rmvStepTime, maxNumInc=50,
+	timeIncrementationMethod=FIXED, timePeriod=rmvStepTime,
+	nlgeom=ON)
+
+#Remove column
+shell.rmvCol(modelName, stepName, column=APMcol)
+
+
+
+#=========== Dynamic step  ============#
+#Create dynamic APM step
+oldStep = stepName
+stepName = 'dynamicStep'
+M.ImplicitDynamicsStep(initialInc=dynamic_InInc, minInc=5e-07, name=
+	stepName, previous=oldStep, timePeriod=dynStepTime, nlgeom=ON,
+	maxNumInc=dynamic_MaxInc)
 
 
 M.rootAssembly.regenerate()
+
 
 
 #=====================================================#
@@ -125,27 +160,37 @@ M.rootAssembly.regenerate()
 #=====================================================#
 #=====================================================#
 
-#Damage field output
-M.FieldOutputRequest(name='damage', 
-    createStepName=stepName, variables=('SDEG', 'DMICRT', 'STATUS'),)
 
-
-#Delete default history output
+#Detete default output
+del M.fieldOutputRequests['F-Output-1']
 del M.historyOutputRequests['H-Output-1']
 
+
+#Displacement field output
+M.FieldOutputRequest(name='U', createStepName='static', 
+    variables=('U', ))
+
+# #Status field output
+# M.FieldOutputRequest(name='Status', createStepName='quasiStatic', 
+#     variables=('STATUS', ))
+
+
+#History output: energy
 M.HistoryOutputRequest(name='Energy', 
-	createStepName=stepName, variables=('ALLIE', 'ALLKE'),)
+	createStepName='static', variables=('ALLIE', 'ALLKE'),)
 
 #R2 history at colBases
-M.HistoryOutputRequest(createStepName=stepName, name='R2',
+M.HistoryOutputRequest(createStepName='static', name='R2',
 	region=M.rootAssembly.allInstances['FRAME-1'].sets['colBot'],
     variables=('RF2', ))
+shell.histColTopU(modelName, stepName='static', column=APMcol       )
 
-#U2 at shell center
-M.rootAssembly.Set(name='centerSlab', nodes=
-    M.rootAssembly.instances['SLAB-1'].nodes[24:25])
-M.HistoryOutputRequest(createStepName=stepName, name='U2', 
-	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
+
+# #U2 at slab center (A1-1 slab)
+# M.rootAssembly.Set(name='centerSlab', nodes=
+#     M.rootAssembly.instances['SLAB-1'].nodes[24:25])
+# M.HistoryOutputRequest(createStepName=stepName, name='U2', 
+# 	region=M.rootAssembly.sets['centerSlab'], variables=('U2', ))
 
 
 
@@ -156,14 +201,14 @@ M.HistoryOutputRequest(createStepName=stepName, name='U2',
 #===========================================================#
 M.rootAssembly.regenerate()
 
-#Save model
-mdb.saveAs(pathName = mdbName + '.cae')
-
 #Create job
 mdb.Job(model=modelName, name=modelName, numCpus=cpus, numDomains=cpus)
 
 #Run job
 if run:
+	#Save model
+	mdb.saveAs(pathName = mdbName + '.cae')
+	#Run model
 	func.runJob(modelName)
 	#Write CPU time to file
 	func.readMsgFile(modelName, 'results.txt')
@@ -178,24 +223,32 @@ if run:
 
 	print 'Post processing...'
 
-	
 	# #Contour
 	# func.countourPrint(modelName, defScale, printFormat)
 
-	# #Animation
-	# func.animate(modelName, defScale, frameRate= animeFrameRate)
+	#Animation
+	#func.animate(modelName, defScale, frameRate= animeFrameRate)
 
 	#Energy
 	func.xyEnergyPlot(modelName)
 
+	#R2 at column base
+	shell.xyR2colBase(modelName, x,z)
 
-	# #R2 at column base
-	# shell.xyR2colBase(modelName, x,z, printFormat)
+
+	shell.xyUcolTop(modelName, column=APMcol       )
 	
-	#Force and displacement
-	shell.xyCenterU2_colBaseR2(modelName,x,z)
+	# #Force and displacement
+	# shell.xyCenterU2_colBaseR2(modelName,x,z)
 	
 	print '   done'
 
 
+
+
+
+
+
+
 print '###########    END OF SCRIPT    ###########'
+

@@ -26,8 +26,8 @@ clc;
 plotName = 'together';
 
 %Modify apparance of plot
-fontSize =  12;   %Font width of axis, legend 90%, axis title 110% of this
-linWidth =  1.0;     
+fontSize =  16;   %Font width of axis, legend 90%, axis title 110% of this
+linWidth =  1.2;     
 figSize =  [700 700];   %[width height]
 xLimit = [0.0 11.0];      %comment out gives auto
 yLimit = [0.0 3.5];   %comment out gives auto

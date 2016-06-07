@@ -22,6 +22,7 @@ import animation
 #Python modules
 import csv
 from datetime import datetime
+import glob
 
 
 
@@ -37,7 +38,7 @@ from datetime import datetime
 
 
 
-def perliminary(monitor, modelName, steelMatFile):
+def perliminary(monitor, modelName, steelMatFile='mat_75.inp'):
 	#Makes mouse clicks into physical coordinates
 	session.journalOptions.setValues(replayGeometry=COORDINATE,
 		recoverGeometry=COORDINATE)
@@ -856,7 +857,7 @@ def clearXY():
 		del session.xyDataObjects[data]
 
 
-def XYplot(modelName, plotName, xHead, yHead, xyDat):
+def XYplot(modelName, plotName, xHead, yHead, xyDat, reportFile='temp.txt'):
 	'''
 	Saves xy data to a tab separated .txt file with headers
 
@@ -872,7 +873,6 @@ def XYplot(modelName, plotName, xHead, yHead, xyDat):
 
 
 	#=========== Report using Abaqus function  ============#
-	reportFile = 'temp.txt'
 	session.writeXYReport(fileName=reportFile, appendMode=OFF, xyData=(xyDat, ))
 
 	#=========== Fix report file  ============#
@@ -907,7 +907,44 @@ def XYplot(modelName, plotName, xHead, yHead, xyDat):
 					b=None
 
 
+def fixAllTxtFilesInFolder():
 
+	files = glob.glob('*.txt')
+
+	for f in files:
+		xHead      = 'Time [s]'
+		yHead      = 'Displacement [mm]'
+		dot        = f.find('.txt')
+		name       = f[:dot]
+		reportFile = f
+		
+		#Create fileName for output
+		fileName = 'xyData_'+name+'.txt'
+
+		#Read abaqus report file
+		with open(reportFile, 'r') as f:
+		    lines = f.readlines()
+
+		#Write formated data to new file
+		a=None
+		b=None
+		with open(fileName, 'w') as f:
+			f.write('%s\t%s\n' %(xHead, yHead))
+			for line in lines:
+				lst = line.lstrip().rstrip().split()
+				if lst:
+					try:
+						a = float(lst[0])
+						b = float(lst[1])
+					except:
+						pass
+					if type(a) and type(b) is float:
+						f.write(lst[0])
+						f.write('\t')
+						f.write(lst[1])
+						f.write('\n')
+						a=None
+						b=None
 
 
 def countourPrint(modelName, defScale, printFormat):

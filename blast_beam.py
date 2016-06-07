@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-modelName      = 'blastBeam2m'
+modelName      = 'blastBeamSeed150f82m'
 cpus           = 8			#Number of CPU's
 
 run            = 1
@@ -48,9 +48,9 @@ monitor        = 0			#Write status of job continusly in Abaqus CAE
 LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 750.0		#Global seed
-slabSeedFactor = 1			#Change seed of slab
-steelMatFile   = 'mat_75.inp'  #Damage parameter is a function of element size
+seed           = 75.0		#Global seed
+slabSeedFactor = 8			#Change seed of slab
+steelMatFile   = 'mat_7.5.inp'  #Damage parameter is a function of element size
 
 #Post
 defScale       = 1.0

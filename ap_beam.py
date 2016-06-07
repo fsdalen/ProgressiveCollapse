@@ -10,15 +10,15 @@ from abaqusConstants import *
 #=======================================================#
 
 
-apModelName    = 'apBeamCollapse'
+apModelName    = 'apBeam15stExtraTime'
 cpus           = 8			#Number of CPU's
 
-run            = 0
+run            = 1
 
 parameter      = 0
 runPara		   = 0
 
-forceCollapse  = 1
+forceCollapse  = 0
 
 
 
@@ -26,7 +26,7 @@ forceCollapse  = 1
 #Size
 x              = 4			#Nr of columns in x direction
 z              = 4			#Nr of columns in z direction
-y              = 5			#nr of stories
+y              = 15			#nr of stories
 
 
 #=========== Static model  ============#
@@ -39,11 +39,11 @@ static_maxInc  = 50 		#Maximum number of increments
 #=========== Explicit AP model  ============#
 APMcol         = 'COLUMN_D4-1'		#Column to be removed
 
-qsTime         = 3.0 			#Quasi static time
+qsTime         = 5.0 			#Quasi static time
 rmvStepTime    = 20e-3				#How fast to remove column forces
-dynStepTime    = 4.00   	    #Length of free dynamic step (collapse:4.0)
+dynStepTime    = 5.00   	    #Length of free dynamic step (collapse:4.0)
 
-qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
+qsSmoothFactor = 0.6				#How fast to apply load with smooth amp
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
 nodalOpt = SINGLE #SINGLE or FULL

@@ -10,7 +10,7 @@ from abaqusConstants import *
 #=======================================================#
 
 
-modelName      = 'apBeamImpCollapse'
+modelName      = 'apBeamImp15st'
 cpus           = 8			#Number of CPU's
 
 run            = 1
@@ -18,7 +18,7 @@ run            = 1
 parameter      = 0
 runPara        = 0
 
-forceCollapse  = 1
+forceCollapse  = 0
 
 
 
@@ -26,7 +26,7 @@ forceCollapse  = 1
 #Size
 x              = 4			#Nr of columns in x direction
 z              = 4			#Nr of columns in z direction
-y              = 5			#nr of stories
+y              = 15			#nr of stories
 
 
 #=========== Static step  ============#
@@ -41,7 +41,7 @@ static_maxInc  = 50 		#Maximum number of increments
 APMcol        = 'COLUMN_D4-1'
 
 rmvStepTime   = 20e-3		
-dynStepTime   = 4.0
+dynStepTime   = 2.0
 
 dynamic_InInc = 0.1
 dynamic_MaxInc= 500
