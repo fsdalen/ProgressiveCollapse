@@ -31,7 +31,7 @@ import func
 #==============================================================#
 
 
-def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
+def createShellmod(modelName, x, z, y, seed, slabSeed):
 	'''
 	Builds a shell model without step
 	'''
@@ -196,7 +196,7 @@ def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
 	#Create part
 	gap = 0
 	s = M.ConstrainedSketch(name='__profile__', sheetSize= 10000.0)
-	s.rectangle(point1=(0.0, 0.0), point2=(beam_len-b-2*gap, beam_len))
+	s.rectangle(point1=(0.0, 0.0), point2=(beam_len-b*0-2*gap, beam_len))
 
 	M.Part(dimensionality=THREE_D, name='SLAB', type=DEFORMABLE_BODY)
 	M.parts['SLAB'].BaseShell(sketch=s)
@@ -268,7 +268,7 @@ def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
 					vector=(b*0.5+(beam_len)*a,(etg+1)*col_height,n*beam_len))
 	
 	#Beams in z-direction
-	for a in range(x):
+	for a in [0,x-1]:
 		for n in range(z-1):
 			for etg in range(y):
 				beamNr = beamNr+1
@@ -300,7 +300,7 @@ def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
 				#Translate
 				M.rootAssembly.translate(instanceList=(inst,),
 					vector=
-					(0.5*b+gap+a*beam_len, 0.5*b+(etg+1)*col_height, n*beam_len))
+					(a*beam_len, 0.5*b+(etg+1)*col_height, n*beam_len))
 
 
 
@@ -396,7 +396,7 @@ def createShellmod(modelName, x, z, y, seed, slabSeedFactor):
 	    minSizeFactor=0.1, size=seed)
 	M.parts['FRAME'].generateMesh()
 	M.parts['SLAB'].seedPart(deviationFactor=0.1, 
-	    minSizeFactor=0.1, size=seed*slabSeedFactor)
+	    minSizeFactor=0.1, size=slabSeed)
 	M.parts['SLAB'].generateMesh()
 
 	#Write nr of elements to results file
@@ -488,7 +488,7 @@ def rmvColBC(modelName, stepName, column):
 	M.boundaryConditions['BC-1'].deactivate(stepName)
 
 	#New BC
-	mdb.models['shellBlast'].DisplacementBC(createStepName=stepName,
+	M.DisplacementBC(createStepName=stepName,
 	    distributionType=UNIFORM, name='BC-2', region=
 	    M.rootAssembly.instances['FRAME-1'].sets['colBot-rmvCol'], 
 	    u1=0.0, u2=0.0, u3=0.0, ur1=0.0, ur2=0.0, ur3=0.0)

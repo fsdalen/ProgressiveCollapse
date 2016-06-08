@@ -10,7 +10,7 @@ from mesh import *
 #=======================================================#
 
 
-modelName            = 'shellBlastS4RS'
+modelName            = 'blastShellSeed15ton'
 cpus                 = 8			#Number of CPU's
 
 run                  = 1
@@ -33,7 +33,7 @@ blastTime            = 2.1
 
 qsSmoothFactor       = 0.75
 
-TNT                  = 1.0	         #tonns of tnt
+TNT                  = 15.0	         #tons of tnt
 blastCol             = 'D4-1'
 
 precision = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
@@ -47,8 +47,8 @@ monitor               = 0			#Write status of job continusly in Abaqus CAE
 LL_kN_m              = -0.5	        #kN/m^2 (-2.0)
 
 #Mesh
-seed                 = 150		    #Global seed
-slabSeedFactor 		 = 8			#Change seed of slab
+seed                 = 150.0	    #Frame seed
+slabSeed     		 = 750			#Slabseed
 steelMatFile   = 'mat_15.inp'  #Damage parameter is a function of element size
 
 #Post
@@ -96,7 +96,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #=========== Geometry  ============#
-shell.createShellmod(modelName, x, z, y,seed, slabSeedFactor)
+shell.createShellmod(modelName, x, z, y,seed, slabSeed)
 
 
 
@@ -136,27 +136,13 @@ dic = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4}
 xBlast = dic[blastCol[0]]
 zBlast = float(blastCol[1])-1
 func.addConWep(modelName, TNT = TNT, blastType=SURFACE_BLAST,
-	coordinates = (7500.0*xBlast + 10000.0, 500.0, 7500.0*zBlast),
+	coordinates = (7500.0*xBlast + 10000.0, 0.0, 7500.0*zBlast),
 	timeOfBlast = quasiTime, stepName=stepName)
 
 #Remove smooth step from other loads
 loads = M.loads.keys()
 for load in loads:
 	M.loads[load].setValuesInStep(stepName=stepName, amplitude=FREED)
-
-
-#Change element type to S4RS
-M.parts['SLAB'].setElementType(elemTypes=(ElemType(
-    elemCode=S4RS, elemLibrary=EXPLICIT, secondOrderAccuracy=OFF, 
-    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=EXPLICIT)), 
-    regions=(M.parts['SLAB'].faces.findAt(((2400.0, 
-    2500.0, 0.0), )), ))
-M.parts['FRAME'].setElementType(elemTypes=(ElemType(
-    elemCode=S4RS, elemLibrary=EXPLICIT, secondOrderAccuracy=OFF, 
-    hourglassControl=DEFAULT), ElemType(elemCode=S3R, elemLibrary=EXPLICIT, 
-    secondOrderAccuracy=OFF)), regions=(
-    M.parts['FRAME'].faces.getSequenceFromMask((
-    '[#ffffffff:41 #ffffff ]', ), ), ))
 
 
 

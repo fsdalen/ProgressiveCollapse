@@ -37,7 +37,7 @@ import func
 #===============================================================#
 
 
-def buildBeamMod(modelName, x, z, y, seed, slabSeedFactor):
+def buildBeamMod(modelName, x, z, y, seed, slabSeed):
 	'''
 	Builds a beam model without step
 	'''
@@ -86,7 +86,7 @@ def buildBeamMod(modelName, x, z, y, seed, slabSeedFactor):
 
 	#=========== Mesh  ============#
 
-	mesh(M, seed, slabSeedFactor)
+	mesh(M, seed, slabSeed)
 
 
 	#=========== Joints  ============#
@@ -359,7 +359,6 @@ def createAssembly(M, x, z, y, x_d, z_d, y_d):
 					vector=(x_d*a , y_d*(e+1), z_d*n))
 
 	#Beams in z (numb) direction
-	#a=0
 	for a in [0,x-1]:
 		for n in range(len(numb)-1):
 			for e in range(len(etg)):
@@ -395,21 +394,15 @@ def createAssembly(M, x, z, y, x_d, z_d, y_d):
 
 
 
-def mesh(M, seed, slabSeedFactor):
+def mesh(M, seed, slabSeed):
 	'''
-	Meshes all parts with a global seed.
-	Seed of slab may be different with a factor slabSeedFactor
-
-
-	Parameters.
-	M:		Model
-	seed:	Global seed
-	slabSeedFactor: Factor for having a different slab seed
+	Meshes all parts
+	Frame with seed and slabs with slabSeed
 	'''
 
 	#Same seed for beam and column
 	seed1 = seed2 = seed
-	seed3 = seed*slabSeedFactor
+	seed3 = slabSeed
 
 	analysisType = STANDARD  #Could be STANDARD or EXPLICIT
 		#This only controls what elements are available to choose from

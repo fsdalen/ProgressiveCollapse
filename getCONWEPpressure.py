@@ -28,10 +28,10 @@ from lib import func as func
 #=======================================================#
 
 
-modelName = 'ConWepPressure1c5m'
+modelName = 'ConWepPressure15ton9m'
 run       = 1
-TNT       = 10.0 	#(tonn)
-standoff  = 1500.0
+TNT       = 15.0 	#(tonn)
+standoff  = 9000.0
 intervals = 500
 blastType = SURFACE_BLAST	#AIR_BLAST or SURFACE_BLAST
 

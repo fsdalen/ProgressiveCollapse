@@ -10,10 +10,10 @@ from abaqusConstants import *
 #=======================================================#
 
 
-modelName      = 'blastBeamSeed150f82m'
+modelName      = 'blastBeam'
 cpus           = 8			#Number of CPU's
 
-run            = 1
+run            = 0
 
 parameter      = 0
 runPara        = 0
@@ -35,10 +35,10 @@ freeTime       = 2.0
 qsSmoothFacor  = 0.75	#When smooth step reaches full amplitude during QS step
 
 blastCol       = 'COLUMN_D4-1'
-blastAmp       = 'conwepIncident1c5m.txt'
+blastAmp       = 'blastAmp.txt'
 
-precision    =SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
-nodalOpt     =SINGLE #SINGLE or FULL
+precision   = SINGLE #SINGLE/ DOUBLE/ DOUBLE_CONSTRAINT_ONLY/ DOUBLE_PLUS_PACK
+nodalOpt    = SINGLE #SINGLE or FULL
 
 
 #=========== General  ============#
@@ -48,8 +48,8 @@ monitor        = 0			#Write status of job continusly in Abaqus CAE
 LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 75.0		#Global seed
-slabSeedFactor = 8			#Change seed of slab
+seed           = 150.0 		#Frame seed
+slabSeed       = 750.0		#Slab seed
 steelMatFile   = 'mat_7.5.inp'  #Damage parameter is a function of element size
 
 #Post
@@ -100,7 +100,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #Build geometry
-beam.buildBeamMod(modelName, x, z, y, seed, slabSeedFactor)
+beam.buildBeamMod(modelName, x, z, y, seed, slabSeed)
 
 
 
@@ -150,8 +150,8 @@ xBlast = dic[blastCol[7]]
 zBlast = float(blastCol[8])-1
 func.addIncidentWave(modelName, stepName,
 	AmpFile= blastAmp,
-	sourceCo =  (7500.0*xBlast + 2000.0, 500.0, 7500.0*zBlast),  # (7500.0*xBlast + 10000.0, 500.0, 7500.0*zBlast),
-	refCo =     (7500.0*xBlast +  500.0, 500.0, 7500.0*zBlast))  # (7500.0*xBlast +  1000.0, 500.0, 7500.0*zBlast))
+	sourceCo =  (7500.0*xBlast + 10000.0, 0.0, 7500.0*zBlast), 
+	refCo =     (7500.0*xBlast +  1000.0, 0.0, 7500.0*zBlast)) 
 
 
 #Remove smooth step from other loads

@@ -10,7 +10,7 @@ from mesh import *
 #=======================================================#
 
 
-modelName            = 'ap_shell'
+modelName            = 'apShell'
 cpus                 = 8			#Number of CPU's
 
 run                  = 1
@@ -29,9 +29,9 @@ y                    = 5			#nr of stories
 #=========== Explicit AP model  ============#
 APMcol         = 'D4-1'		#Column to be removed
 
-qsTime         = 3.0 			#Quasi static time
+qsTime         = 3.0 		    	#Quasi static time
 rmvStepTime    = 20e-3				#How fast to remove column forces
-dynStepTime    = 2.00   	    #Length of free dynamic step (collapse:4.0)
+dynStepTime    = 2.00   	       #Length of free dynamic step (collapse:4.0)
 
 qsSmoothFactor = 0.75				#How fast to apply load with smooth amp
 
@@ -48,7 +48,7 @@ LL_kN_m              = -0.5	        #kN/m^2 (-2.0)
 
 #Mesh
 seed                 = 150		    #Global seed
-slabSeedFactor 		 = 8			#Change seed of slab
+slabSeed    		 = 750			#Change seed of slab
 steelMatFile   = 'mat_15.inp'  #Damage parameter is a function of element size
 
 #Post
@@ -66,7 +66,7 @@ freeIntervals  = 200
 qsFieldIntervals    = 6
 rmvFieldIntervals   = 1
 freeFieldIntervals  = 45
-loadFieldIntervals  = 500
+
 
 #==========================================================#
 #==========================================================#
@@ -102,7 +102,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #=========== Geometry  ============#
-shell.createShellmod(modelName, x, z, y,seed, slabSeedFactor)
+shell.createShellmod(modelName, x, z, y,seed, slabSeed)
 
 
 

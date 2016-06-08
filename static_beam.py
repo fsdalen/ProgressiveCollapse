@@ -15,14 +15,14 @@ mdbName        = 'beamStatic'
 cpus           = 1			#Number of CPU's
 monitor        = 0
 
-run            = 1
+run            = 0
 
 
 #=========== Geometry  ============#
 #Size 	4x4  x5(10)
-x              = 2			#Nr of columns in x direction
-z              = 2			#Nr of columns in z direction
-y              = 1			#nr of stories
+x              = 4			#Nr of columns in x direction
+z              = 4			#Nr of columns in z direction
+y              = 5			#nr of stories
 
 
 #=========== Static analysis  ============#
@@ -37,8 +37,8 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 750.0		#Global seed
-slabSeedFactor = 1			#Change seed of slab
+seed           = 750.0		#Frame seed
+slabSeed       = 750.0 
 
 #Post
 defScale       = 1.0

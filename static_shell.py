@@ -11,10 +11,10 @@ from abaqusConstants import *
 
 
 mdbName        = 'staticShell'
-cpus           = 8			#Number of CPU's
+cpus           = 1			#Number of CPU's
 monitor        = 0
 
-run            = 1
+run            = 0
 
 
 #=========== Geometry  ============#
@@ -36,8 +36,9 @@ static_maxInc  = 50 		#Maximum number of increments for static step
 LL_kN_m        = -0.5	    #kN/m^2 (-2.0)
 
 #Mesh
-seed           = 150.0		#Global seed
-slabSeedFactor = 8			#Factor to scale slab seed
+seed           = 150.0		#Frame seed
+slabSeed       = 750.0		#
+
 
 #Post
 defScale       = 1.0
@@ -79,7 +80,7 @@ M=mdb.models[modelName]
 
 #Build geometry
 
-shell.createShellmod(modelName, x, z, y, seed, slabSeedFactor)
+shell.createShellmod(modelName, x, z, y, seed, slabSeed)
 
 
 

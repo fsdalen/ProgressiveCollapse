@@ -10,8 +10,8 @@ from mesh import *
 #=======================================================#
 
 
-modelName            = 'apShelImp'
-cpus                 = 8			#Number of CPU's
+modelName            = 'apShellImp'
+cpus                 = 1			#Number of CPU's
 
 run                  = 1
 
@@ -56,7 +56,7 @@ LL_kN_m              = -0.5	        #kN/m^2 (-2.0)
 
 #Mesh
 seed                 = 150		    #Global seed
-slabSeedFactor 		 = 8			#Change seed of slab
+slabSeed     		 = 750			#Change seed of slab
 steelMatFile   = 'mat_15.inp'  #Damage parameter is a function of element size
 
 #Post
@@ -100,7 +100,7 @@ M=mdb.models[modelName]
 #==========================================================#
 
 #=========== Geometry  ============#
-shell.createShellmod(modelName, x, z, y,seed, slabSeedFactor)
+shell.createShellmod(modelName, x, z, y,seed, slabSeed)
 
 
 #=========== Static step  ============#
@@ -236,7 +236,7 @@ if run:
 	shell.xyR2colBase(modelName, x,z)
 
 
-	shell.xyUcolTop(modelName, column=APMcol       )
+	shell.xyUcolTop(modelName, column=APMcol)
 	
 	# #Force and displacement
 	# shell.xyCenterU2_colBaseR2(modelName,x,z)
